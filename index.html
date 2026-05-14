@@ -2474,6 +2474,7 @@ body.light .hero::before {
       <div class="page-tab"         id="tab-merge"   onclick="showPage('merge')">⚙️ Zusammenführen</div>
       <div class="page-tab"         id="tab-upgrade" onclick="showPage('upgrade')">⬆ Versions-Update</div>
       <div class="page-tab"         id="tab-convert" onclick="showPage('convert')">🔄 Konvertieren</div>
+      <div class="page-tab"         id="tab-community" onclick="showPage('community')">🌍 Public Packs</div>
     </div>
 
     <!-- ── BUILDER ── -->
@@ -2784,8 +2785,103 @@ body.light .hero::before {
       <div class="app-status" id="convStatus"></div>
     </div>
 
+    <!-- ══ PUBLIC PACKS TAB ══════════════════════════════════════════ -->
+    <div class="page" id="page-community">
+
+      <!-- Header -->
+      <div class="community-header">
+        <div>
+          <h2 class="community-title">🌍 Public Packs</h2>
+          <p class="community-sub">Von der Community geteilte Modpacks – direkt laden und bearbeiten</p>
+        </div>
+        <button class="share-pack-btn" onclick="openShareModal()">
+          ↑ Meinen Pack teilen
+        </button>
+      </div>
+
+      <!-- Filter & Search -->
+      <div class="community-filter-row">
+        <input class="community-search" id="communitySearch" placeholder="🔍 Pack suchen..." oninput="filterCommunityPacks()">
+        <div class="community-filter-chips">
+          <button class="comm-chip active" data-filter="all"    onclick="setCommunityFilter('all',this)">Alle</button>
+          <button class="comm-chip"        data-filter="modrinth" onclick="setCommunityFilter('modrinth',this)">🟢 Modrinth</button>
+          <button class="comm-chip"        data-filter="curseforge" onclick="setCommunityFilter('curseforge',this)">🟠 CurseForge</button>
+          <button class="comm-chip"        data-filter="pvp"    onclick="setCommunityFilter('pvp',this)">⚔ PvP</button>
+          <button class="comm-chip"        data-filter="performance" onclick="setCommunityFilter('performance',this)">⚡ Performance</button>
+          <button class="comm-chip"        data-filter="survival" onclick="setCommunityFilter('survival',this)">🌲 Survival</button>
+        </div>
+      </div>
+
+      <!-- Packs Grid -->
+      <div class="community-grid" id="communityGrid">
+        <div class="comm-loading" id="commLoading">
+          <div class="comm-spinner"></div>
+          <span>Lade Packs...</span>
+        </div>
+      </div>
+
+    </div>
+
   </div><!-- /app-wrap -->
   </div><!-- /app-outer -->
+
+  <!-- ══ SHARE PACK MODAL ═══════════════════════════════════════════ -->
+  <div class="profiles-overlay" id="shareOverlay">
+    <div class="profiles-modal" style="max-width:480px">
+      <div class="pm-header">
+        <h2>↑ Pack teilen</h2>
+        <button class="pm-close" onclick="document.getElementById('shareOverlay').classList.remove('open')">✕</button>
+      </div>
+      <div style="padding:.2rem 0 .5rem;display:flex;flex-direction:column;gap:.8rem">
+
+        <div id="shareNeedsMods" style="display:none;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:8px;padding:10px 12px;font-size:.8rem;color:var(--red)">
+          ⚠ Füge zuerst Mods zum Pack Builder hinzu!
+        </div>
+
+        <div>
+          <label style="font-size:.75rem;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">Pack-Name</label>
+          <input id="shareName" class="a-input" style="width:100%" placeholder="Mein Modpack">
+        </div>
+
+        <div>
+          <label style="font-size:.75rem;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">Beschreibung (optional)</label>
+          <textarea id="shareDesc" class="a-input" style="width:100%;resize:vertical;min-height:70px" placeholder="Wofür ist der Pack? Welche Mods sind enthalten?"></textarea>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem">
+          <div>
+            <label style="font-size:.75rem;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">Kategorie</label>
+            <select id="shareCategory" class="a-input" style="width:100%">
+              <option value="general">Allgemein</option>
+              <option value="pvp">⚔ PvP</option>
+              <option value="performance">⚡ Performance</option>
+              <option value="survival">🌲 Survival</option>
+              <option value="tech">⚙ Technik</option>
+              <option value="modded">🔮 Modded</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:.75rem;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">Plattform</label>
+            <input class="a-input" style="width:100%;opacity:.6" value="" id="sharePlatformDisplay" readonly>
+          </div>
+        </div>
+
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 12px">
+          <div style="font-size:.72rem;font-weight:700;color:var(--muted);margin-bottom:6px">PACK INHALT</div>
+          <div id="sharePreviewList" style="font-size:.77rem;color:var(--sub);max-height:120px;overflow-y:auto"></div>
+        </div>
+
+        <div style="font-size:.72rem;color:var(--muted);background:rgba(255,255,255,.03);border-radius:7px;padding:8px 10px">
+          🌍 Dein Pack ist für alle sichtbar. Dein Username wird angezeigt.
+        </div>
+
+        <button id="shareSubmitBtn" onclick="submitSharePack()" style="width:100%;padding:11px;border-radius:10px;border:none;background:var(--green);color:#000;font-family:var(--font);font-size:.88rem;font-weight:800;cursor:pointer">
+          🌍 Pack veröffentlichen
+        </button>
+        <div id="shareStatus" style="font-size:.77rem;text-align:center;color:var(--muted)"></div>
+      </div>
+    </div>
+  </div>
 
   <!-- VIP Modal -->
   <div class="profiles-overlay" id="vipOverlay" style="z-index:700">
@@ -5979,9 +6075,30 @@ function autoResizeAiInput(el) {
 
 const AI_PRESETS = {
   crystalpvp: {
-    name: 'Crystal PvP',
+    name: 'SMP Crystal PvP Pack',
     version: '1.21.1',
-    slugs: ['sodium','lithium','ferritecore','krypton','entityculling','dynamic-fps','clickcrystals','clientsidecrystals','hcscr','totem-counter','minihud','betterf3','appleskin','zoomify','no-hurt-cam','gamma-utils']
+    slugs: [
+      'anchoroptimizer', 'appleskin', 'architectury', 'bactromod',
+      'better-ping-display', 'betterhurtcam', 'bettershieldsounds', 'betterstats',
+      'cape-provider', 'chunky-fabric', 'clickcrystals', 'cloth-config',
+      'crosshairaddons', 'cullleaves', 'dynamic-fps', 'entityculling',
+      'exordium', 'fabric-api', 'fabric-language-kotlin', 'fastexp',
+      'fastquit', 'gamma-utils', 'herosanchoroptimizer', 'holo-damage-indicator',
+      'hologram-api', 'hotbar-keys', 'hotbar-presets', 'immediatelyfast',
+      'inventoryhud', 'jade', 'joinautosprintmod', 'justzoom',
+      'konkrete', 'krypton', 'libipn', 'litematica',
+      'lithium', 'malilib', 'marlow-crystal-optimizer', 'midnightlib',
+      'modmenu', 'moreculling', 'mousetweaks', 'myresourcepack',
+      'no-resource-pack-warnings', 'no-death-animation', 'no-fog',
+      'packetfixer', 'placeholder-api', 'potioncounter', 'ptp',
+      'pvpoptimizer', 'reeses-sodium-options', 'reflex', 'remove-warden-effect',
+      'remove-reloading-screen', 'screenshotmetadata', 'searchables', 'secondchat',
+      'serverpingerfixer', 'shield-status', 'shulkerboxtooltip', 'simpleresourceloader',
+      'smooth-boot', 'smoothjoin', 'snappy-tappy', 'sodium',
+      'sodium-extra', 'sound-controller', 'sprint-after-death', 'status-effect-bars',
+      'totem-counter', 'ukulib', 'simple-voice-chat', 'voxy',
+      'wi-freecam', 'xaeros-minimap', 'xaeros-world-map', 'yacl'
+    ]
   },
   performance: {
     name: 'Pure Performance',

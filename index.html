@@ -2862,7 +2862,7 @@ body.light .hero::before {
           </div>
           <div>
             <label style="font-size:.75rem;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">Plattform</label>
-            <input class="a-input" style="width:100%;opacity:.6" value="" id="sharePlatformDisplay" readonly>
+            <input class="a-input" style="width:100%;opacity:.85;cursor:default" id="sharePlatformDisplay" readonly placeholder="Wird automatisch gesetzt">
           </div>
         </div>
 
@@ -5024,31 +5024,125 @@ function openShareModal() {
     showToast('⚠ Keine Mods im Pack zum Teilen!');
     return;
   }
-  const packName = document.getElementById('packName').value.trim() || 'Crystal PvP Pack';
+
+  // Fill pack name
+  const packName = document.getElementById('packName').value.trim() || 'Mein Modpack';
+  const nameEl = document.getElementById('shareName');
+  if (nameEl) nameEl.value = packName;
+
+  // Fill platform display
+  const platEl = document.getElementById('sharePlatformDisplay');
+  if (platEl) {
+    platEl.value = selectedPlatform === 'modrinth' ? 'Modrinth (.mrpack)'
+                 : selectedPlatform === 'curseforge' ? 'CurseForge (.zip)'
+                 : 'Nicht gewählt';
+  }
+
+  // Fill pack content preview
+  const previewEl = document.getElementById('sharePreviewList');
+  if (previewEl) {
+    const all = [...MODS, ...RESOURCEPACKS];
+    if (all.length === 0) {
+      previewEl.innerHTML = '<span style="color:var(--muted)">Keine Mods</span>';
+    } else {
+      previewEl.innerHTML = all.map(m =>
+        `<div style="padding:2px 0;display:flex;gap:6px;align-items:center">
+          <span style="color:var(--green);font-size:.7rem">✓</span>
+          <span style="color:var(--text);font-weight:600">${esc(m.name)}</span>
+          <span style="color:var(--muted);font-size:.68rem">${esc(m.slug)}</span>
+        </div>`
+      ).join('');
+    }
+  }
+
+  // Show/hide needs-mods warning
+  const warnEl = document.getElementById('shareNeedsMods');
+  if (warnEl) warnEl.style.display = MODS.length ? 'none' : 'block';
+
+  // Clear status
+  const statusEl = document.getElementById('shareStatus');
+  if (statusEl) statusEl.textContent = '';
+
+  document.getElementById('shareOverlay').classList.add('open');
+}
+
+async function submitSharePack() {
+  const btn = document.getElementById('shareSubmitBtn');
+  const statusEl = document.getElementById('shareStatus');
+
+  if (!currentUser) {
+    statusEl.textContent = '⚠ Bitte zuerst anmelden!';
+    statusEl.style.color = 'var(--red)';
+    setTimeout(() => openAuth(), 600);
+    return;
+  }
+
+  if (!MODS.length && !RESOURCEPACKS.length) {
+    statusEl.textContent = '⚠ Keine Mods im Pack!';
+    statusEl.style.color = 'var(--red)';
+    return;
+  }
+
+  const name     = document.getElementById('shareName')?.value.trim() || document.getElementById('packName').value.trim() || 'Mein Modpack';
+  const desc     = document.getElementById('shareDesc')?.value.trim() || '';
+  const category = document.getElementById('shareCategory')?.value || 'general';
   const mcVer    = document.getElementById('mcVersion').value;
-  const data = {
-    name: packName,
-    mc:   mcVer,
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Wird veröffentlicht...';
+  statusEl.textContent = '';
+
+  // Build shareable URL-encoded pack data
+  const packData = {
+    name, mc: mcVer,
     mods: MODS.map(m => ({ s: m.slug, n: m.name, c: m.cat })),
     rps:  RESOURCEPACKS.map(r => ({ s: r.slug, n: r.name }))
   };
-  const encoded  = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
+  const encoded  = btoa(unescape(encodeURIComponent(JSON.stringify(packData))));
   const shareUrl = location.origin + location.pathname + '?pack=' + encoded;
-  document.getElementById('shareUrlInput').value = shareUrl;
-  window._shareUrl = shareUrl;
 
-  // Pack summary
-  const modCount = MODS.length;
-  const rpCount  = RESOURCEPACKS.length;
-  const summary  = document.getElementById('shareSummary');
-  summary.innerHTML =
-    '<b style="color:var(--text)">' + packName + '</b><br>' +
-    '📦 MC ' + mcVer + ' &nbsp;·&nbsp; ' +
-    '🧩 ' + modCount + ' Mod' + (modCount !== 1 ? 's' : '') +
-    (rpCount ? ' &nbsp;·&nbsp; 🎨 ' + rpCount + ' Texture Pack' + (rpCount !== 1 ? 's' : '') : '');
+  try {
+    const { error } = await sb.from('public_packs').insert({
+      name,
+      description: desc,
+      category,
+      platform: selectedPlatform || 'modrinth',
+      mc_version: mcVer,
+      mods: MODS.map(m => ({ slug: m.slug, name: m.name, cat: m.cat })),
+      resource_packs: RESOURCEPACKS.map(r => ({ slug: r.slug, name: r.name })),
+      share_url: shareUrl,
+      user_id: currentUser.id,
+      username: currentUser.email?.split('@')[0] || 'User',
+      mod_count: MODS.length,
+      likes: 0
+    });
 
-  document.getElementById('shareNote').textContent = '';
-  document.getElementById('shareOverlay').classList.add('open');
+    if (error) throw error;
+
+    btn.textContent = '✅ Veröffentlicht!';
+    btn.style.background = 'var(--green)';
+    statusEl.style.color = 'var(--green)';
+    statusEl.textContent = '🎉 Dein Pack ist jetzt öffentlich sichtbar!';
+
+    // Also copy share link
+    navigator.clipboard.writeText(shareUrl).catch(() => {});
+
+    setTimeout(() => {
+      document.getElementById('shareOverlay').classList.remove('open');
+      btn.disabled = false;
+      btn.textContent = '🌍 Pack veröffentlichen';
+      showToast('✅ Pack veröffentlicht & Link kopiert!');
+    }, 2000);
+
+  } catch (err) {
+    console.error(err);
+    // Fallback: just copy URL even if DB fails
+    navigator.clipboard.writeText(shareUrl).catch(() => {});
+    btn.disabled = false;
+    btn.textContent = '🌍 Pack veröffentlichen';
+    statusEl.style.color = 'var(--green)';
+    statusEl.textContent = '🔗 Share-Link kopiert! (Supabase-Tabelle noch nicht erstellt)';
+  }
 }
 
 function copyShareUrl() {

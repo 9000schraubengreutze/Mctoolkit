@@ -3288,13 +3288,79 @@ function showPage(p) {
   if (p==="fix")     tab.classList.add("fix");
   if (p==="upgrade") tab.classList.add("upgrade");
   if (p==="convert") tab.classList.add("convert");
-  if (p==="community") loadPublicPacks();
+  if (p === 'community') {
+    if (_communityLoaded) {
+      _allCommunityPacks = dedupeCommunityPacks(_allCommunityPacks);
+      renderCommunityPacks();
+    } else {
+      loadPublicPacks();
+    }
+  }
 }
 
 /* ══ PUBLIC PACKS ═══════════════════════════════════════════════ */
 let _allCommunityPacks = [];
 let _communityFilter   = 'all';
 let _communityLoaded   = false;
+
+function dedupeCommunityPacks(packs) {
+  const seen = new Set();
+  const out = [];
+  for (const p of packs) {
+    const keys = [];
+    if (p.pack_code) keys.push('c:' + String(p.pack_code).toUpperCase());
+    const nameKey = (p.name || '').trim().toLowerCase();
+    const ownerKey = (p.user_id || p.username || '').toString().toLowerCase();
+    keys.push('k:' + nameKey + '|' + ownerKey);
+    if (keys.some(k => seen.has(k))) continue;
+    keys.forEach(k => seen.add(k));
+    out.push(p);
+  }
+  return out;
+}
+
+function applyPublicPackData(data) {
+  if (!data) return false;
+  const mods = (data.mods || []).map(m => ({
+    slug: m.slug || m.project_id || '',
+    name: m.name || m.title || m.slug || 'Unbekannt',
+    cat: m.cat || 'Community'
+  })).filter(m => m.slug);
+  const rps = (data.resource_packs || []).map(r => ({
+    slug: r.slug || r.project_id || '',
+    name: r.name || r.title || r.slug || 'Unbekannt'
+  })).filter(r => r.slug);
+  if (!mods.length && !rps.length) return false;
+  MODS = mods;
+  RESOURCEPACKS = rps;
+  if (data.name) document.getElementById('packName').value = data.name;
+  if (data.mc_version) {
+    const sel = document.getElementById('mcVersion');
+    for (const opt of sel.options) {
+      if (opt.value === data.mc_version) { sel.value = opt.value; break; }
+    }
+  }
+  if (data.platform === 'modrinth' || data.platform === 'curseforge') {
+    selectedPlatform = data.platform;
+    try { localStorage.setItem('mctoolkit_platform', data.platform); } catch (_) {}
+    const ind = document.getElementById('platformIndicator');
+    if (ind) {
+      ind.style.display = 'flex';
+      document.getElementById('piDot').className = 'pi-dot ' + data.platform;
+      document.getElementById('piName').className = 'pi-name ' + data.platform;
+      document.getElementById('piName').textContent = data.platform === 'modrinth' ? 'Modrinth' : 'CurseForge';
+      document.getElementById('piFormat').textContent = data.platform === 'modrinth' ? '.mrpack' : '.zip';
+      const btn = document.getElementById('buildBtn');
+      if (btn) btn.textContent = data.platform === 'modrinth'
+        ? '⬇ .mrpack generieren & downloaden'
+        : '⬇ CurseForge .zip generieren & downloaden';
+    }
+  }
+  renderMods();
+  renderRPs();
+  if (typeof updateBuildBtn === 'function') updateBuildBtn();
+  return true;
+}
 
 async function loadPublicPacks(force = false) {
   if (_communityLoaded && !force) return;
@@ -3310,14 +3376,14 @@ async function loadPublicPacks(force = false) {
       .limit(50);
 
     if (error) throw error;
-    _allCommunityPacks = data || [];
+    _allCommunityPacks = dedupeCommunityPacks(data || []);
     _communityLoaded = true;
     renderCommunityPacks();
   } catch (err) {
     if (grid) grid.innerHTML = `
       <div class="comm-empty">
         ⚠ Fehler beim Laden.<br>
-        <span style="font-size:.75rem;color:var(--muted)">${err.message || 'Verbindungsfehler'}</span>
+        <span style="font-size:.75rem;color:var(--muted)">${esc(err.message || 'Verbindungsfehler')}</span>
         <br><button onclick="loadPublicPacks(true)" style="margin-top:.6rem;padding:5px 14px;border-radius:7px;border:1px solid var(--border);background:none;color:var(--sub);font-family:var(--font);font-size:.75rem;cursor:pointer">Nochmal versuchen</button>
       </div>`;
   }
@@ -3369,7 +3435,7 @@ function renderCommunityPacks() {
         <span>❤ ${p.likes || 0}</span>
       </div>
       <div class="comm-card-footer">
-        <button class="comm-load-btn" onclick="loadCommunityPack(${JSON.stringify(JSON.stringify(p))})">⬇ Laden & bearbeiten</button>
+        <button class="comm-load-btn" onclick="loadCommunityPackById('${p.id}')">⬇ Laden & bearbeiten</button>
         <button class="comm-like-btn" onclick="likeCommunityPack('${p.id}', this)">❤</button>
       </div>
     </div>`;
@@ -3387,22 +3453,18 @@ function filterCommunityPacks() {
   renderCommunityPacks();
 }
 
-function loadCommunityPack(jsonStr) {
-  try {
-    const p = JSON.parse(jsonStr);
-    if (p.mods)           MODS          = p.mods.map(m => ({ slug: m.slug, name: m.name, cat: m.cat || 'Community' }));
-    if (p.resource_packs) RESOURCEPACKS = p.resource_packs.map(r => ({ slug: r.slug, name: r.name }));
-    if (p.name) document.getElementById('packName').value = p.name;
-    if (p.mc_version) {
-      const sel = document.getElementById('mcVersion');
-      for (const opt of sel.options) { if (opt.value === p.mc_version) { sel.value = opt.value; break; } }
-    }
-    renderMods(); renderRPs();
-    showPage('builder');
-    showToast('✅ "' + p.name + '" geladen!');
-  } catch(e) {
-    showToast('⚠ Fehler beim Laden des Packs.');
+function loadCommunityPackById(id) {
+  const p = _allCommunityPacks.find(x => x.id === id);
+  if (!p) {
+    showToast('⚠ Pack nicht gefunden – bitte Seite neu laden.');
+    return;
   }
+  if (!applyPublicPackData(p)) {
+    showToast('⚠ Pack enthält keine gültigen Mods.');
+    return;
+  }
+  showPage('builder');
+  showToast('✅ "' + (p.name || 'Pack') + '" geladen – ' + MODS.length + ' Mods!');
 }
 
 async function likeCommunityPack(id, btn) {
@@ -5363,14 +5425,11 @@ async function loadPackByCode() {
     const { data, error } = await sb.from('public_packs').select('*').eq('pack_code', code).single();
     if (error || !data) { status.style.color='var(--red)'; status.textContent='❌ Code nicht gefunden.'; return; }
 
-    MODS          = (data.mods || []).map(m => ({ slug: m.slug, name: m.name, cat: m.cat || 'Geteilt' }));
-    RESOURCEPACKS = (data.resource_packs || []).map(r => ({ slug: r.slug, name: r.name }));
-    document.getElementById('packName').value = data.name || '';
-    if (data.mc_version) {
-      const sel = document.getElementById('mcVersion');
-      for (const opt of sel.options) { if (opt.value === data.mc_version) { sel.value = opt.value; break; } }
+    if (!applyPublicPackData(data)) {
+      status.style.color = 'var(--red)';
+      status.textContent = '⚠ Pack enthält keine gültigen Mods.';
+      return;
     }
-    renderMods(); renderRPs();
     document.getElementById('loadCodeOverlay').classList.remove('open');
     input.value = ''; status.textContent = '';
     showPage('builder');

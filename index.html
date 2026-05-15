@@ -5224,9 +5224,16 @@ async function submitSharePack() {
   const btn = document.getElementById('shareSubmitBtn');
   const statusEl = document.getElementById('shareStatus');
 
+  if (btn.disabled) return;
+  btn.disabled = true;
+  btn.textContent = '⏳ Wird veröffentlicht...';
+  statusEl.textContent = '';
+
   if (!currentUser) {
     statusEl.textContent = '⚠ Bitte zuerst anmelden!';
     statusEl.style.color = 'var(--red)';
+    btn.disabled = false;
+    btn.textContent = '🌍 Pack veröffentlichen';
     setTimeout(() => openAuth(), 600);
     return;
   }
@@ -5234,6 +5241,8 @@ async function submitSharePack() {
   if (!MODS.length && !RESOURCEPACKS.length) {
     statusEl.textContent = '⚠ Keine Mods im Pack!';
     statusEl.style.color = 'var(--red)';
+    btn.disabled = false;
+    btn.textContent = '🌍 Pack veröffentlichen';
     return;
   }
 
@@ -5241,10 +5250,6 @@ async function submitSharePack() {
   const desc     = document.getElementById('shareDesc')?.value.trim() || '';
   const category = document.getElementById('shareCategory')?.value || 'general';
   const mcVer    = document.getElementById('mcVersion').value;
-
-  btn.disabled = true;
-  btn.textContent = '⏳ Wird veröffentlicht...';
-  statusEl.textContent = '';
 
   // Build shareable URL-encoded pack data
   const packData = {
@@ -5336,36 +5341,12 @@ function loadFromUrl() {
       if ([...sel.options].some(o => o.value === data.mc)) sel.value = data.mc;
     }
     renderMods(); renderRPs();
-    // Clean URL
-    history.replaceState({}, '', location.pathname);
-
-    // Show welcome banner instead of platform overlay
-    const po = document.getElementById('platformOverlay');
-    if (po) po.style.display = 'none';
-    document.body.style.overflow = '';
-    document.documentElement.style.overflow = '';
-
-    // Scroll to app and show toast after short delay
-    setTimeout(() => {
-      document.getElementById('app').scrollIntoView({ behavior: 'smooth', block: 'start' });
-      showToast('✅ Pack geladen: ' + MODS.length + ' Mods für MC ' + (data.mc || '?') + '!', 4000);
-    }, 300);
-
-    // Show shared pack banner in builder
-    setTimeout(() => {
-      const existing = document.getElementById('sharedBanner');
-      if (existing) existing.remove();
-      const banner = document.createElement('div');
-      banner.id = 'sharedBanner';
-      banner.style.cssText = 'background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.3);border-radius:10px;padding:.85rem 1rem;margin-bottom:.8rem;display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:.8rem;color:var(--green);';
-      const packName = data.name || 'Geteilter Pack';
-      banner.innerHTML =
-        '<span>🔗 <b>' + esc(packName) + '</b> wurde aus einem Link geladen – ' + MODS.length + ' Mods, MC ' + (data.mc||'?') + '</span>' +
-        '<button onclick="selectPlatformAndBuild()" style="background:var(--green);border:none;border-radius:7px;color:#000;font-family:var(--font);font-size:.75rem;font-weight:800;padding:5px 14px;cursor:pointer;white-space:nowrap">⬇ Jetzt generieren</button>';
-      const listsWrap = document.querySelector('.lists-wrap');
-      if (listsWrap) listsWrap.parentNode.insertBefore(banner, listsWrap);
-    }, 800);
-  } catch(e) { /* malformed URL param */ }
+    // Clear URL so reload starts fresh
+    history.replaceState(null, '', location.pathname);
+    showToast('📦 Pack aus Link geladen!');
+  } catch(e) {
+    // ignore malformed pack params
+  }
 }
 
 function selectPlatformAndBuild() {

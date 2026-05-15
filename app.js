@@ -3214,25 +3214,30 @@ function autoResizeAiInput(el) {
 /* ══ BOLT AI ════════════════════════════════════════════════════ */
 const BOLT_NAME = 'Bolt';
 
-const BOLT_PERF_CORE = ['sodium', 'lithium', 'entityculling', 'dynamic-fps', 'ferritecore', 'krypton', 'immediatelyfast', 'moreculling', 'modernfix'];
+const BOLT_PERF_CORE = ['sodium', 'lithium', 'entityculling', 'dynamic-fps', 'ferritecore', 'krypton', 'immediatelyfast', 'moreculling', 'modernfix', 'iris', 'indium', 'sodium-extra', 'reeses-sodium-options', 'fabric-api', 'fabric-language-kotlin', 'cloth-config', 'modmenu', 'placeholder-api', 'architectury'];
+
+const BOLT_CLIENT_CHEAT = ['wurst', 'meteor-client', 'baritone', 'xray', 'x-ray', 'wi-freecam', 'freecam', 'aristois', 'impact', 'inertia', 'liquidbounce', 'sigma', 'bleachhack', 'future-client', 'phobos', 'kamiblue', 'rusherhack', 'gamesense', 'vape', 'entropy', 'novoline', 'meteor', 'forgehax'];
 
 const BOLT_SERVER_RULES = {
   hypixel: {
     label: 'Hypixel',
     forbidden: ['wurst', 'meteor-client', 'baritone', 'xray', 'x-ray', 'wi-freecam', 'freecam', 'aristois', 'impact', 'inertia', 'liquidbounce', 'sigma', 'bleachhack', 'future-client', 'phobos', 'kamiblue', 'rusherhack', 'gamesense', 'vape', 'entropy', 'novoline'],
-    risky: ['litematica', 'minihud', 'baritone', 'xaeros-world-map', 'journeymap', 'replaymod'],
-    note: 'Hypixel erlaubt Performance/QoL-Mods. Keine Hacked-Clients, Freecam, X-Ray, Baritone oder Map-Download.'
+    risky: ['litematica', 'minihud', 'xaeros-world-map', 'journeymap', 'replaymod'],
+    allowed: ['sodium', 'lithium', 'iris', 'ferritecore', 'entityculling', 'dynamic-fps', 'immediatelyfast', 'moreculling', 'krypton', 'badoptimizations', 'no-telemetry', 'appleskin', 'shulkerboxtooltip', 'modmenu', 'zoomify', 'yacl', 'fabric-api'],
+    note: 'Hypixel erlaubt Performance/QoL-Mods. Keine Hacked-Clients, Freecam, X-Ray oder Baritone.'
   },
   crystal: {
     label: 'Crystal PvP / Anarchy',
     forbidden: ['wurst', 'meteor-client', 'baritone', 'xray', 'aristois', 'impact', 'liquidbounce'],
     risky: ['wi-freecam', 'freecam'],
+    allowed: ['sodium', 'lithium', 'iris', 'marlow-crystal-optimizer', 'clickcrystals', 'pvpoptimizer', 'totem-counter', 'appleskin', 'fabric-api', 'modmenu'],
     note: 'Crystal-Server: Performance & Crystal-Mods OK. Keine Cheat-Clients.'
   },
   smp: {
     label: 'Privater SMP',
     forbidden: ['wurst', 'meteor-client', 'xray', 'aristois', 'impact', 'liquidbounce', 'sigma'],
     risky: [],
+    allowed: ['sodium', 'lithium', 'iris', 'ferritecore', 'jei', 'roughly-enough-items', 'waystones', 'journeymap', 'xaeros-minimap', 'appleskin', 'jade', 'fabric-api'],
     note: 'Private SMPs sind oft lockerer – Cheat-Clients trotzdem vermeiden.'
   }
 };
@@ -3240,13 +3245,25 @@ const BOLT_SERVER_RULES = {
 function initBoltMcSelect() {
   const src = document.getElementById('mcVersion');
   const tgt = document.getElementById('boltTargetMc');
-  if (!src || !tgt || tgt.options.length) return;
-  [...src.options].forEach(o => {
-    const opt = document.createElement('option');
-    opt.value = o.value;
-    opt.textContent = o.textContent;
-    tgt.appendChild(opt);
-  });
+  if (!src || !tgt) return;
+  if (!tgt.options.length) {
+    [...src.options].forEach(o => {
+      const opt = document.createElement('option');
+      opt.value = o.value;
+      opt.textContent = o.textContent;
+      tgt.appendChild(opt);
+    });
+  }
+  const cur = src.value;
+  const different = [...tgt.options].find(o => o.value !== cur);
+  if (different) tgt.value = different.value;
+}
+
+function boltEnsureChatVisible() {
+  const lock = document.getElementById('aiLockScreen');
+  const chat = document.getElementById('aiChatScreen');
+  if (lock) lock.style.display = 'none';
+  if (chat) { chat.classList.add('visible'); chat.style.display = 'flex'; }
 }
 
 function boltRequireAccess() {
@@ -3354,6 +3371,38 @@ function boltLocalMissingPerf() {
   return BOLT_PERF_CORE.filter(s => !slugs.has(s));
 }
 
+function boltLocalClientCheats() {
+  const hits = [];
+  MODS.forEach(m => {
+    if (BOLT_CLIENT_CHEAT.some(c => m.slug.includes(c) || c.includes(m.slug))) hits.push(m.slug);
+  });
+  return [...new Set(hits)];
+}
+
+function boltRemoveDuplicatesLocal() {
+  const dups = boltLocalDuplicates();
+  if (!dups.length) return [];
+  pushUndo();
+  const seen = new Set();
+  MODS = MODS.filter(m => { if (seen.has(m.slug)) return false; seen.add(m.slug); return true; });
+  renderMods();
+  return dups;
+}
+
+function boltApplyVersionReplacements(issues) {
+  const replaced = [];
+  pushUndo();
+  for (const issue of issues) {
+    if (!issue.replacement) continue;
+    const idx = MODS.findIndex(m => m.slug === issue.slug);
+    if (idx === -1) continue;
+    MODS[idx] = { slug: issue.replacement.slug, name: issue.replacement.name, cat: MODS[idx].cat || 'Bolt' };
+    replaced.push({ from: issue.slug, to: issue.replacement.slug, name: issue.replacement.name });
+  }
+  if (replaced.length) renderMods();
+  return replaced;
+}
+
 async function boltCollectVersionIssues(targetMc) {
   const issues = [];
   for (const m of MODS) {
@@ -3380,6 +3429,7 @@ async function boltCollectVersionIssues(targetMc) {
 
 async function boltRunWithUi(label, fn) {
   if (!boltRequireAccess()) return;
+  boltEnsureChatVisible();
   document.getElementById('aiSendBtn').disabled = true;
   appendAiMsg('user', '⚡ ' + label);
   appendTyping();
@@ -3410,27 +3460,29 @@ async function boltPackOptimize() {
     const ctx = boltGetPackContext();
     if (!ctx.count) return '⚠ Dein Pack ist leer — füge zuerst Mods im Builder hinzu.';
 
-    const dups = boltLocalDuplicates();
     const missingPerf = boltLocalMissingPerf();
+    const clientCheats = boltLocalClientCheats();
 
     let html = '<b>⚡ Bolt – Pack-Optimierung</b><br><br>';
-    if (dups.length) {
-      pushUndo();
-      const seen = new Set();
-      MODS = MODS.filter(m => { if (seen.has(m.slug)) return false; seen.add(m.slug); return true; });
-      renderMods();
-      html += '🗑 <b>Duplikate entfernt:</b> ' + dups.join(', ') + '<br>';
+
+    const dupsRemoved = boltRemoveDuplicatesLocal();
+    if (dupsRemoved.length) html += '🗑 <b>Duplikate entfernt:</b> ' + dupsRemoved.join(', ') + '<br>';
+
+    if (clientCheats.length) {
+      const result = await boltApplySlugs([], clientCheats);
+      html += '🚫 <b>Client-only / Cheat-Mods entfernt:</b> ' + result.removed.join(', ') + '<br>';
+      html += '<span style="font-size:.72rem;color:var(--muted)">Diese Mods sind reine Client-Cheats oder auf Servern riskant.</span><br>';
     }
 
     const userPrompt = `Analysiere dieses Fabric-Modpack für MC ${ctx.mc}:
 Name: ${ctx.name}
-Mods (${ctx.count}): ${ctx.slugs.join(', ')}
+Mods (${MODS.length}): ${MODS.map(m => m.slug).join(', ')}
 
 Aufgaben:
-1) Fehlende Performance-Basis ergänzen (z.B. ${missingPerf.slice(0, 5).join(', ') || 'sodium, lithium'})
-2) Überflüssige/redundante Mods entfernen
-3) Client-only oder problematische Mods markieren
-4) Kurz begründen`;
+1) Fehlende Performance-Basis ergänzen (z.B. ${missingPerf.slice(0, 6).join(', ') || 'sodium, lithium'})
+2) Überflüssige/redundante Mods entfernen (nicht Performance-Core!)
+3) Kurz begründen – pro Änderung eine Zeile in explain:
+Performance-Core NIEMALS entfernen: sodium, lithium, fabric-api, iris, indium`;
 
     const raw = await boltCallGroq(BOLT_SYSTEM, userPrompt, 1100);
     const display = raw.replace(/<BOLT_APPLY>[\s\S]*?<\/BOLT_APPLY>/gi, '').trim();
@@ -3456,75 +3508,101 @@ async function boltAutoFixExplain() {
 
     const mcV = ctx.mc;
     const issues = [];
-    const dups = boltLocalDuplicates();
-    dups.forEach(slug => issues.push({ type: 'duplicate', slug, name: slug, msg: 'Doppelter Eintrag' }));
+    const explanations = [];
+
+    const dupsRemoved = boltRemoveDuplicatesLocal();
+    if (dupsRemoved.length) {
+      issues.push({ type: 'duplicate', slug: '-', name: 'Duplikate', msg: 'Entfernt: ' + dupsRemoved.join(', ') });
+      explanations.push('Doppelte Slugs wurden automatisch entfernt, damit der Export sauber bleibt.');
+    }
 
     const depsAdded = [];
     for (const m of [...MODS]) {
       for (const dep of (DEP_MAP[m.slug] || [])) {
         if (!has(dep, 'mod')) {
           const res = await detectAndResolve(dep);
-          if (res && addResolved(res, 'Bolt-Dep')) depsAdded.push(res.name || dep);
+          if (res && addResolved(res, 'Bolt-Dep')) depsAdded.push((res.name || dep) + ' (für ' + m.name + ')');
         }
       }
     }
     if (depsAdded.length) {
       renderMods();
       issues.push({ type: 'dep', slug: '-', name: 'Dependencies', msg: 'Ergänzt: ' + depsAdded.join(', ') });
+      explanations.push('Fehlende Abhängigkeiten wurden ergänzt: ' + depsAdded.join(', '));
     }
 
-    const seen = new Set();
-    MODS = MODS.filter(m => { if (seen.has(m.slug)) return false; seen.add(m.slug); return true; });
-
-    for (let i = 0; i < Math.min(MODS.length, 25); i++) {
+    const versionIssues = [];
+    for (let i = 0; i < MODS.length; i++) {
       const m = MODS[i];
       const ver = await fetchVersion(m.slug, mcV, false);
       if (!ver) {
         let replacement = null;
         try {
-          const r = await fetch('https://api.modrinth.com/v2/search?query=' + encodeURIComponent(m.name) + '&limit=3&game_versions=["' + mcV + '"]&loaders=["fabric"]', { headers: { 'User-Agent': 'mctoolkit/1.0' } });
+          const r = await fetch('https://api.modrinth.com/v2/search?query=' + encodeURIComponent(m.name) + '&limit=5&game_versions=["' + mcV + '"]&loaders=["fabric"]', { headers: { 'User-Agent': 'mctoolkit/1.0' } });
           if (r.ok) {
             const hit = (await r.json()).hits?.find(h => h.slug !== m.slug);
-            if (hit) replacement = hit.slug + ' (' + hit.title + ')';
+            if (hit) replacement = { slug: hit.slug, name: hit.title };
           }
         } catch (_) {}
-        issues.push({ type: 'version', slug: m.slug, name: m.name, msg: 'Nicht für MC ' + mcV, replacement });
+        versionIssues.push({ slug: m.slug, name: m.name, replacement });
+        issues.push({
+          type: 'version', slug: m.slug, name: m.name,
+          msg: 'Nicht für MC ' + mcV,
+          replacement: replacement ? replacement.slug + ' (' + replacement.name + ')' : null
+        });
       }
-      await sleep(80);
+      await sleep(70);
     }
 
-    if (MODS.length > 25) {
-      issues.push({ type: 'info', slug: '-', name: 'Hinweis', msg: 'Nur die ersten 25 Mods versiongeprüft — nutze „Auto-Fix“ im Builder für alle.' });
+    const autoReplaced = boltApplyVersionReplacements(versionIssues);
+    if (autoReplaced.length) {
+      issues.push({ type: 'replaced', slug: '-', name: 'Ersatz-Mods', msg: autoReplaced.map(r => r.from + ' → ' + r.to).join(', ') });
+      explanations.push('Inkompatible Mods wurden durch Modrinth-Ersatz ersetzt.');
     }
 
-    let html = '<b>🔧 Bolt – Auto-Fix</b><br><br>';
-    if (!issues.filter(x => x.type !== 'dep').length && !depsAdded.length) {
-      html += '✅ Keine kritischen Probleme in der Stichprobe.<br>';
-    } else {
-      html += '<ul style="margin:.4rem 0;padding-left:1.1rem">';
+    let html = '<b>🔧 Bolt – Auto-Fix mit Erklärung</b><br><br>';
+    if (explanations.length) {
+      html += '<b>Was Bolt gemacht hat:</b><ul style="margin:.35rem 0 .6rem;padding-left:1.1rem">';
+      explanations.forEach(e => { html += '<li>' + esc(e) + '</li>'; });
+      html += '</ul>';
+    }
+    if (issues.length) {
+      html += '<b>Gefundene Punkte:</b><ul style="margin:.35rem 0;padding-left:1.1rem">';
       issues.forEach(i => {
         html += '<li><b>' + esc(i.name) + '</b>: ' + esc(i.msg);
-        if (i.replacement) html += ' → <code>' + esc(i.replacement) + '</code>';
+        if (i.replacement && typeof i.replacement === 'string') html += ' → <code>' + esc(i.replacement) + '</code>';
+        else if (i.replacement?.slug) html += ' → <code>' + esc(i.replacement.slug) + '</code>';
         html += '</li>';
       });
       html += '</ul>';
+    } else {
+      html += '✅ Keine kritischen Probleme gefunden.<br>';
     }
 
-    const issueText = issues.map(i => `- [${i.type}] ${i.name} (${i.slug}): ${i.msg}${i.replacement ? ' → Ersatz: ' + i.replacement : ''}`).join('\n');
+    const issueText = issues.map(i => {
+      let line = `- [${i.type}] ${i.name} (${i.slug}): ${i.msg}`;
+      if (i.replacement?.slug) line += ' → Ersatz: ' + i.replacement.slug;
+      else if (typeof i.replacement === 'string') line += ' → Ersatz: ' + i.replacement;
+      return line;
+    }).join('\n');
+
     const raw = await boltCallGroq(
       BOLT_SYSTEM,
-      `Erkläre diese Pack-Probleme verständlich auf Deutsch und was der Spieler tun sollte:\n${issueText || 'Keine Fehler — Pack sieht gut aus.'}\n\nPack: ${ctx.name}, MC ${ctx.mc}`,
-      900
+      `Erkläre dem Nutzer auf Deutsch – freundlich und konkret – was die folgenden Auto-Fix-Ergebnisse bedeuten und was er noch tun kann:\n${issueText || 'Keine Fehler — Pack sieht gut aus.'}\n\nBereits automatisch erledigt:\n${explanations.join('\n') || 'nichts'}\n\nPack: ${ctx.name}, MC ${mcV}`,
+      1000
     );
     html += '<br>' + boltFormatHtml(raw.replace(/<BOLT_APPLY>[\s\S]*?<\/BOLT_APPLY>/gi, '').trim());
 
-    const { add, remove } = boltParseApplyBlock(raw);
+    const { add, remove, explain } = boltParseApplyBlock(raw);
     if (add.length || remove.length) {
       const result = await boltApplySlugs(add, remove);
-      html += '<br><br>✅ Bolt hat zusätzlich angewendet: +' + (result.added.join(', ') || '—') + ' / −' + (result.removed.join(', ') || '—');
+      html += '<br><br>✅ <b>Zusätzlich angewendet:</b>';
+      if (result.added.length) html += '<br>+ ' + result.added.join(', ');
+      if (result.removed.length) html += '<br>− ' + result.removed.join(', ');
+      if (explain.length) html += '<br>' + explain.map(e => '• ' + esc(e)).join('<br>');
     }
 
-    html += '<br><br><button class="bolt-inline-btn" onclick="runAutoFix();showPage(\'builder\')">🔧 Vollständigen Auto-Fix im Builder öffnen</button>';
+    html += '<br><br><button class="bolt-inline-btn" onclick="runAutoFix();showPage(\'builder\')">🔧 Detail-Auto-Fix im Builder</button>';
     return html;
   });
 }
@@ -3552,15 +3630,20 @@ async function boltServerCheck() {
 
     const raw = await boltCallGroq(
       BOLT_SYSTEM,
-      `Server: ${rules.label}
+      `Server-Check: ${rules.label}
 Regel: ${rules.note}
-Pack-Mods: ${ctx.slugs.join(', ')}
+Erlaubte Mods (Beispiele): ${(rules.allowed || []).join(', ')}
+Pack-Mods: ${MODS.map(m => m.slug).join(', ')}
 
-Lokal erkannt verboten: ${forbidden.join(', ') || 'keine'}
-Lokal erkannt riskant: ${risky.join(', ') || 'keine'}
+Lokal verboten (werden entfernt): ${forbidden.join(', ') || 'keine'}
+Lokal riskant: ${risky.join(', ') || 'keine'}
 
-Gib Empfehlungen: was entfernen, was behalten, erlaubte Alternativen. Nutze BOLT_APPLY nur für remove/add Slugs die du wirklich empfiehlst.`,
-      1000
+Aufgabe:
+1) Erkläre was problematisch ist
+2) Für JEDEN entfernten Mod eine ERLAUBTE Alternative nennen (Modrinth slug) – z.B. statt Freecam: Zoomify
+3) Fehlende erlaubte Performance-Mods vorschlagen (add:)
+4) BOLT_APPLY mit remove + add + explain`,
+      1100
     );
     html += boltFormatHtml(raw.replace(/<BOLT_APPLY>[\s\S]*?<\/BOLT_APPLY>/gi, '').trim());
 
@@ -3587,42 +3670,63 @@ async function boltVersionUpdate() {
       return 'ℹ️ Zielversion ist bereits <b>' + esc(targetMc) + '</b>. Wähle eine andere Version im Dropdown.';
     }
 
-    const issues = await boltCollectVersionIssues(targetMc);
-
     let html = '<b>⬆ Bolt – Update auf MC ' + esc(targetMc) + '</b><br>';
-    html += 'Aktuell: <b>' + esc(ctx.mc) + '</b> → Ziel: <b>' + esc(targetMc) + '</b><br><br>';
+    html += 'Aktuell: <b>' + esc(ctx.mc) + '</b> → Ziel: <b>' + esc(targetMc) + '</b><br>';
+    html += '<span style="font-size:.72rem;color:var(--muted)">Prüfe alle ' + ctx.count + ' Mods auf Modrinth…</span><br><br>';
+
+    const issues = await boltCollectVersionIssues(targetMc);
+    const withReplacement = issues.filter(i => i.replacement);
+    const withoutReplacement = issues.filter(i => !i.replacement);
 
     if (!issues.length) {
       html += '✅ Alle Mods haben eine Version für <b>' + esc(targetMc) + '</b>!<br>';
       document.getElementById('mcVersion').value = targetMc;
+      html += '<br>📌 MC-Version im Builder auf <b>' + esc(targetMc) + '</b> gesetzt.';
       return html;
     }
 
-    html += '⚠ <b>' + issues.length + ' Mod(s) ohne passende Version:</b><ul style="margin:.4rem 0;padding-left:1.1rem">';
-    issues.forEach(i => {
-      html += '<li><b>' + esc(i.name) + '</b> (<code>' + esc(i.slug) + '</code>)';
-      if (i.replacement) html += ' → <code>' + esc(i.replacement.slug) + '</code>';
-      html += '</li>';
-    });
-    html += '</ul>';
+    const autoReplaced = boltApplyVersionReplacements(withReplacement);
+    if (autoReplaced.length) {
+      html += '✅ <b>Automatisch ersetzt (' + autoReplaced.length + '):</b><ul style="margin:.35rem 0;padding-left:1.1rem">';
+      autoReplaced.forEach(r => {
+        html += '<li><code>' + esc(r.from) + '</code> → <code>' + esc(r.to) + '</code> (' + esc(r.name) + ')</li>';
+      });
+      html += '</ul>';
+    }
+
+    if (withoutReplacement.length) {
+      html += '⚠ <b>Ohne Ersatz auf ' + esc(targetMc) + ':</b><ul style="margin:.35rem 0;padding-left:1.1rem">';
+      withoutReplacement.forEach(i => {
+        html += '<li><b>' + esc(i.name) + '</b> (<code>' + esc(i.slug) + '</code>)</li>';
+      });
+      html += '</ul>';
+    }
 
     const issueLines = issues.map(i =>
-      `- ${i.name} (${i.slug})${i.replacement ? ' → Ersatz: ' + i.replacement.slug + ' (' + i.replacement.name + ')' : ' → kein Ersatz'}`
+      `- ${i.name} (${i.slug})${i.replacement ? ' → Ersatz: ' + i.replacement.slug + ' (' + i.replacement.name + ')' : ' → kein Ersatz, ggf. entfernen'}`
     ).join('\n');
 
     const raw = await boltCallGroq(
       BOLT_SYSTEM,
-      `Der Nutzer will von MC ${ctx.mc} auf MC ${targetMc} updaten.\nProbleme:\n${issueLines}\n\nErkläre was zu tun ist. Bei Ersatz-Mods: remove alte slug, add neue slug in BOLT_APPLY.`,
+      `MC-Versions-Update: ${ctx.mc} → ${targetMc}
+Pack: ${ctx.name}
+
+Bereits automatisch ersetzt: ${autoReplaced.map(r => r.from + ' → ' + r.to).join(', ') || 'keine'}
+
+Probleme:\n${issueLines}
+
+Erkläre auf Deutsch was noch zu tun ist. Für Mods ohne Ersatz: remove in BOLT_APPLY. Für bessere Alternativen: remove + add.`,
       1100
     );
     html += '<br>' + boltFormatHtml(raw.replace(/<BOLT_APPLY>[\s\S]*?<\/BOLT_APPLY>/gi, '').trim());
 
-    const { remove, add } = boltParseApplyBlock(raw);
+    const { remove, add, explain } = boltParseApplyBlock(raw);
     if (remove.length || add.length) {
       const result = await boltApplySlugs(add, remove);
-      html += '<br><br>✅ Bolt hat Mods angepasst.';
+      html += '<br><br>✅ <b>Weitere Anpassungen:</b>';
       if (result.added.length) html += '<br>+ ' + result.added.join(', ');
       if (result.removed.length) html += '<br>− ' + result.removed.join(', ');
+      if (explain.length) html += '<br>' + explain.map(e => '• ' + esc(e)).join('<br>');
     }
 
     document.getElementById('mcVersion').value = targetMc;

@@ -785,6 +785,38 @@ footer { border-top: 1px solid var(--border); padding: 3rem 2.5rem; display: gri
   .trust-badge { font-size: .7rem; padding: 4px 10px; }
 }
 .page-tabs { display: flex; gap: 5px; margin-bottom: 1.4rem; flex-wrap: wrap; }
+/* ══ COMMUNITY / PUBLIC PACKS ═══════════════════════════════════ */
+.community-header { display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:1rem;flex-wrap:wrap; }
+.community-title  { font-size:1.1rem;font-weight:800;color:var(--text);margin-bottom:.2rem; }
+.community-sub    { font-size:.8rem;color:var(--sub); }
+.share-pack-btn   { padding:8px 16px;border-radius:9px;border:1px solid var(--green);background:rgba(74,222,128,.1);color:var(--green);font-family:var(--font);font-size:.8rem;font-weight:700;cursor:pointer;transition:opacity .15s;white-space:nowrap; }
+.share-pack-btn:hover { opacity:.8; }
+.community-filter-row { display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem;align-items:center; }
+.community-search { flex:1;min-width:160px;background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:7px 12px;font-size:.8rem;font-family:var(--font);outline:none;transition:border-color .15s; }
+.community-search:focus { border-color:var(--green); }
+.community-filter-chips { display:flex;gap:5px;flex-wrap:wrap; }
+.comm-chip { padding:5px 12px;border-radius:99px;border:1px solid var(--border);background:none;color:var(--muted);font-family:var(--font);font-size:.74rem;font-weight:700;cursor:pointer;transition:all .15s; }
+.comm-chip.active { border-color:var(--green);color:var(--green);background:rgba(74,222,128,.08); }
+.comm-chip:hover  { border-color:var(--border2);color:var(--sub); }
+.community-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:.75rem; }
+.comm-loading { display:flex;align-items:center;justify-content:center;gap:8px;padding:3rem;color:var(--muted);font-size:.82rem;grid-column:1/-1; }
+.comm-spinner { width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0; }
+.comm-empty   { text-align:center;padding:3rem 1rem;color:var(--muted);font-size:.85rem;line-height:1.8;grid-column:1/-1; }
+.comm-card    { background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:.9rem 1rem;display:flex;flex-direction:column;gap:.5rem;transition:border-color .15s,transform .1s; }
+.comm-card:hover { border-color:var(--border2);transform:translateY(-1px); }
+.comm-card-top  { display:flex;align-items:center;gap:6px;flex-wrap:wrap; }
+.comm-cat-badge { font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;padding:2px 8px;border-radius:4px; }
+.comm-plat      { font-size:.68rem;color:var(--muted);margin-left:auto; }
+.comm-card-name { font-size:.9rem;font-weight:800;color:var(--text);line-height:1.3; }
+.comm-card-desc { font-size:.74rem;color:var(--sub);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden; }
+.comm-card-meta { display:flex;gap:8px;flex-wrap:wrap;font-size:.68rem;color:var(--muted); }
+.comm-card-footer { display:flex;gap:6px;margin-top:auto;padding-top:.4rem; }
+.comm-load-btn { flex:1;padding:6px;border-radius:7px;border:1px solid var(--green);background:rgba(74,222,128,.1);color:var(--green);font-family:var(--font);font-size:.74rem;font-weight:700;cursor:pointer;transition:opacity .15s; }
+.comm-load-btn:hover { opacity:.8; }
+.comm-like-btn { padding:6px 10px;border-radius:7px;border:1px solid var(--border);background:none;color:var(--muted);font-family:var(--font);font-size:.74rem;cursor:pointer;transition:all .15s; }
+.comm-like-btn:hover,.comm-like-btn--liked { border-color:#f87171;color:#f87171;background:rgba(248,113,113,.1); }
+@media (max-width:600px) { .community-grid { grid-template-columns:1fr; } }
+
 .page-tab {
   flex: 1; min-width: 120px; padding: 9px 8px; border-radius: 9px; border: 1px solid var(--border);
   background: var(--bg3); color: var(--sub); font-size: .77rem; font-weight: 700;
@@ -3213,6 +3245,128 @@ function showPage(p) {
   if (p==="fix")     tab.classList.add("fix");
   if (p==="upgrade") tab.classList.add("upgrade");
   if (p==="convert") tab.classList.add("convert");
+  if (p==="community") loadPublicPacks();
+}
+
+/* ══ PUBLIC PACKS ═══════════════════════════════════════════════ */
+let _allCommunityPacks = [];
+let _communityFilter   = 'all';
+let _communityLoaded   = false;
+
+async function loadPublicPacks(force = false) {
+  if (_communityLoaded && !force) return;
+  const grid    = document.getElementById('communityGrid');
+  const loading = document.getElementById('commLoading');
+  if (loading) loading.style.display = 'flex';
+
+  try {
+    const { data, error } = await sb
+      .from('public_packs')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (error) throw error;
+    _allCommunityPacks = data || [];
+    _communityLoaded = true;
+    renderCommunityPacks();
+  } catch (err) {
+    if (grid) grid.innerHTML = `
+      <div class="comm-empty">
+        ⚠ Fehler beim Laden.<br>
+        <span style="font-size:.75rem;color:var(--muted)">${err.message || 'Verbindungsfehler'}</span>
+        <br><button onclick="loadPublicPacks(true)" style="margin-top:.6rem;padding:5px 14px;border-radius:7px;border:1px solid var(--border);background:none;color:var(--sub);font-family:var(--font);font-size:.75rem;cursor:pointer">Nochmal versuchen</button>
+      </div>`;
+  }
+}
+
+function renderCommunityPacks() {
+  const grid   = document.getElementById('communityGrid');
+  const search = (document.getElementById('communitySearch')?.value || '').toLowerCase();
+  if (!grid) return;
+
+  let packs = _allCommunityPacks.filter(p => {
+    const matchFilter = _communityFilter === 'all'
+      || p.category === _communityFilter
+      || p.platform === _communityFilter;
+    const matchSearch = !search
+      || p.name?.toLowerCase().includes(search)
+      || p.description?.toLowerCase().includes(search)
+      || p.username?.toLowerCase().includes(search);
+    return matchFilter && matchSearch;
+  });
+
+  if (!packs.length) {
+    grid.innerHTML = `<div class="comm-empty">😕 Keine Packs gefunden.<br><span style="font-size:.75rem;color:var(--muted)">Sei der Erste und teile deinen Pack!</span></div>`;
+    return;
+  }
+
+  const catColors = { pvp:'#f87171', performance:'#60a5fa', survival:'var(--green)', tech:'#a78bfa', modded:'#fbbf24', general:'var(--muted)' };
+  const catLabels = { pvp:'⚔ PvP', performance:'⚡ Performance', survival:'🌲 Survival', tech:'⚙ Tech', modded:'🔮 Modded', general:'📦 Allgemein' };
+
+  grid.innerHTML = packs.map(p => {
+    const color = catColors[p.category] || catColors.general;
+    const label = catLabels[p.category] || '📦 Allgemein';
+    const date  = new Date(p.created_at).toLocaleDateString('de-DE', { day:'2-digit', month:'short' });
+    const mods  = p.mods || [];
+    const plat  = p.platform === 'modrinth' ? '🟢 Modrinth' : p.platform === 'curseforge' ? '🟠 CurseForge' : '📦';
+
+    return `
+    <div class="comm-card">
+      <div class="comm-card-top">
+        <span class="comm-cat-badge" style="background:${color}22;color:${color};border:1px solid ${color}44">${label}</span>
+        <span class="comm-plat">${plat}</span>
+      </div>
+      <div class="comm-card-name">${esc(p.name)}</div>
+      ${p.description ? `<div class="comm-card-desc">${esc(p.description)}</div>` : ''}
+      <div class="comm-card-meta">
+        <span>🧩 ${p.mod_count || mods.length} Mods</span>
+        <span>📅 ${date}</span>
+        <span>👤 ${esc(p.username || 'Anonym')}</span>
+        <span>❤ ${p.likes || 0}</span>
+      </div>
+      <div class="comm-card-footer">
+        <button class="comm-load-btn" onclick="loadCommunityPack(${JSON.stringify(JSON.stringify(p))})">⬇ Laden & bearbeiten</button>
+        <button class="comm-like-btn" onclick="likeCommunityPack('${p.id}', this)">❤</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function setCommunityFilter(filter, btn) {
+  _communityFilter = filter;
+  document.querySelectorAll('.comm-chip').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  renderCommunityPacks();
+}
+
+function filterCommunityPacks() {
+  renderCommunityPacks();
+}
+
+function loadCommunityPack(jsonStr) {
+  try {
+    const p = JSON.parse(jsonStr);
+    if (p.mods)           MODS          = p.mods.map(m => ({ slug: m.slug, name: m.name, cat: m.cat || 'Community' }));
+    if (p.resource_packs) RESOURCEPACKS = p.resource_packs.map(r => ({ slug: r.slug, name: r.name }));
+    if (p.name) document.getElementById('packName').value = p.name;
+    if (p.mc_version) {
+      const sel = document.getElementById('mcVersion');
+      for (const opt of sel.options) { if (opt.value === p.mc_version) { sel.value = opt.value; break; } }
+    }
+    renderMods(); renderRPs();
+    showPage('builder');
+    showToast('✅ "' + p.name + '" geladen!');
+  } catch(e) {
+    showToast('⚠ Fehler beim Laden des Packs.');
+  }
+}
+
+async function likeCommunityPack(id, btn) {
+  btn.classList.add('comm-like-btn--liked');
+  btn.disabled = true;
+  await sb.from('public_packs').update({ likes: sb.rpc('increment') }).eq('id', id).catch(() => {});
+  btn.textContent = '❤ +1';
 }
 
 /* ── Drag & Drop helpers ── */

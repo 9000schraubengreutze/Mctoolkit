@@ -1,13 +1,13 @@
-﻿const API = "https://api.modrinth.com/v2";
+const API = "https://api.modrinth.com/v2";
 
-/* â”€â”€ FAQ â”€â”€ */
+/* ── FAQ ── */
 function toggleFaq(el) {
   const a = el.nextElementSibling;
   const open = a.classList.toggle("open");
   el.classList.toggle("open", open);
 }
 
-/* â”€â”€ Page Nav â”€â”€ */
+/* ── Page Nav ── */
 function showPage(p) {
   document.querySelectorAll(".page").forEach(x => x.classList.remove("active"));
   document.querySelectorAll(".page-tab").forEach(x => x.classList.remove("active","merge","fix"));
@@ -28,7 +28,7 @@ function showPage(p) {
   }
 }
 
-/* â•â• PUBLIC PACKS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ══ PUBLIC PACKS ═══════════════════════════════════════════════ */
 let _allCommunityPacks = [];
 let _communityFilter   = 'all';
 let _communityLoaded   = false;
@@ -82,8 +82,8 @@ function applyPublicPackData(data) {
       document.getElementById('piFormat').textContent = data.platform === 'modrinth' ? '.mrpack' : '.zip';
       const btn = document.getElementById('buildBtn');
       if (btn) btn.textContent = data.platform === 'modrinth'
-        ? 'â¬‡ .mrpack generieren & downloaden'
-        : 'â¬‡ CurseForge .zip generieren & downloaden';
+        ? '⬇ .mrpack generieren & downloaden'
+        : '⬇ CurseForge .zip generieren & downloaden';
     }
   }
   renderMods();
@@ -112,7 +112,7 @@ async function loadPublicPacks(force = false) {
   } catch (err) {
     if (grid) grid.innerHTML = `
       <div class="comm-empty">
-        âš  Fehler beim Laden.<br>
+        ⚠ Fehler beim Laden.<br>
         <span style="font-size:.75rem;color:var(--muted)">${esc(err.message || 'Verbindungsfehler')}</span>
         <br><button onclick="loadPublicPacks(true)" style="margin-top:.6rem;padding:5px 14px;border-radius:7px;border:1px solid var(--border);background:none;color:var(--sub);font-family:var(--font);font-size:.75rem;cursor:pointer">Nochmal versuchen</button>
       </div>`;
@@ -136,19 +136,19 @@ function renderCommunityPacks() {
   });
 
   if (!packs.length) {
-    grid.innerHTML = `<div class="comm-empty">ðŸ˜• Keine Packs gefunden.<br><span style="font-size:.75rem;color:var(--muted)">Sei der Erste und teile deinen Pack!</span></div>`;
+    grid.innerHTML = `<div class="comm-empty">😕 Keine Packs gefunden.<br><span style="font-size:.75rem;color:var(--muted)">Sei der Erste und teile deinen Pack!</span></div>`;
     return;
   }
 
   const catColors = { pvp:'#f87171', performance:'#60a5fa', survival:'var(--green)', tech:'#a78bfa', modded:'#fbbf24', general:'var(--muted)' };
-  const catLabels = { pvp:'âš” PvP', performance:'âš¡ Performance', survival:'ðŸŒ² Survival', tech:'âš™ Tech', modded:'ðŸ”® Modded', general:'ðŸ“¦ Allgemein' };
+  const catLabels = { pvp:'⚔ PvP', performance:'⚡ Performance', survival:'🌲 Survival', tech:'⚙ Tech', modded:'🔮 Modded', general:'📦 Allgemein' };
 
   grid.innerHTML = packs.map(p => {
     const color = catColors[p.category] || catColors.general;
-    const label = catLabels[p.category] || 'ðŸ“¦ Allgemein';
+    const label = catLabels[p.category] || '📦 Allgemein';
     const date  = new Date(p.created_at).toLocaleDateString('de-DE', { day:'2-digit', month:'short' });
     const mods  = p.mods || [];
-    const plat  = p.platform === 'modrinth' ? 'ðŸŸ¢ Modrinth' : p.platform === 'curseforge' ? 'ðŸŸ  CurseForge' : 'ðŸ“¦';
+    const plat  = p.platform === 'modrinth' ? '🟢 Modrinth' : p.platform === 'curseforge' ? '🟠 CurseForge' : '📦';
 
     return `
     <div class="comm-card">
@@ -159,14 +159,14 @@ function renderCommunityPacks() {
       <div class="comm-card-name">${esc(p.name)}</div>
       ${p.description ? `<div class="comm-card-desc">${esc(p.description)}</div>` : ''}
       <div class="comm-card-meta">
-        <span>ðŸ§© ${p.mod_count || mods.length} Mods</span>
-        <span>ðŸ“… ${date}</span>
-        <span>ðŸ‘¤ ${esc(p.username || 'Anonym')}</span>
-        <span>â¤ ${p.likes || 0}</span>
+        <span>🧩 ${p.mod_count || mods.length} Mods</span>
+        <span>📅 ${date}</span>
+        <span>👤 ${esc(p.username || 'Anonym')}</span>
+        <span>❤ ${p.likes || 0}</span>
       </div>
       <div class="comm-card-footer">
-        <button class="comm-load-btn" onclick="loadCommunityPackById('${p.id}')">â¬‡ Laden & bearbeiten</button>
-        <button class="comm-like-btn" onclick="likeCommunityPack('${p.id}', this)">â¤</button>
+        <button class="comm-load-btn" onclick="loadCommunityPackById('${p.id}')">⬇ Laden & bearbeiten</button>
+        <button class="comm-like-btn" onclick="likeCommunityPack('${p.id}', this)">❤</button>
       </div>
     </div>`;
   }).join('');
@@ -186,36 +186,36 @@ function filterCommunityPacks() {
 function loadCommunityPackById(id) {
   const p = _allCommunityPacks.find(x => x.id === id);
   if (!p) {
-    showToast('âš  Pack nicht gefunden â€“ bitte Seite neu laden.');
+    showToast('⚠ Pack nicht gefunden – bitte Seite neu laden.');
     return;
   }
   if (!applyPublicPackData(p)) {
-    showToast('âš  Pack enthÃ¤lt keine gÃ¼ltigen Mods.');
+    showToast('⚠ Pack enthält keine gültigen Mods.');
     return;
   }
   showPage('builder');
-  showToast('âœ… "' + (p.name || 'Pack') + '" geladen â€“ ' + MODS.length + ' Mods!');
+  showToast('✅ "' + (p.name || 'Pack') + '" geladen – ' + MODS.length + ' Mods!');
 }
 
 async function likeCommunityPack(id, btn) {
   btn.classList.add('comm-like-btn--liked');
   btn.disabled = true;
   await sb.from('public_packs').update({ likes: sb.rpc('increment') }).eq('id', id).catch(() => {});
-  btn.textContent = 'â¤ +1';
+  btn.textContent = '❤ +1';
 }
 
-/* â”€â”€ Drag & Drop helpers â”€â”€ */
+/* ── Drag & Drop helpers ── */
 function dzDrag(e,id){e.preventDefault();document.getElementById(id).classList.add("dragover");}
 function dzLeave(id){document.getElementById(id).classList.remove("dragover");}
 
-/* â•â•â•â•â•â•â• FIX â•â•â•â•â•â•â• */
+/* ═══════ FIX ═══════ */
 let fixPackData=null;
 function dzDropFix(e){e.preventDefault();dzLeave("fixDZ");if(e.dataTransfer.files[0])parseFix(e.dataTransfer.files[0]);}
 function loadFixPack(inp){if(inp.files[0])parseFix(inp.files[0]);}
 function clearFixDZ(e){
   e.stopPropagation(); fixPackData=null;
   document.getElementById("fixDZ").classList.remove("loaded");
-  document.getElementById("fixDZ-icon").textContent="ðŸ’¾";
+  document.getElementById("fixDZ-icon").textContent="💾";
   document.getElementById("fixDZ-label").textContent="Fehlerhafte .mrpack hier ablegen oder klicken";
   ["fixDZ-name","fixDZ-stats"].forEach(id=>document.getElementById(id).textContent="");
   document.getElementById("fixDZ-clear").style.display="none";
@@ -239,10 +239,10 @@ async function parseFix(file){
     const mods=index.files.filter(f=>f.path.startsWith("mods/")).length;
     const rps=index.files.filter(f=>f.path.startsWith("resourcepacks/")).length;
     document.getElementById("fixDZ").classList.add("loaded");
-    document.getElementById("fixDZ-icon").textContent="âœ…";
+    document.getElementById("fixDZ-icon").textContent="✅";
     document.getElementById("fixDZ-label").textContent="";
     document.getElementById("fixDZ-name").textContent=index.name||file.name;
-    document.getElementById("fixDZ-stats").textContent=mods+" Mods"+(rps?", "+rps+" TP":"")+(mc?" â€¢ MC "+mc:"")+(fl?" â€¢ Fabric "+fl:"");
+    document.getElementById("fixDZ-stats").textContent=mods+" Mods"+(rps?", "+rps+" TP":"")+(mc?" • MC "+mc:"")+(fl?" • Fabric "+fl:"");
     document.getElementById("fixDZ-clear").style.display="block";
     document.getElementById("fixOptions").style.display="block";
     document.getElementById("fixBtn").disabled=false;
@@ -267,8 +267,8 @@ async function runFix(){
   const removeBroken=document.getElementById("fixRemoveBroken").checked;
   const origIndex=fixPackData.index;
   fixLog("Pack: "+(origIndex.name||fixPackData.fileName),"log-info");
-  fixLog("MC: "+(mcVersion||"?")+"  Fabric: "+((origIndex.dependencies||{})["fabric-loader"]||"?")+" â†’ "+loaderMin,"log-info");
-  fixLog("â”€".repeat(50),"log-dim");
+  fixLog("MC: "+(mcVersion||"?")+"  Fabric: "+((origIndex.dependencies||{})["fabric-loader"]||"?")+" → "+loaderMin,"log-info");
+  fixLog("─".repeat(50),"log-dim");
   const newFiles=[];let ok=0,updated=0,failed=0;
   const total=origIndex.files.length;
   for(let i=0;i<total;i++){
@@ -277,28 +277,28 @@ async function runFix(){
     const fname=file.path.split("/").pop();
     document.getElementById("fixProgressBar").style.width=Math.round(i/total*100)+"%";
     document.getElementById("fixStatus").textContent="("+(i+1)+"/"+total+") "+fname;
-    if(!updateAll){newFiles.push(file);ok++;fixLog("  â—‹ "+fname,"log-dim");continue;}
+    if(!updateAll){newFiles.push(file);ok++;fixLog("  ○ "+fname,"log-dim");continue;}
     let slug=null;
     if(file.downloads&&file.downloads.length){const m=file.downloads[0].match(/\/data\/([^/]+)\//);if(m)slug=m[1];}
     if(!slug){fixLog("  ? "+fname+" (kein Slug, behalten)","log-warn");newFiles.push(file);ok++;continue;}
     const ver=await fetchVersionById(slug,mcVersion,isRP);
     if(!ver){
-      if(removeBroken){fixLog("  âœ— "+fname+" (entfernt)","log-err");failed++;}
-      else{fixLog("  âœ— "+fname+" (nicht gefunden, behalten)","log-warn");newFiles.push(file);failed++;}
+      if(removeBroken){fixLog("  ✗ "+fname+" (entfernt)","log-err");failed++;}
+      else{fixLog("  ✗ "+fname+" (nicht gefunden, behalten)","log-warn");newFiles.push(file);failed++;}
       continue;
     }
     const nf=ver.files.find(f=>f.primary)||ver.files[0];
     const np=(isRP?"resourcepacks":"mods")+"/"+nf.filename;
-    if(nf.filename===fname){fixLog("  âœ“ "+fname+" v"+ver.version_number,"log-ok");ok++;}
-    else{fixLog("  â†‘ "+fname+" â†’ "+nf.filename+" v"+ver.version_number,"log-warn");updated++;}
+    if(nf.filename===fname){fixLog("  ✓ "+fname+" v"+ver.version_number,"log-ok");ok++;}
+    else{fixLog("  ↑ "+fname+" → "+nf.filename+" v"+ver.version_number,"log-warn");updated++;}
     newFiles.push({path:np,hashes:nf.hashes,env:file.env||{client:"required",server:"unsupported"},downloads:[nf.url],fileSize:nf.size});
   }
   document.getElementById("fixProgressBar").style.width="100%";
   const newDeps=Object.assign({},origIndex.dependencies||{},{"fabric-loader":loaderMin});
   if(mcVersion)newDeps.minecraft=mcVersion;
   const newIndex={formatVersion:origIndex.formatVersion||1,game:"minecraft",versionId:origIndex.versionId||"1.0.0",name:origIndex.name||"Fixed Pack",summary:(origIndex.summary||"")+" [repaired]",files:newFiles,dependencies:newDeps};
-  fixLog("â”€".repeat(50),"log-dim");
-  fixLog("Fabric Loader: "+((origIndex.dependencies||{})["fabric-loader"]||"?")+" â†’ "+loaderMin,"log-ok");
+  fixLog("─".repeat(50),"log-dim");
+  fixLog("Fabric Loader: "+((origIndex.dependencies||{})["fabric-loader"]||"?")+" → "+loaderMin,"log-ok");
   fixLog("Fertig: "+ok+" OK, "+updated+" aktualisiert, "+failed+" fehlgeschlagen","log-info");
   document.getElementById("fixStats").style.display="flex";
   document.getElementById("fsOk").textContent=ok;document.getElementById("fsUpd").textContent=updated;document.getElementById("fsFail").textContent=failed;
@@ -306,8 +306,8 @@ async function runFix(){
   const blob=await zip.generateAsync({type:"blob",compression:"DEFLATE"});
   const fn=(origIndex.name||"fixed-pack").replace(/\s+/g,"_")+"-fixed.mrpack";
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=fn;document.body.appendChild(a);a.click();a.remove();
-  document.getElementById("fixStatus").textContent="âœ… Gespeichert: "+fn;
-  btn.textContent="ðŸ”¥ Nochmals reparieren";btn.disabled=false;
+  document.getElementById("fixStatus").textContent="✅ Gespeichert: "+fn;
+  btn.textContent="🔥 Nochmals reparieren";btn.disabled=false;
 }
 async function fetchVersionById(projectId, mcVersion, isRP) {
   if (isRP) {
@@ -337,7 +337,7 @@ async function fetchVersionById(projectId, mcVersion, isRP) {
   return null;
 }
 
-/* â•â•â•â•â•â•â• MERGE â•â•â•â•â•â•â• */
+/* ═══════ MERGE ═══════ */
 let mpackData=[null,null];
 function dzDropM(e,id,num){e.preventDefault();dzLeave(id);if(e.dataTransfer.files[0])parseMpack(e.dataTransfer.files[0],num);}
 function loadMpack(inp,num){if(inp.files[0])parseMpack(inp.files[0],num);}
@@ -359,7 +359,7 @@ async function parseMpack(file,num){
     const rps=index.files.filter(f=>f.path.startsWith("resourcepacks/")).length;
     const id="mdz"+num;document.getElementById(id).classList.add("loaded");
     document.getElementById(id+"-name").textContent=index.name||file.name;
-    document.getElementById(id+"-stats").textContent=mods+" Mods"+(rps?", "+rps+" TP":"")+(mc?" â€¢ MC "+mc:"");
+    document.getElementById(id+"-stats").textContent=mods+" Mods"+(rps?", "+rps+" TP":"")+(mc?" • MC "+mc:"");
     document.getElementById(id+"-clear").style.display="block";
     document.getElementById("mergeStatus").textContent="";updateMergePreview();
   }catch(e){document.getElementById("mergeStatus").textContent="Fehler: "+e.message;}
@@ -390,16 +390,16 @@ async function doMerge(){
   const dep=Object.assign({},mpackData[0].index.dependencies||{},mpackData[1].index.dependencies||{});
   const idx={formatVersion:1,game:"minecraft",versionId:document.getElementById("mergeVersion").value.trim()||"1.0.0",
     name:document.getElementById("mergeName").value.trim()||"Merged Pack",
-    summary:"ZusammengefÃ¼hrt aus: "+mpackData[0].index.name+" + "+mpackData[1].index.name,
+    summary:"Zusammengeführt aus: "+mpackData[0].index.name+" + "+mpackData[1].index.name,
     files:unique,dependencies:dep};
   const zip=new JSZip();zip.file("modrinth.index.json",JSON.stringify(idx,null,2));zip.folder("overrides");
   const blob=await zip.generateAsync({type:"blob",compression:"DEFLATE"});
   const fn=idx.name.replace(/\s+/g,"_").replace(/[^a-zA-Z0-9_\-+]/g,"")+".mrpack";
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=fn;document.body.appendChild(a);a.click();a.remove();
-  document.getElementById("mergeStatus").textContent="âœ… "+unique.length+" Dateien â†’ "+fn;
+  document.getElementById("mergeStatus").textContent="✅ "+unique.length+" Dateien → "+fn;
 }
 
-/* â•â•â•â•â•â•â• BUILDER â•â•â•â•â•â•â• */
+/* ═══════ BUILDER ═══════ */
 let MODS=[];
 let RESOURCEPACKS=[];
 
@@ -413,7 +413,7 @@ function updateBuildBtn() {
   if (!btn) return;
   const empty = MODS.length === 0 && RESOURCEPACKS.length === 0;
   btn.disabled = empty;
-  btn.title = empty ? 'Bitte mindestens einen Mod hinzufÃ¼gen' : '';
+  btn.title = empty ? 'Bitte mindestens einen Mod hinzufügen' : '';
   const fixBtn = document.getElementById('autoFixBtn');
   if (fixBtn) fixBtn.disabled = empty;
   const fixMyBtn = document.getElementById('fixMyListBtn');
@@ -446,23 +446,23 @@ function renderRPs(){
 function makeRow(item,type){
   const d=document.createElement("div");d.className="mod-item";d.id="row-"+type+"-"+item.slug;
   d.innerHTML='<span class="mi-name">'+esc(item.name)+'<span class="badge '+type+'">'+esc(item.slug)+'</span></span>'+
-    '<span class="st" id="st-'+type+'-'+item.slug+'">â€“</span>'+
-    '<button class="rm-btn" onclick="removeItem(\''+type+'\',\''+item.slug.replace(/'/g,"\\'")+'\')" title="Entfernen">âœ•</button>';
+    '<span class="st" id="st-'+type+'-'+item.slug+'">–</span>'+
+    '<button class="rm-btn" onclick="removeItem(\''+type+'\',\''+item.slug.replace(/'/g,"\\'")+'\')" title="Entfernen">✕</button>';
   return d;
 }
 function updateSubtitle(){}
-function removeItem(type,slug){if(packLocked){showToast("ðŸ”’ Pack gesperrt â€“ erst entsperren");return;}pushUndo();if(type==="mod")MODS=MODS.filter(m=>m.slug!==slug);else RESOURCEPACKS=RESOURCEPACKS.filter(r=>r.slug!==slug);type==="mod"?renderMods():renderRPs();}
+function removeItem(type,slug){if(packLocked){showToast("🔒 Pack gesperrt – erst entsperren");return;}pushUndo();if(type==="mod")MODS=MODS.filter(m=>m.slug!==slug);else RESOURCEPACKS=RESOURCEPACKS.filter(r=>r.slug!==slug);type==="mod"?renderMods():renderRPs();}
 function has(slug,type){return(type==="mod"?MODS:RESOURCEPACKS).some(m=>m.slug===slug);}
 function addResolved(result,cat){
   const isRP=result.type==="resourcepack";const type=isRP?"resourcepack":"mod";
   if(has(result.slug,type))return false;
   pushUndo();
   if(isRP){RESOURCEPACKS.push({slug:result.slug,name:result.name});renderRPs();}
-  else{MODS.push({slug:result.slug,name:result.name,cat:cat||"HinzugefÃ¼gt"});renderMods();}
+  else{MODS.push({slug:result.slug,name:result.name,cat:cat||"Hinzugefügt"});renderMods();}
   return true;
 }
 
-// Known dependency map â€” slug â†’ required deps
+// Known dependency map — slug → required deps
 const DEP_MAP = {
   'iris': ['sodium'],
   'indium': ['sodium'],
@@ -507,7 +507,7 @@ function showDepNotification(names) {
   if (!box) return;
   const div = document.createElement('div');
   div.className = 'dep-toast';
-  div.innerHTML = `<span class="dep-toast-icon">âœ¦</span><span>Automatisch hinzugefÃ¼gt: <b>${names.join(', ')}</b></span>`;
+  div.innerHTML = `<span class="dep-toast-icon">✦</span><span>Automatisch hinzugefügt: <b>${names.join(', ')}</b></span>`;
   box.appendChild(div);
   setTimeout(() => div.remove(), 6000);
 }
@@ -526,7 +526,7 @@ function showModErrors(errors) {
 
 async function fixMyModList() {
   const btn = document.getElementById('fixMyListBtn');
-  btn.disabled = true; btn.textContent = 'â³ Wird analysiert...';
+  btn.disabled = true; btn.textContent = '⏳ Wird analysiert...';
   const st = document.getElementById('statusText');
   st.textContent = 'Analysiere Mod-Liste...';
   document.getElementById('depNotifications').innerHTML = '';
@@ -553,10 +553,10 @@ async function fixMyModList() {
 
   if (depsAdded.length) showDepNotification(depsAdded);
   st.textContent = depsAdded.length
-    ? `âœ… ${depsAdded.length} Dependency(ies) ergÃ¤nzt, Duplikate entfernt.`
-    : 'âœ… Mod-Liste ist sauber â€“ keine Fehler gefunden.';
+    ? `✅ ${depsAdded.length} Dependency(ies) ergänzt, Duplikate entfernt.`
+    : '✅ Mod-Liste ist sauber – keine Fehler gefunden.';
 
-  btn.disabled = false; btn.textContent = 'ðŸ”§ Fix my mod list â€” Fehler beheben & Dependencies ergÃ¤nzen';
+  btn.disabled = false; btn.textContent = '🔧 Fix my mod list — Fehler beheben & Dependencies ergänzen';
 }
 function toggleBlock(w){const inner=document.getElementById(w==="mod"?"modList":"rpList");const arrow=document.getElementById(w==="mod"?"modArrow":"rpArrow");const h=inner.style.display==="none";inner.style.display=h?"":"none";arrow.className="lh-arrow"+(h?"":" closed");}
 let sTimer=null;
@@ -575,8 +575,8 @@ async function doSearch(){
     hits.forEach(h=>{
       const isRP=h.project_type==="resourcepack",bt=isRP?"rp":"mod",tl=isRP?"Texture Pack":"Mod",ai=has(h.slug,isRP?"resourcepack":"mod");
       const d=document.createElement("div");d.className="sr-item";
-      d.innerHTML='<div class="sr-info"><div><span class="sr-name">'+esc(h.title)+'</span><span class="sr-slug '+bt+'">'+h.slug+'</span><span class="detect-badge '+bt+'">'+tl+'</span>'+(h.downloads?'<span class="sr-dls">â†“ '+formatDls(h.downloads)+'</span>':'')+'</div><div class="sr-desc">'+esc((h.description||"").substring(0,72))+'</div></div>'+
-        '<button class="sr-add-btn '+bt+(ai?" added":"")+'\" id="srb-'+h.slug+'">'+(ai?"Bereits drin":"+ HinzufÃ¼gen")+'</button>';
+      d.innerHTML='<div class="sr-info"><div><span class="sr-name">'+esc(h.title)+'</span><span class="sr-slug '+bt+'">'+h.slug+'</span><span class="detect-badge '+bt+'">'+tl+'</span>'+(h.downloads?'<span class="sr-dls">↓ '+formatDls(h.downloads)+'</span>':'')+'</div><div class="sr-desc">'+esc((h.description||"").substring(0,72))+'</div></div>'+
+        '<button class="sr-add-btn '+bt+(ai?" added":"")+'\" id="srb-'+h.slug+'">'+(ai?"Bereits drin":"+ Hinzufügen")+'</button>';
       if(!ai){d.querySelector(".sr-add-btn").addEventListener("click",ev=>{ev.stopPropagation();addResolved({slug:h.slug,name:h.title,type:h.project_type});const b=document.getElementById("srb-"+h.slug);if(b){b.textContent="Bereits drin";b.className="sr-add-btn "+bt+" added";}});}
       resEl.appendChild(d);
     });
@@ -586,22 +586,22 @@ function hideResults(){document.getElementById("searchResults").style.display="n
 document.addEventListener("click",e=>{if(!e.target.closest(".search-section"))hideResults();});
 async function addFromPaste(){
   const qs=document.getElementById("pasteArea").value.split(/[\n,]+/).map(s=>s.trim()).filter(Boolean);if(!qs.length)return;
-  const st=document.getElementById("statusText");st.textContent="Erkenne "+qs.length+" EintrÃ¤ge...";
+  const st=document.getElementById("statusText");st.textContent="Erkenne "+qs.length+" Einträge...";
   document.getElementById('depNotifications').innerHTML = '';
   let am=0,ar=0,sk=0,nf=[],addedSlugs=[];
   for(let i=0;i<qs.length;i++){
     st.textContent="("+(i+1)+"/"+qs.length+") "+qs[i]+"...";
     const res=await detectAndResolve(qs[i]);
     if(!res){nf.push(qs[i]);continue;}
-    const added=addResolved(res,"HinzugefÃ¼gt");
+    const added=addResolved(res,"Hinzugefügt");
     if(!added){sk++;continue;}
     if(res.type!=="resourcepack") addedSlugs.push(res.slug);
     res.type==="resourcepack"?ar++:am++;
   }
   document.getElementById("pasteArea").value="";
-  let msg="";if(am)msg+=am+" Mods";if(ar)msg+=(msg?", ":"")+ar+" Texture Packs";if(msg)msg+=" hinzugefÃ¼gt";
+  let msg="";if(am)msg+=am+" Mods";if(ar)msg+=(msg?", ":"")+ar+" Texture Packs";if(msg)msg+=" hinzugefügt";
   if(sk)msg+=(msg?", ":"")+sk+" bereits vorhanden";
-  st.textContent=msg||"Nichts hinzugefÃ¼gt.";
+  st.textContent=msg||"Nichts hinzugefügt.";
   if(nf.length) showModErrors(nf);
   if(addedSlugs.length) await checkAndAddDeps(addedSlugs);
 }
@@ -651,7 +651,7 @@ async function fetchVersion(slug, mcVersion, isRP, retries=2) {
   return null;
 }
 function setSt(id,txt,cls){const e=document.getElementById(id);if(e){e.textContent=txt;e.className="st "+(cls||"");}}
-/* â”€â”€ Platform selector logic â”€â”€ */
+/* ── Platform selector logic ── */
 let selectedPlatform = null;
 
 function selectPlatform(p) {
@@ -678,8 +678,8 @@ function confirmPlatform() {
   // Update button label
   const btn = document.getElementById('buildBtn');
   if (btn) btn.textContent = selectedPlatform === 'modrinth'
-    ? 'â¬‡ .mrpack generieren & downloaden'
-    : 'â¬‡ CurseForge .zip generieren & downloaden';
+    ? '⬇ .mrpack generieren & downloaden'
+    : '⬇ CurseForge .zip generieren & downloaden';
   // Run any pending preset load from hero template buttons
   if (window._pendingPresetLoad) { setTimeout(window._pendingPresetLoad, 200); window._pendingPresetLoad = null; }
 }
@@ -695,58 +695,38 @@ function changePlatform() {
   document.getElementById('platformConfirm').classList.remove('ready');
 }
 
-/* â”€â”€ Modrinth .mrpack build â”€â”€ */
-async function createMrpackBlob(mcV, pName, pVer, fl, progress) {
+/* ── Modrinth .mrpack build ── */
+async function buildMrpack(btn, st, pb, mcV, pName, pVer, fl) {
   const all=[...MODS.map(m=>({...m,isRP:false})),...RESOURCEPACKS.map(r=>({...r,isRP:true}))];
   const fe=[],nf=[];
   for(let i=0;i<all.length;i++){
     const item=all[i],sid="st-"+(item.isRP?"rp":"mod")+"-"+item.slug;
-    progress?.({ step:'item', index:i, total:all.length, item });
-    if (typeof setSt === 'function') setSt(sid,"suche...","busy");
+    setSt(sid,"suche...","busy");
+    st.textContent="("+(i+1)+"/"+all.length+") "+item.name+"...";
+    pb.style.width=Math.round(i/all.length*100)+"%";
     if(i > 0) await sleep(120);
     const ver=await fetchVersion(item.slug,mcV,item.isRP);
-    if(!ver||!ver.files||!ver.files.length){
-      nf.push(item.name);
-      if (typeof setSt === 'function') setSt(sid,"nicht gefunden","err");
-      continue;
-    }
+    if(!ver||!ver.files||!ver.files.length){nf.push(item.name);setSt(sid,"nicht gefunden","err");continue;}
     const f=ver.files.find(x=>x.primary)||ver.files[0];
     fe.push({path:(item.isRP?"resourcepacks":"mods")+"/"+f.filename,hashes:f.hashes,env:{client:"required",server:"unsupported"},downloads:[f.url],fileSize:f.size});
-    if (typeof setSt === 'function') setSt(sid,"v"+ver.version_number,"ok");
+    setSt(sid,"v"+ver.version_number,"ok");
   }
-  if(!fe.length) throw new Error("Keine Dateien gefunden. Prüfe die Modliste und Minecraft-Version.");
-  progress?.({ step:'zip', found:fe.length, missing:nf });
-  const idx={formatVersion:1,game:"minecraft",versionId:pVer,name:pName,summary:"MC Toolkit - Modpack für MC "+mcV,files:fe,dependencies:{minecraft:mcV,"fabric-loader":fl}};
+  pb.style.width="100%";
+  if(!fe.length){st.textContent="Keine Dateien gefunden. Localhost nutzen!";btn.disabled=false;return;}
+  st.textContent="Erstelle .mrpack...";
+  const idx={formatVersion:1,game:"minecraft",versionId:pVer,name:pName,summary:"MC Toolkit – Modpack für MC "+mcV,files:fe,dependencies:{minecraft:mcV,"fabric-loader":fl}};
   const zip=new JSZip();
   zip.file("modrinth.index.json",JSON.stringify(idx,null,2));
   zip.folder("overrides");
   const blob=await zip.generateAsync({type:"blob",compression:"DEFLATE"});
   const fn=pName.replace(/\s+/g,"_")+"-"+mcV+".mrpack";
-  return { blob, filename:fn, index:idx, found:fe.length, missing:nf };
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=fn;document.body.appendChild(a);a.click();a.remove();
+  st.textContent=fe.length+" Mods/Packs"+(nf.length?" · Nicht gefunden: "+nf.join(", "):" · Alle OK!")+" → "+fn;
+  btn.innerHTML="⬇ Nochmals downloaden";btn.disabled=false;
+  showOpenInApp(fn, "modrinth");
 }
 
-async function buildMrpack(btn, st, pb, mcV, pName, pVer, fl) {
-  try {
-    const pack=await createMrpackBlob(mcV,pName,pVer,fl, ev => {
-      if(ev.step==='item'){
-        st.textContent="("+(ev.index+1)+"/"+ev.total+") "+ev.item.name+"...";
-        pb.style.width=Math.round(ev.index/ev.total*100)+"%";
-      }
-      if(ev.step==='zip'){
-        pb.style.width="100%";
-        st.textContent="Erstelle .mrpack...";
-      }
-    });
-    const a=document.createElement("a");a.href=URL.createObjectURL(pack.blob);a.download=pack.filename;document.body.appendChild(a);a.click();a.remove();
-    st.textContent=pack.found+" Mods/Packs"+(pack.missing.length?" · Nicht gefunden: "+pack.missing.join(", "):" · Alle OK!")+" → "+pack.filename;
-    btn.innerHTML="⬇ Nochmals downloaden";btn.disabled=false;
-    showOpenInApp(pack.filename, "modrinth");
-  } catch(e) {
-    st.textContent=e.message||"Fehler beim Erstellen";
-    btn.disabled=false;
-  }
-}
-/* â”€â”€ CurseForge .zip build â”€â”€ */
+/* ── CurseForge .zip build ── */
 async function buildCurseForgePack(btn, st, pb, mcV, pName, pVer, fl) {
   const allMods=[...MODS];
   const allRPs=[...RESOURCEPACKS];
@@ -795,7 +775,7 @@ async function buildCurseForgePack(btn, st, pb, mcV, pName, pVer, fl) {
   st.textContent="Erstelle CurseForge .zip...";
 
   // Build CurseForge manifest.json
-  // CurseForge format â€“ files array needs CF project/file IDs which we don't have from Modrinth.
+  // CurseForge format – files array needs CF project/file IDs which we don't have from Modrinth.
   // We use empty files array and put mods in overrides/mods instead.
   const manifest = {
     minecraft: {
@@ -814,38 +794,38 @@ async function buildCurseForgePack(btn, st, pb, mcV, pName, pVer, fl) {
   // modlist.html
   const modRows = resolvedMods
     .filter(m=>!m.isRP)
-    .map(m=>'<li><a href="'+m.url+'">'+m.name+' ('+m.version+')</a> â€“ <code>'+m.filename+'</code></li>')
+    .map(m=>'<li><a href="'+m.url+'">'+m.name+' ('+m.version+')</a> – <code>'+m.filename+'</code></li>')
     .join('\n');
   const rpRows = resolvedMods
     .filter(m=>m.isRP)
-    .map(m=>'<li><a href="'+m.url+'">'+m.name+' ('+m.version+')</a> â€“ <code>'+m.filename+'</code></li>')
+    .map(m=>'<li><a href="'+m.url+'">'+m.name+' ('+m.version+')</a> – <code>'+m.filename+'</code></li>')
     .join('\n');
 
   const modlistHtml = `<!DOCTYPE html>
 <html lang="de"><head><meta charset="UTF-8">
-<title>${pName} â€“ Modliste</title>
+<title>${pName} – Modliste</title>
 <style>
   body{font-family:sans-serif;max-width:800px;margin:2rem auto;padding:0 1rem;background:#1a1a2e;color:#f0f0ff}
   h1{color:#4ade80}h2{color:#a78bfa;margin-top:2rem}
   a{color:#60a5fa}li{margin:.4rem 0}code{background:#2d2d44;padding:1px 5px;border-radius:3px;font-size:.85em}
   .note{background:#2d1a00;border:1px solid #f16436;border-radius:8px;padding:1rem;margin:1rem 0;color:#fcd34d}
 </style></head><body>
-<h1>âš¡ ${pName}</h1>
-<p>Minecraft ${mcV} Â· Fabric ${fl} Â· ${resolvedMods.length} Mods/Packs</p>
+<h1>⚡ ${pName}</h1>
+<p>Minecraft ${mcV} · Fabric ${fl} · ${resolvedMods.length} Mods/Packs</p>
 <div class="note">
-  <strong>âš  Manuelle Installation erforderlich:</strong><br>
-  Da die Mods von Modrinth stammen, sind keine CurseForge-IDs verfÃ¼gbar.<br>
-  Bitte lade die Mods Ã¼ber die Links unten herunter und lege sie in deinen <code>mods/</code> Ordner.
+  <strong>⚠ Manuelle Installation erforderlich:</strong><br>
+  Da die Mods von Modrinth stammen, sind keine CurseForge-IDs verfügbar.<br>
+  Bitte lade die Mods über die Links unten herunter und lege sie in deinen <code>mods/</code> Ordner.
 </div>
-<h2>ðŸ§© Mods (${resolvedMods.filter(m=>!m.isRP).length})</h2>
+<h2>🧩 Mods (${resolvedMods.filter(m=>!m.isRP).length})</h2>
 <ul>${modRows}</ul>
-${rpRows ? '<h2>ðŸŽ¨ Texture Packs ('+resolvedMods.filter(m=>m.isRP).length+')</h2><ul>'+rpRows+'</ul>' : ''}
+${rpRows ? '<h2>🎨 Texture Packs ('+resolvedMods.filter(m=>m.isRP).length+')</h2><ul>'+rpRows+'</ul>' : ''}
 <hr style="border-color:#333;margin:2rem 0">
-<p style="color:#666;font-size:.8rem">Erstellt mit MC Toolkit Â· <a href="https://crystalpack-builder.netlify.app">crystalpack-builder.netlify.app</a></p>
+<p style="color:#666;font-size:.8rem">Erstellt mit MC Toolkit · <a href="https://crystalpack-builder.netlify.app">crystalpack-builder.netlify.app</a></p>
 </body></html>`;
 
   // README
-  const readme = `# ${pName} â€“ CurseForge Pack
+  const readme = `# ${pName} – CurseForge Pack
 
 Minecraft: ${mcV}
 Fabric Loader: ${fl}
@@ -853,10 +833,10 @@ Erstellt mit: MC Toolkit
 
 ## Installation in CurseForge Launcher
 
-1. CurseForge App Ã¶ffnen
+1. CurseForge App öffnen
 2. "Create Custom Profile" klicken
-3. Minecraft ${mcV} + Fabric ${fl} auswÃ¤hlen
-4. Profil Ã¶ffnen â†’ Ordner Ã¶ffnen
+3. Minecraft ${mcV} + Fabric ${fl} auswählen
+4. Profil öffnen → Ordner öffnen
 5. Mods aus der modlist.html herunterladen und in /mods/ legen
 6. Texture Packs in /resourcepacks/ legen
 
@@ -877,12 +857,12 @@ ${resolvedMods.filter(m=>m.isRP).length ? '\n## Texture Packs\n'+resolvedMods.fi
   const fn=pName.replace(/\s+/g,"_")+"-"+mcV+"-curseforge.zip";
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=fn;document.body.appendChild(a);a.click();a.remove();
   const manualCount = resolvedMods.filter(m=>m.manual).length;
-  st.textContent=resolvedMods.length+" Mods"+(manualCount?" Â· "+manualCount+" manuell (Link in modlist.html)":" Â· Alle OK!")+" â†’ "+fn;
-  btn.innerHTML="â¬‡ Nochmals downloaden";btn.disabled=false;
+  st.textContent=resolvedMods.length+" Mods"+(manualCount?" · "+manualCount+" manuell (Link in modlist.html)":" · Alle OK!")+" → "+fn;
+  btn.innerHTML="⬇ Nochmals downloaden";btn.disabled=false;
   showOpenInApp(fn, "curseforge");
 }
 
-/* â”€â”€ Main build dispatcher â”€â”€ */
+/* ── Main build dispatcher ── */
 async function showDownloadPreview() {
   const all = [...MODS, ...RESOURCEPACKS];
   if (!all.length) return;
@@ -895,16 +875,16 @@ async function showDownloadPreview() {
   box.className = 'dl-preview';
   const okCount = all.length;
   box.innerHTML = `
-    <div class="dl-preview-title">ðŸ“‹ Vorschau â€“ ${all.length} EintrÃ¤ge werden verpackt
-      <button onclick="document.getElementById('dlPreviewBox').remove()" style="margin-left:auto;background:none;border:none;color:var(--muted);cursor:pointer;font-size:.85rem">âœ•</button>
+    <div class="dl-preview-title">📋 Vorschau – ${all.length} Einträge werden verpackt
+      <button onclick="document.getElementById('dlPreviewBox').remove()" style="margin-left:auto;background:none;border:none;color:var(--muted);cursor:pointer;font-size:.85rem">✕</button>
     </div>
     <div class="dl-preview-summary">
-      <span class="dp-sum-ok">âœ“ ${MODS.length} Mods</span>
-      ${RESOURCEPACKS.length ? `<span class="dp-sum-ok">âœ“ ${RESOURCEPACKS.length} Texture Packs</span>` : ''}
+      <span class="dp-sum-ok">✓ ${MODS.length} Mods</span>
+      ${RESOURCEPACKS.length ? `<span class="dp-sum-ok">✓ ${RESOURCEPACKS.length} Texture Packs</span>` : ''}
       <span style="color:var(--muted);margin-left:auto">${selectedPlatform === 'modrinth' ? '.mrpack' : '.zip'}</span>
     </div>
-    ${MODS.map(m => `<div class="dl-preview-row"><span class="dp-ok">âœ“</span><span class="dp-name">${esc(m.name)}</span><span class="dp-ver">${esc(m.slug)}</span></div>`).join('')}
-    ${RESOURCEPACKS.map(r => `<div class="dl-preview-row"><span class="dp-ok">ðŸŽ¨</span><span class="dp-name">${esc(r.name)}</span><span class="dp-ver">${esc(r.slug)}</span></div>`).join('')}
+    ${MODS.map(m => `<div class="dl-preview-row"><span class="dp-ok">✓</span><span class="dp-name">${esc(m.name)}</span><span class="dp-ver">${esc(m.slug)}</span></div>`).join('')}
+    ${RESOURCEPACKS.map(r => `<div class="dl-preview-row"><span class="dp-ok">🎨</span><span class="dp-name">${esc(r.name)}</span><span class="dp-ver">${esc(r.slug)}</span></div>`).join('')}
   `;
 
   // Insert before build button
@@ -927,7 +907,7 @@ async function buildPack(){
   const pVer=document.getElementById("packVersion").value.trim()||"1.0.0";
   const fl=document.getElementById("fabricLoader").value.trim()||"0.18.3";
   if (!navigator.onLine) {
-    st.textContent = 'âš  Keine Internetverbindung â€“ bitte prÃ¼fe deine Verbindung und versuche es erneut.';
+    st.textContent = '⚠ Keine Internetverbindung – bitte prüfe deine Verbindung und versuche es erneut.';
     st.style.color = 'var(--red)';
     btn.disabled = false; return;
   }
@@ -943,16 +923,16 @@ async function buildPack(){
 function esc(s){return(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
 
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ══════════════════════════════════════════════════════════════════════
    PACK VORLAGEN
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+══════════════════════════════════════════════════════════════════════ */
 const TEMPLATES = [
   {
     id: "pvp-crystal",
     name: "SMP Crystal PvP",
-    icon: "ðŸ’Ž",
+    icon: "💎",
     color: "blue",
-    desc: "Dein echtes SMP Crystal Pack â€“ 85 Mods inkl. ClickCrystals, Litematica, Voxy, Performance & mehr.",
+    desc: "Dein echtes SMP Crystal Pack – 85 Mods inkl. ClickCrystals, Litematica, Voxy, Performance & mehr.",
     tags: [{t:"PvP",c:"blue"},{t:"Crystal",c:"blue"},{t:"SMP",c:"purple"}],
     mods: [
       {slug:"anchoroptimizer",name:"Anchor Optimizer",cat:"PvP"},
@@ -1040,9 +1020,9 @@ const TEMPLATES = [
   {
     id: "performance",
     name: "Pure Performance",
-    icon: "âš¡",
+    icon: "⚡",
     color: "green",
-    desc: "Maximale FPS durch die besten Performance-Mods â€“ kein Schnickschnack.",
+    desc: "Maximale FPS durch die besten Performance-Mods – kein Schnickschnack.",
     tags: [{t:"Performance",c:"green"},{t:"FPS Boost",c:"green"},{t:"Lite",c:"yellow"}],
     mods: [
       {slug:"sodium",name:"Sodium",cat:"Performance"},
@@ -1061,7 +1041,7 @@ const TEMPLATES = [
   {
     id: "vanilla-plus",
     name: "Vanilla+",
-    icon: "ðŸŒ¿",
+    icon: "🌿",
     color: "yellow",
     desc: "Vanilla-Feeling behalten aber mit QoL-Verbesserungen und Performance-Boost.",
     tags: [{t:"Vanilla",c:"yellow"},{t:"QoL",c:"green"},{t:"Chill",c:"green"}],
@@ -1084,9 +1064,9 @@ const TEMPLATES = [
   {
     id: "speedrun",
     name: "Speedrun",
-    icon: "ðŸƒ",
+    icon: "🏃",
     color: "orange",
-    desc: "FÃ¼r Speedrunner â€“ Ticks, Timer, Seed-Anzeige und maximale Performance.",
+    desc: "Für Speedrunner – Ticks, Timer, Seed-Anzeige und maximale Performance.",
     tags: [{t:"Speedrun",c:"orange"},{t:"Timer",c:"orange"},{t:"Performance",c:"green"}],
     mods: [
       {slug:"sodium",name:"Sodium",cat:"Performance"},
@@ -1105,9 +1085,9 @@ const TEMPLATES = [
   {
     id: "building",
     name: "Builder / Creative",
-    icon: "ðŸ—",
+    icon: "🏗",
     color: "purple",
-    desc: "FÃ¼r Builder und Creative-Spieler â€“ bessere Schemen, Inventar und Ãœbersicht.",
+    desc: "Für Builder und Creative-Spieler – bessere Schemen, Inventar und Übersicht.",
     tags: [{t:"Building",c:"purple"},{t:"Creative",c:"purple"},{t:"QoL",c:"green"}],
     mods: [
       {slug:"sodium",name:"Sodium",cat:"Performance"},
@@ -1127,10 +1107,10 @@ const TEMPLATES = [
   },
   {
     id: "fullpack",
-    name: "VollstÃ¤ndiger Pack",
-    icon: "ðŸ”®",
+    name: "Vollständiger Pack",
+    icon: "🔮",
     color: "red",
-    desc: "Der komplette vorinstallierte Pack â€“ alle 22 Mods fÃ¼r Crystal PvP & Performance.",
+    desc: "Der komplette vorinstallierte Pack – alle 22 Mods für Crystal PvP & Performance.",
     tags: [{t:"Alle Mods",c:"red"},{t:"PvP",c:"blue"},{t:"Performance",c:"green"},{t:"HUD",c:"purple"}],
     mods: [
       {slug:"sodium",name:"Sodium",cat:"Performance"},
@@ -1197,7 +1177,7 @@ function pickTemplate(id) {
   });
   const t = TEMPLATES.find(x => x.id === id);
   document.getElementById('tmInfo').innerHTML =
-    '<b>' + t.name + '</b> â€“ ' + t.mods.length + ' Mods' +
+    '<b>' + t.name + '</b> – ' + t.mods.length + ' Mods' +
     (t.rps.length ? ' + ' + t.rps.length + ' Texture Packs' : '');
   const applyBtn = document.getElementById('tmApply');
   applyBtn.classList.add('ready');
@@ -1214,7 +1194,7 @@ function applyTemplate() {
   closeTemplates();
   // Scroll to mod list
   setTimeout(() => document.getElementById('page-builder').querySelector('.lists-wrap').scrollIntoView({behavior:'smooth', block:'start'}), 150);
-  document.getElementById('statusText').textContent = 'âœ“ Vorlage "' + t.name + '" geladen â€“ ' + t.mods.length + ' Mods.';
+  document.getElementById('statusText').textContent = '✓ Vorlage "' + t.name + '" geladen – ' + t.mods.length + ' Mods.';
 }
 
 // Close on backdrop click
@@ -1224,27 +1204,27 @@ document.addEventListener('click', e => {
 });
 
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ══════════════════════════════════════════════════════════════════════
    MOD-PROFILE (localStorage)
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
-/* â•â• SUPABASE INIT â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+══════════════════════════════════════════════════════════════════════ */
+/* ══ SUPABASE INIT ═════════════════════════════════════════════ */
 const { createClient } = supabase;
 const sb = createClient('https://lcirexhyxbljpfzdlfqu.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxjaXJleGh5eGJsanBmemRsZnF1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2NDczNzUsImV4cCI6MjA5MDIyMzM3NX0.-gbQiXU0ONEsO2UK0c1JIky7qxoJmT43iV9pE0dov70');
 
 let currentUser = null;
 
-/* â•â• AUTH STATE â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ══ AUTH STATE ════════════════════════════════════════════════ */
 sb.auth.onAuthStateChange((event, session) => {
   currentUser = session?.user ?? null;
   updateNavAuth();
   if (event === 'SIGNED_IN') {
     closeAuth();
-    showToast('âœ… Willkommen, ' + (currentUser.email || 'Nutzer') + '!', 3000);
+    showToast('✅ Willkommen, ' + (currentUser.email || 'Nutzer') + '!', 3000);
     // Migrate local profiles to cloud on first sign-in
     migrateLocalToCloud();
   }
   if (event === 'SIGNED_OUT') {
-    showToast('â†© Abgemeldet');
+    showToast('↩ Abgemeldet');
     updateNavAuth();
   }
 });
@@ -1287,7 +1267,7 @@ function updateNavAuth() {
     document.getElementById('themeOptLight')?.classList.toggle('active', saved === 'light');
     document.getElementById('themeOptDark2')?.classList.toggle('active',  saved === 'dark');
     document.getElementById('themeOptLight2')?.classList.toggle('active', saved === 'light');
-    // Owner check â†’ auto-activate VIP
+    // Owner check → auto-activate VIP
     checkAndActivateOwner(currentUser.email);
   } else {
     if (btn) { btn.classList.remove('signed-in'); }
@@ -1298,7 +1278,7 @@ function updateNavAuth() {
   }
 }
 
-/* â•â• AUTH MODAL â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ══ AUTH MODAL ════════════════════════════════════════════════ */
 let authMode = 'login';
 
 function toggleSettingsPanel() {
@@ -1326,7 +1306,7 @@ function openAuth() {
 
 function requireLoginThen(fn) {
   if (currentUser) { fn(); return; }
-  showToast('ðŸ”’ Bitte zuerst anmelden!');
+  showToast('🔒 Bitte zuerst anmelden!');
   setTimeout(() => openAuth(), 500);
 }
 function closeAuth() {
@@ -1348,9 +1328,9 @@ async function submitAuth() {
   const pass  = document.getElementById('authPassword').value;
   const btn   = document.getElementById('authSubmitBtn');
   const msg   = document.getElementById('authMsg');
-  if (!email || !pass) { msg.className='auth-msg err'; msg.textContent='âš  Bitte E-Mail und Passwort eingeben.'; return; }
+  if (!email || !pass) { msg.className='auth-msg err'; msg.textContent='⚠ Bitte E-Mail und Passwort eingeben.'; return; }
   btn.disabled = true;
-  btn.textContent = 'â€¦';
+  btn.textContent = '…';
   msg.className = 'auth-msg'; msg.textContent = '';
   try {
     let res;
@@ -1360,14 +1340,14 @@ async function submitAuth() {
       res = await sb.auth.signUp({ email, password: pass });
       if (!res.error && res.data?.user && !res.data?.session) {
         msg.className = 'auth-msg ok';
-        msg.textContent = 'âœ… BestÃ¤tigungsmail gesendet! Bitte E-Mail prÃ¼fen.';
+        msg.textContent = '✅ Bestätigungsmail gesendet! Bitte E-Mail prüfen.';
         btn.disabled = false; btn.textContent = 'Account erstellen'; return;
       }
     }
     if (res.error) throw res.error;
   } catch(e) {
     msg.className = 'auth-msg err';
-    msg.textContent = 'âš  ' + (e.message || 'Fehler beim Anmelden');
+    msg.textContent = '⚠ ' + (e.message || 'Fehler beim Anmelden');
     btn.disabled = false;
     btn.textContent = authMode === 'login' ? 'Anmelden' : 'Account erstellen';
   }
@@ -1378,7 +1358,7 @@ async function signInGitHub() {
     provider: 'github',
     options: { redirectTo: location.origin + location.pathname }
   });
-  if (error) showToast('âš  GitHub Login fehlgeschlagen: ' + error.message);
+  if (error) showToast('⚠ GitHub Login fehlgeschlagen: ' + error.message);
 }
 
 async function signOut() {
@@ -1403,7 +1383,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeAuth();
 });
 
-/* â•â• CLOUD PROFILES â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ══ CLOUD PROFILES ════════════════════════════════════════════ */
 const PROFILES_KEY = 'mctoolkit_profiles';
 
 function getProfiles() {
@@ -1425,14 +1405,14 @@ async function migrateLocalToCloud() {
       updated_at: new Date().toISOString()
     }, { onConflict: 'user_id,name' });
   }
-  showToast('â˜ ' + local.length + ' lokale Profile in die Cloud synchronisiert', 3500);
+  showToast('☁ ' + local.length + ' lokale Profile in die Cloud synchronisiert', 3500);
 }
 
 async function saveProfile() {
   const name = document.getElementById('profileNameInput').value.trim();
   if (!name) {
     document.getElementById('pmSaveMsg').style.color = 'var(--red)';
-    document.getElementById('pmSaveMsg').textContent = 'âš  Bitte einen Namen eingeben.';
+    document.getElementById('pmSaveMsg').textContent = '⚠ Bitte einen Namen eingeben.';
     return;
   }
   const profile = {
@@ -1459,11 +1439,11 @@ async function saveProfile() {
     }, { onConflict: 'user_id,name' });
     if (error) {
       msg.style.color = 'var(--red)';
-      msg.textContent = 'âš  Fehler: ' + error.message;
+      msg.textContent = '⚠ Fehler: ' + error.message;
       return;
     }
     msg.style.color = 'var(--green)';
-    msg.textContent = 'â˜ Profil in der Cloud gespeichert!';
+    msg.textContent = '☁ Profil in der Cloud gespeichert!';
   } else {
     // Save locally
     const profiles = getProfiles();
@@ -1471,7 +1451,7 @@ async function saveProfile() {
     if (dupIdx !== -1) profiles[dupIdx] = profile; else profiles.unshift(profile);
     setProfiles(profiles);
     msg.style.color = 'var(--green)';
-    msg.textContent = 'ðŸ’¾ Lokal gespeichert (anmelden fÃ¼r Cloud-Sync)';
+    msg.textContent = '💾 Lokal gespeichert (anmelden für Cloud-Sync)';
   }
   renderProfileList();
 }
@@ -1495,7 +1475,7 @@ async function loadProfile(idOrName) {
   document.getElementById('fabricLoader').value= p.fabricLoader|| '0.18.3';
   renderMods(); renderRPs();
   closeProfiles();
-  document.getElementById('statusText').textContent = 'âœ“ Profil "' + p.name + '" geladen â€“ ' + p.mods.length + ' Mods.';
+  document.getElementById('statusText').textContent = '✓ Profil "' + p.name + '" geladen – ' + p.mods.length + ' Mods.';
 }
 
 async function deleteProfile(idOrName) {
@@ -1509,7 +1489,7 @@ async function deleteProfile(idOrName) {
 
 async function renderProfileList() {
   const list = document.getElementById('pmList');
-  list.innerHTML = '<div class="pm-empty" style="color:var(--muted);font-size:.8rem;padding:1rem 0">â³ Lade Profile...</div>';
+  list.innerHTML = '<div class="pm-empty" style="color:var(--muted);font-size:.8rem;padding:1rem 0">⏳ Lade Profile...</div>';
 
   let profiles = [];
   let isCloud = false;
@@ -1530,15 +1510,15 @@ async function renderProfileList() {
   if (!profiles.length) {
     list.innerHTML = currentUser
       ? '<div class="pm-empty">Noch keine Cloud-Profile. Speichere deinen ersten Pack!</div>'
-      : '<div class="pm-empty">Noch keine Profile.<br><button onclick="openAuth()" style="margin-top:.5rem;background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.3);border-radius:7px;color:var(--green);font-family:var(--font);font-size:.78rem;font-weight:700;padding:5px 14px;cursor:pointer">Anmelden fÃ¼r Cloud-Sync â˜</button></div>';
+      : '<div class="pm-empty">Noch keine Profile.<br><button onclick="openAuth()" style="margin-top:.5rem;background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.3);border-radius:7px;color:var(--green);font-family:var(--font);font-size:.78rem;font-weight:700;padding:5px 14px;cursor:pointer">Anmelden für Cloud-Sync ☁</button></div>';
     return;
   }
 
   list.innerHTML = '';
   profiles.forEach(p => {
     const key  = isCloud ? (p._name || p.name) : p.id;
-    const rpTx = p.rps?.length ? ' Â· ' + p.rps.length + ' TP' : '';
-    const badge = isCloud ? '<span class="cloud-badge">â˜ Cloud</span>' : '';
+    const rpTx = p.rps?.length ? ' · ' + p.rps.length + ' TP' : '';
+    const badge = isCloud ? '<span class="cloud-badge">☁ Cloud</span>' : '';
     const saved = isCloud
       ? new Date(p._updatedAt).toLocaleString('de-DE')
       : (p.savedAt || '?');
@@ -1548,14 +1528,14 @@ async function renderProfileList() {
       '<div class="pm-item-info">' +
         '<div class="pm-item-name">' + esc(p.name || p._name) + badge + '</div>' +
         '<div class="pm-item-meta">' +
-          esc(p.mcVersion||'?') + ' Â· Fabric ' + esc(p.fabricLoader||'?') +
-          ' Â· ' + (p.mods?.length||0) + ' Mods' + rpTx +
+          esc(p.mcVersion||'?') + ' · Fabric ' + esc(p.fabricLoader||'?') +
+          ' · ' + (p.mods?.length||0) + ' Mods' + rpTx +
         '</div>' +
         '<span class="pm-item-badge">' + esc(saved) + '</span>' +
       '</div>' +
       '<div class="pm-item-actions">' +
-        '<button class="pm-load-btn" onclick="loadProfile(' + JSON.stringify(key) + ')">â†“ Laden</button>' +
-        '<button class="pm-del-btn"  onclick="deleteProfile(' + JSON.stringify(key) + ')" title="LÃ¶schen">ðŸ—‘</button>' +
+        '<button class="pm-load-btn" onclick="loadProfile(' + JSON.stringify(key) + ')">↓ Laden</button>' +
+        '<button class="pm-del-btn"  onclick="deleteProfile(' + JSON.stringify(key) + ')" title="Löschen">🗑</button>' +
       '</div>';
     list.appendChild(item);
   });
@@ -1578,9 +1558,9 @@ document.addEventListener('click', e => {
 });
 
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ══════════════════════════════════════════════════════════════════════
    VERSIONS-UPDATE
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+══════════════════════════════════════════════════════════════════════ */
 let upgPackData = null;
 
 function dzDropUpg(e) { e.preventDefault(); dzLeave('upgDZ'); if(e.dataTransfer.files[0]) parseUpgPack(e.dataTransfer.files[0]); }
@@ -1590,7 +1570,7 @@ function clearUpgDZ(e) {
   e.stopPropagation(); upgPackData = null;
   const dz = document.getElementById('upgDZ');
   dz.classList.remove('loaded');
-  document.getElementById('upgDZ-icon').textContent = 'ðŸ“¦';
+  document.getElementById('upgDZ-icon').textContent = '📦';
   document.getElementById('upgDZ-label').textContent = 'Bestehendes .mrpack hier ablegen oder klicken';
   ['upgDZ-name','upgDZ-stats'].forEach(id => document.getElementById(id).textContent = '');
   document.getElementById('upgDZ-clear').style.display = 'none';
@@ -1617,12 +1597,12 @@ async function parseUpgPack(file) {
     const rps  = index.files.filter(f => f.path.startsWith('resourcepacks/')).length;
 
     document.getElementById('upgDZ').classList.add('loaded');
-    document.getElementById('upgDZ-icon').textContent = 'âœ…';
+    document.getElementById('upgDZ-icon').textContent = '✅';
     document.getElementById('upgDZ-label').textContent = '';
     document.getElementById('upgDZ-name').textContent = index.name || file.name;
     document.getElementById('upgDZ-stats').textContent =
       mods + ' Mods' + (rps ? ', ' + rps + ' TP' : '') +
-      ' â€¢ MC ' + mc + ' â€¢ Fabric ' + fl;
+      ' • MC ' + mc + ' • Fabric ' + fl;
     document.getElementById('upgDZ-clear').style.display = 'block';
     document.getElementById('upgOptions').style.display = 'block';
     document.getElementById('upgBtn').disabled = false;
@@ -1674,15 +1654,15 @@ async function runUpgrade() {
   const origLoader   = (origIndex.dependencies || {})['fabric-loader'] || '0.18.3';
 
   if (fromVer === targetVer) {
-    document.getElementById('upgStatus').textContent = 'âš  Quell- und Ziel-Version sind identisch!';
+    document.getElementById('upgStatus').textContent = '⚠ Quell- und Ziel-Version sind identisch!';
     btn.disabled = false;
     return;
   }
 
   upgLog('Pack: ' + (origIndex.name || upgPackData.fileName), 'log-info');
-  upgLog('MC: ' + fromVer + ' â†’ ' + targetVer, 'log-info');
-  upgLog('Fabric Loader: ' + origLoader + (keepLoader ? ' (beibehalten)' : ' â†’ neueste'), 'log-info');
-  upgLog('â”€'.repeat(50), 'log-dim');
+  upgLog('MC: ' + fromVer + ' → ' + targetVer, 'log-info');
+  upgLog('Fabric Loader: ' + origLoader + (keepLoader ? ' (beibehalten)' : ' → neueste'), 'log-info');
+  upgLog('─'.repeat(50), 'log-dim');
 
   const files = origIndex.files;
   const newFiles = [];
@@ -1713,10 +1693,10 @@ async function runUpgrade() {
 
     if (!ver) {
       if (removeFailed) {
-        upgLog('  âœ— ' + fname + ' (kein Support fÃ¼r ' + targetVer + ', entfernt)', 'log-err');
+        upgLog('  ✗ ' + fname + ' (kein Support für ' + targetVer + ', entfernt)', 'log-err');
         nFail++;
       } else {
-        upgLog('  âœ— ' + fname + ' (kein Support fÃ¼r ' + targetVer + ', behalten)', 'log-warn');
+        upgLog('  ✗ ' + fname + ' (kein Support für ' + targetVer + ', behalten)', 'log-warn');
         newFiles.push(file);
         nFail++;
       }
@@ -1728,10 +1708,10 @@ async function runUpgrade() {
     const changed = nf.filename !== fname;
 
     if (changed) {
-      upgLog('  â†‘ ' + fname + ' â†’ ' + nf.filename + ' (v' + ver.version_number + ')', 'log-ok');
+      upgLog('  ↑ ' + fname + ' → ' + nf.filename + ' (v' + ver.version_number + ')', 'log-ok');
       nOk++;
     } else {
-      upgLog('  âœ“ ' + fname + ' v' + ver.version_number + ' (bereits aktuell)', 'log-dim');
+      upgLog('  ✓ ' + fname + ' v' + ver.version_number + ' (bereits aktuell)', 'log-dim');
       nUnchanged++;
     }
 
@@ -1745,8 +1725,8 @@ async function runUpgrade() {
   }
 
   document.getElementById('upgProgressBar').style.width = '100%';
-  upgLog('â”€'.repeat(50), 'log-dim');
-  upgLog('Fertig: ' + nOk + ' aktualisiert, ' + nUnchanged + ' unverÃ¤ndert, ' + nFail + ' fehlgeschlagen', 'log-info');
+  upgLog('─'.repeat(50), 'log-dim');
+  upgLog('Fertig: ' + nOk + ' aktualisiert, ' + nUnchanged + ' unverändert, ' + nFail + ' fehlgeschlagen', 'log-info');
 
   // Build new index
   const newDeps = Object.assign({}, origIndex.dependencies || {});
@@ -1780,16 +1760,16 @@ async function runUpgrade() {
   document.body.appendChild(a); a.click(); a.remove();
 
   const upgBlobUrl = URL.createObjectURL(blob);
-  document.getElementById('upgStatus').textContent = 'âœ… Gespeichert: ' + fn;
-  btn.textContent = 'â¬† Nochmals updaten';
+  document.getElementById('upgStatus').textContent = '✅ Gespeichert: ' + fn;
+  btn.textContent = '⬆ Nochmals updaten';
   btn.disabled = false;
   showOpenInApp(fn, 'modrinth', upgBlobUrl);
 }
 
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ══════════════════════════════════════════════════════════════════════
    OPEN IN APP
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+══════════════════════════════════════════════════════════════════════ */
 function showOpenInApp(filename, platform, blobUrl) {
   // store for re-download
   window._oaBlobUrl  = blobUrl;
@@ -1807,7 +1787,7 @@ function showOpenInApp(filename, platform, blobUrl) {
 
   const isMrpack = filename.endsWith('.mrpack');
 
-  // â”€â”€ Build launcher tabs & panels â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Build launcher tabs & panels ─────────────────────────────────────
   const tabsEl   = document.getElementById('oaTabs');
   const panelsEl = document.getElementById('oaPanels');
   tabsEl.innerHTML = '';
@@ -1815,11 +1795,11 @@ function showOpenInApp(filename, platform, blobUrl) {
 
   const launchers = isMrpack
     ? [
-        { id: 'mr', label: 'ðŸŸ¢ Modrinth App', cls: 'mr' },
-        { id: 'pr', label: 'ðŸ”· Prism Launcher', cls: 'pr' },
+        { id: 'mr', label: '🟢 Modrinth App', cls: 'mr' },
+        { id: 'pr', label: '🔷 Prism Launcher', cls: 'pr' },
       ]
     : [
-        { id: 'cf', label: 'ðŸŸ  CurseForge App', cls: 'cf' },
+        { id: 'cf', label: '🟠 CurseForge App', cls: 'cf' },
       ];
 
   launchers.forEach((l, i) => {
@@ -1845,26 +1825,26 @@ function showOpenInApp(filename, platform, blobUrl) {
     let stepsHtml = '<div class="oa-panel-inner">';
 
     if (l.id === 'mr') {
-      stepsHtml += step('mr','1','<b>Pack herunterladen</b> â€“ klicke oben auf den grÃ¼nen Download-Button')
-        + step('mr','2','<b>Modrinth App Ã¶ffnen</b>')
+      stepsHtml += step('mr','1','<b>Pack herunterladen</b> – klicke oben auf den grünen Download-Button')
+        + step('mr','2','<b>Modrinth App öffnen</b>')
         + step('mr','3','Links in der Sidebar auf <code>Modpacks</code> klicken')
-        + step('mr','4','Oben rechts auf <code>+</code> klicken â†’ <code>Import from file</code> wÃ¤hlen')
-        + step('mr','5','Die heruntergeladene Datei <code>' + filename + '</code> auswÃ¤hlen â†’ <b>fertig!</b>')
-        + '<div class="oa-hint"><b>ðŸ’¡ Tipp:</b> Die Datei liegt meist im <code>Downloads</code> Ordner.</div>';
+        + step('mr','4','Oben rechts auf <code>+</code> klicken → <code>Import from file</code> wählen')
+        + step('mr','5','Die heruntergeladene Datei <code>' + filename + '</code> auswählen → <b>fertig!</b>')
+        + '<div class="oa-hint"><b>💡 Tipp:</b> Die Datei liegt meist im <code>Downloads</code> Ordner.</div>';
     } else if (l.id === 'pr') {
-      stepsHtml += step('pr','1','<b>Pack herunterladen</b> â€“ klicke oben auf den grÃ¼nen Download-Button')
-        + step('pr','2','<b>Prism Launcher</b> oder <b>MultiMC</b> Ã¶ffnen')
+      stepsHtml += step('pr','1','<b>Pack herunterladen</b> – klicke oben auf den grünen Download-Button')
+        + step('pr','2','<b>Prism Launcher</b> oder <b>MultiMC</b> öffnen')
         + step('pr','3','Oben links auf <code>Add Instance</code> klicken')
-        + step('pr','4','Links <code>Import</code> auswÃ¤hlen')
-        + step('pr','5','Auf <code>Browse</code> klicken â†’ Datei <code>' + filename + '</code> auswÃ¤hlen â†’ <code>OK</code>')
-        + '<div class="oa-hint"><b>ðŸ’¡ Tipp:</b> Direkt in Prism per Drag & Drop auf das Instanz-Fenster ziehen klappt auch!</div>';
+        + step('pr','4','Links <code>Import</code> auswählen')
+        + step('pr','5','Auf <code>Browse</code> klicken → Datei <code>' + filename + '</code> auswählen → <code>OK</code>')
+        + '<div class="oa-hint"><b>💡 Tipp:</b> Direkt in Prism per Drag & Drop auf das Instanz-Fenster ziehen klappt auch!</div>';
     } else if (l.id === 'cf') {
-      stepsHtml += step('cf','1','<b>Pack herunterladen</b> â€“ klicke oben auf den grÃ¼nen Download-Button')
-        + step('cf','2','<b>CurseForge App</b> Ã¶ffnen â†’ links <code>Minecraft</code> wÃ¤hlen')
+      stepsHtml += step('cf','1','<b>Pack herunterladen</b> – klicke oben auf den grünen Download-Button')
+        + step('cf','2','<b>CurseForge App</b> öffnen → links <code>Minecraft</code> wählen')
         + step('cf','3','Oben rechts auf <code>Create Custom Profile</code> klicken')
-        + step('cf','4','Im Dialog oben auf <code>Import</code> klicken â†’ Datei <code>' + filename + '</code> wÃ¤hlen')
+        + step('cf','4','Im Dialog oben auf <code>Import</code> klicken → Datei <code>' + filename + '</code> wählen')
         + step('cf','5','Mods aus der mitgelieferten <code>modlist.html</code> herunterladen &amp; in den <code>mods/</code> Ordner des Profils legen')
-        + '<div class="oa-hint"><b>âš  Hinweis:</b> Da die Mods von Modrinth kommen, mÃ¼ssen sie einmalig manuell platziert werden. Die modlist.html im ZIP enthÃ¤lt alle Download-Links.</div>';
+        + '<div class="oa-hint"><b>⚠ Hinweis:</b> Da die Mods von Modrinth kommen, müssen sie einmalig manuell platziert werden. Die modlist.html im ZIP enthält alle Download-Links.</div>';
     }
 
     stepsHtml += '</div>';
@@ -1914,7 +1894,7 @@ function closeOverlayAndScroll(e, sectionId) {
 }
 
 
-/* â•â• THEME TOGGLE â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ══ THEME TOGGLE ══════════════════════════════════════════════ */
 function setTheme(theme) {
   if (theme === 'light') {
     document.body.classList.add('light');
@@ -1925,7 +1905,7 @@ function setTheme(theme) {
   document.getElementById('themeOptDark')?.classList.toggle('active',  theme === 'dark');
   document.getElementById('themeOptLight')?.classList.toggle('active', theme === 'light');
   closeUserMenu();
-  showToast(theme === 'light' ? 'â˜€ï¸ Helles Design aktiviert' : 'ðŸŒ™ Dunkles Design aktiviert');
+  showToast(theme === 'light' ? '☀️ Helles Design aktiviert' : '🌙 Dunkles Design aktiviert');
 }
 // Restore saved theme on load
 (function() {
@@ -1933,7 +1913,7 @@ function setTheme(theme) {
   if (saved === 'light') document.body.classList.add('light');
 })();
 
-/* â•â• LEGAL MODALS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ══ LEGAL MODALS ═══════════════════════════════════════════════ */
 function openImprint(e)  { e.preventDefault(); document.getElementById('imprintOverlay').classList.add('open'); }
 function openPrivacy(e)  { e.preventDefault(); document.getElementById('privacyOverlay').classList.add('open'); }
 function openFeedback(e) { e.preventDefault(); document.getElementById('feedbackOverlay').classList.add('open'); }
@@ -1945,7 +1925,7 @@ document.addEventListener('click', e => {
   });
 });
 
-/* â•â• CATEGORY FILTER â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ══ CATEGORY FILTER ════════════════════════════════════════════ */
 let activeCatFilter = 'all';
 
 function filterMods(btn, cat) {
@@ -1957,7 +1937,7 @@ function filterMods(btn, cat) {
 
 
 
-/* â•â• FORMAT DOWNLOADS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ══ FORMAT DOWNLOADS ══════════════════════════════════════════ */
 function formatDls(n) {
   if (!n) return '0';
   if (n >= 1_000_000) return (n/1_000_000).toFixed(1).replace('.0','') + 'M';
@@ -1965,7 +1945,7 @@ function formatDls(n) {
   return String(n);
 }
 
-/* â•â• UNDO STACK â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ══ UNDO STACK ════════════════════════════════════════════════ */
 const undoStack = [];
 const MAX_UNDO  = 30;
 
@@ -1975,17 +1955,17 @@ function pushUndo() {
 }
 function doUndo() {
   if (!undoStack.length) {
-    showToast('Nichts zum RÃ¼ckgÃ¤ngigmachen â†©');
+    showToast('Nichts zum Rückgängigmachen ↩');
     return;
   }
   const prev = undoStack.pop();
   MODS = prev.mods;
   RESOURCEPACKS = prev.rps;
   renderMods(); renderRPs();
-  showToast('RÃ¼ckgÃ¤ngig gemacht â†©');
+  showToast('Rückgängig gemacht ↩');
 }
 
-/* â•â• TOAST NOTIFICATION â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ══ TOAST NOTIFICATION ════════════════════════════════════════ */
 function showToast(msg, duration=2200) {
   let t = document.getElementById('cpToast');
   if (!t) {
@@ -2006,7 +1986,7 @@ function showToast(msg, duration=2200) {
   }, duration);
 }
 
-/* â•â• PACK SEARCH IN LIST â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ══ PACK SEARCH IN LIST ═══════════════════════════════════════ */
 function filterPackSearch(q) {
   const term = q.toLowerCase().trim();
   document.querySelectorAll('.mod-item').forEach(row => {
@@ -2027,10 +2007,10 @@ function filterPackSearch(q) {
   });
 }
 
-/* â•â• SHARE VIA URL â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ══ SHARE VIA URL ═════════════════════════════════════════════ */
 function openShareModal() {
   if (!MODS.length && !RESOURCEPACKS.length) {
-    showToast('âš  Keine Mods im Pack zum Teilen!');
+    showToast('⚠ Keine Mods im Pack zum Teilen!');
     return;
   }
 
@@ -2044,7 +2024,7 @@ function openShareModal() {
   if (platEl) {
     platEl.value = selectedPlatform === 'modrinth' ? 'Modrinth (.mrpack)'
                  : selectedPlatform === 'curseforge' ? 'CurseForge (.zip)'
-                 : 'Nicht gewÃ¤hlt';
+                 : 'Nicht gewählt';
   }
 
   // Fill pack content preview
@@ -2056,7 +2036,7 @@ function openShareModal() {
     } else {
       previewEl.innerHTML = all.map(m =>
         `<div style="padding:2px 0;display:flex;gap:6px;align-items:center">
-          <span style="color:var(--green);font-size:.7rem">âœ“</span>
+          <span style="color:var(--green);font-size:.7rem">✓</span>
           <span style="color:var(--text);font-weight:600">${esc(m.name)}</span>
           <span style="color:var(--muted);font-size:.68rem">${esc(m.slug)}</span>
         </div>`
@@ -2084,7 +2064,7 @@ function generatePackCode() {
 
 function copyPackCode(code) {
   navigator.clipboard.writeText(code.trim()).catch(() => {});
-  showToast('ðŸ“‹ Code ' + code.trim() + ' kopiert!');
+  showToast('📋 Code ' + code.trim() + ' kopiert!');
 }
 
 function formatPackCodeInput(el) {
@@ -2098,7 +2078,7 @@ function resetShareModal() {
   document.getElementById('shareFormStep').style.display = '';
   document.getElementById('shareSuccessStep').style.display = 'none';
   const btn = document.getElementById('shareSubmitBtn');
-  if (btn) { btn.disabled = false; btn.textContent = 'ðŸš€ Pack verÃ¶ffentlichen'; }
+  if (btn) { btn.disabled = false; btn.textContent = '🚀 Pack veröffentlichen'; }
   const st = document.getElementById('shareStatus');
   if (st) st.textContent = '';
 }
@@ -2108,19 +2088,19 @@ async function submitSharePack() {
   const statusEl = document.getElementById('shareStatus');
   if (btn.disabled) return;
   btn.disabled = true;
-  btn.textContent = 'â³ Wird verÃ¶ffentlicht...';
+  btn.textContent = '⏳ Wird veröffentlicht...';
   statusEl.textContent = '';
 
   if (!currentUser) {
-    statusEl.textContent = 'âš  Bitte zuerst anmelden!';
+    statusEl.textContent = '⚠ Bitte zuerst anmelden!';
     statusEl.style.color = 'var(--red)';
-    btn.disabled = false; btn.textContent = 'ðŸš€ Pack verÃ¶ffentlichen';
+    btn.disabled = false; btn.textContent = '🚀 Pack veröffentlichen';
     setTimeout(() => openAuth(), 600); return;
   }
   if (!MODS.length && !RESOURCEPACKS.length) {
-    statusEl.textContent = 'âš  Keine Mods im Pack!';
+    statusEl.textContent = '⚠ Keine Mods im Pack!';
     statusEl.style.color = 'var(--red)';
-    btn.disabled = false; btn.textContent = 'ðŸš€ Pack verÃ¶ffentlichen'; return;
+    btn.disabled = false; btn.textContent = '🚀 Pack veröffentlichen'; return;
   }
 
   const name     = document.getElementById('shareName')?.value.trim() || document.getElementById('packName').value.trim() || 'Mein Modpack';
@@ -2154,8 +2134,8 @@ async function submitSharePack() {
   } catch (err) {
     console.error(err);
     statusEl.style.color = 'var(--red)';
-    statusEl.textContent = 'âš  Fehler: ' + (err.message || 'Unbekannt');
-    btn.disabled = false; btn.textContent = 'ðŸš€ Pack verÃ¶ffentlichen';
+    statusEl.textContent = '⚠ Fehler: ' + (err.message || 'Unbekannt');
+    btn.disabled = false; btn.textContent = '🚀 Pack veröffentlichen';
   }
 }
 
@@ -2166,27 +2146,27 @@ async function loadPackByCode() {
 
   if (!code.match(/^MC-[A-Z0-9]{6}$/)) {
     status.style.color = 'var(--red)';
-    status.textContent = 'âš  Format: MC-XXXXXX'; return;
+    status.textContent = '⚠ Format: MC-XXXXXX'; return;
   }
   status.style.color = 'var(--muted)';
-  status.textContent = 'â³ Suche Pack...';
+  status.textContent = '⏳ Suche Pack...';
 
   try {
     const { data, error } = await sb.from('public_packs').select('*').eq('pack_code', code).single();
-    if (error || !data) { status.style.color='var(--red)'; status.textContent='âŒ Code nicht gefunden.'; return; }
+    if (error || !data) { status.style.color='var(--red)'; status.textContent='❌ Code nicht gefunden.'; return; }
 
     if (!applyPublicPackData(data)) {
       status.style.color = 'var(--red)';
-      status.textContent = 'âš  Pack enthÃ¤lt keine gÃ¼ltigen Mods.';
+      status.textContent = '⚠ Pack enthält keine gültigen Mods.';
       return;
     }
     document.getElementById('loadCodeOverlay').classList.remove('open');
     input.value = ''; status.textContent = '';
     showPage('builder');
-    showToast('âœ… "' + data.name + '" geladen â€“ ' + MODS.length + ' Mods!');
+    showToast('✅ "' + data.name + '" geladen – ' + MODS.length + ' Mods!');
   } catch(e) {
     status.style.color = 'var(--red)';
-    status.textContent = 'âš  ' + e.message;
+    status.textContent = '⚠ ' + e.message;
   }
 }
 
@@ -2206,7 +2186,7 @@ function loadFromUrl() {
     renderMods(); renderRPs();
     // Clear URL so reload starts fresh
     history.replaceState(null, '', location.pathname);
-    showToast('ðŸ“¦ Pack aus Link geladen!');
+    showToast('📦 Pack aus Link geladen!');
   } catch(e) {
     // ignore malformed pack params
   }
@@ -2227,16 +2207,16 @@ function selectPlatformAndBuild() {
   }
 }
 
-/* â•â• EXPORT AS TEXT LIST â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ══ EXPORT AS TEXT LIST ═══════════════════════════════════════ */
 function exportTextList() {
   if (!MODS.length && !RESOURCEPACKS.length) {
-    showToast('âš  Keine Mods im Pack!');
+    showToast('⚠ Keine Mods im Pack!');
     return;
   }
   const mc   = document.getElementById('mcVersion').value;
   const name = document.getElementById('packName').value.trim() || 'Modpack';
   const lines = [
-    name + ' â€“ Minecraft ' + mc,
+    name + ' – Minecraft ' + mc,
     '='.repeat(40),
     ''
   ];
@@ -2244,13 +2224,13 @@ function exportTextList() {
     const cats = [...new Set(MODS.map(m => m.cat))];
     cats.forEach(cat => {
       lines.push('[ ' + cat + ' ]');
-      MODS.filter(m => m.cat === cat).forEach(m => lines.push('  â€¢ ' + m.name + '  (' + m.slug + ')'));
+      MODS.filter(m => m.cat === cat).forEach(m => lines.push('  • ' + m.name + '  (' + m.slug + ')'));
       lines.push('');
     });
   }
   if (RESOURCEPACKS.length) {
     lines.push('[ Texture Packs ]');
-    RESOURCEPACKS.forEach(r => lines.push('  â€¢ ' + r.name + '  (' + r.slug + ')'));
+    RESOURCEPACKS.forEach(r => lines.push('  • ' + r.name + '  (' + r.slug + ')'));
     lines.push('');
   }
   lines.push('Erstellt mit MC Toolkit');
@@ -2259,10 +2239,10 @@ function exportTextList() {
   a.href     = URL.createObjectURL(blob);
   a.download = name.replace(/\s+/g,'_') + '-' + mc + '-mods.txt';
   document.body.appendChild(a); a.click(); a.remove();
-  showToast('ðŸ“„ Textliste exportiert!');
+  showToast('📄 Textliste exportiert!');
 }
 
-/* â•â• KEYBOARD SHORTCUTS MODAL â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ══ KEYBOARD SHORTCUTS MODAL ══════════════════════════════════ */
 function openShortcuts()  { document.getElementById('shortcutsModal').classList.add('open'); }
 function closeShortcuts() { document.getElementById('shortcutsModal').classList.remove('open'); }
 
@@ -2272,7 +2252,7 @@ document.addEventListener('click', e => {
     document.getElementById('shareOverlay').classList.remove('open');
 });
 
-/* â•â• KEYBOARD SHORTCUTS HANDLER â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ══ KEYBOARD SHORTCUTS HANDLER ════════════════════════════════ */
 document.addEventListener('keydown', e => {
   const active = document.activeElement;
   const typing = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT');
@@ -2317,7 +2297,7 @@ document.addEventListener('keydown', e => {
   }
 });
 
-/* â•â• CONFETTI â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ══ CONFETTI ══════════════════════════════════════════════════ */
 function launchConfetti() {
   const colors = ['#4ade80','#60a5fa','#c084fc','#fb923c','#fbbf24','#f87171'];
   for (let i = 0; i < 80; i++) {
@@ -2336,7 +2316,7 @@ function launchConfetti() {
 }
 
 
-/* â•â• PACK LOCK (after download) â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ══ PACK LOCK (after download) ════════════════════════════════ */
 let packLocked = false;
 
 function lockPack() {
@@ -2351,7 +2331,7 @@ function lockPack() {
     banner = document.createElement('div');
     banner.id = 'packLockedBanner';
     banner.style.cssText = 'background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.25);border-radius:9px;padding:.7rem 1rem;font-size:.78rem;color:#fcd34d;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:.8rem;';
-    banner.innerHTML = '<span>ðŸ”’ Pack heruntergeladen â€“ Liste gesperrt.</span><button onclick="unlockPack()" style="background:none;border:1px solid rgba(251,191,36,.4);border-radius:6px;color:#fcd34d;font-size:.72rem;font-weight:700;padding:3px 10px;cursor:pointer;font-family:var(--font)">Entsperren</button>';
+    banner.innerHTML = '<span>🔒 Pack heruntergeladen – Liste gesperrt.</span><button onclick="unlockPack()" style="background:none;border:1px solid rgba(251,191,36,.4);border-radius:6px;color:#fcd34d;font-size:.72rem;font-weight:700;padding:3px 10px;cursor:pointer;font-family:var(--font)">Entsperren</button>';
     const listsWrap = document.querySelector('.lists-wrap');
     if (listsWrap) listsWrap.parentNode.insertBefore(banner, listsWrap);
   }
@@ -2363,11 +2343,11 @@ function unlockPack() {
   const banner = document.getElementById('packLockedBanner');
   if (banner) banner.style.display = 'none';
   renderMods(); renderRPs();
-  showToast('ðŸ”“ Liste entsperrt');
+  showToast('🔓 Liste entsperrt');
 }
 
 
-/* â•â• AUTO-FIX â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ══ AUTO-FIX ══════════════════════════════════════════════════ */
 let autoFixIssues = [];
 
 async function runAutoFix() {
@@ -2380,9 +2360,9 @@ async function runAutoFix() {
   const fixAllBtn = document.getElementById('autoFixAllBtn');
 
   btn.disabled = true;
-  btn.textContent = 'â³ Analysiere...';
+  btn.textContent = '⏳ Analysiere...';
   panel.classList.add('open');
-  items.innerHTML = '<div style="padding:.8rem 1rem;font-size:.78rem;color:var(--muted)">â³ PrÃ¼fe alle Mods...</div>';
+  items.innerHTML = '<div style="padding:.8rem 1rem;font-size:.78rem;color:var(--muted)">⏳ Prüfe alle Mods...</div>';
   summary.style.display = 'none';
   fixAllBtn.style.display = 'none';
   progress.style.width = '0%';
@@ -2396,16 +2376,16 @@ async function runAutoFix() {
     ...RESOURCEPACKS.map(r => ({ ...r, isRP: true }))
   ];
 
-  // â”€â”€ 1. Duplikate (sofort) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── 1. Duplikate (sofort) ──────────────────────────────────────────────
   const slugsSeen = new Set();
   all.forEach(item => {
     if (slugsSeen.has(item.slug)) {
-      autoFixIssues.push({ type: 'duplicate', item, severity: 'error', msg: 'Doppelter Eintrag â€“ wird beim Export ignoriert' });
+      autoFixIssues.push({ type: 'duplicate', item, severity: 'error', msg: 'Doppelter Eintrag – wird beim Export ignoriert' });
     }
     slugsSeen.add(item.slug);
   });
 
-  // â”€â”€ 2. KompatibilitÃ¤t prÃ¼fen + Ersatz suchen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── 2. Kompatibilität prüfen + Ersatz suchen ──────────────────────────
   for (let i = 0; i < all.length; i++) {
     const item = all[i];
     progress.style.width = Math.round((i / all.length) * 90) + '%';
@@ -2417,7 +2397,7 @@ async function runAutoFix() {
     const ver = await fetchVersion(item.slug, mcV, item.isRP);
 
     if (!ver) {
-      // Not found for this MC version â€“ try to find a replacement via search
+      // Not found for this MC version – try to find a replacement via search
       let replacement = null;
       try {
         const searchType = item.isRP ? '&facets=[["project_type:resourcepack"]]' : '&facets=[["project_type:mod"],["categories:fabric"]]';
@@ -2435,7 +2415,7 @@ async function runAutoFix() {
 
       autoFixIssues.push({
         type: 'notfound', item, severity: 'error',
-        msg: 'Nicht fÃ¼r MC ' + mcV + ' verfÃ¼gbar',
+        msg: 'Nicht für MC ' + mcV + ' verfügbar',
         replacement
       });
     } else {
@@ -2448,7 +2428,7 @@ async function runAutoFix() {
 
   progress.style.width = '100%';
 
-  // â”€â”€ 3. Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── 3. Render ──────────────────────────────────────────────────────────
   items.innerHTML = '';
   const errors      = autoFixIssues.filter(i => i.severity === 'error');
   const oks         = autoFixIssues.filter(i => i.severity === 'ok');
@@ -2456,13 +2436,13 @@ async function runAutoFix() {
 
   if (errors.length === 0) {
     title.className   = 'ok';
-    title.textContent = 'âœ… Keine Fehler â€“ Pack ist sauber!';
-    items.innerHTML   = '<div style="padding:.8rem 1rem;font-size:.8rem;color:var(--green)">âœ… Alle ' + oks.length + ' Mods sind kompatibel mit MC ' + mcV + '</div>';
+    title.textContent = '✅ Keine Fehler – Pack ist sauber!';
+    items.innerHTML   = '<div style="padding:.8rem 1rem;font-size:.8rem;color:var(--green)">✅ Alle ' + oks.length + ' Mods sind kompatibel mit MC ' + mcV + '</div>';
   } else {
     title.className   = 'errors';
-    title.textContent = 'âš  ' + errors.length + ' Fehler gefunden' + (replaceable.length ? ' Â· ' + replaceable.length + ' Ersatz verfÃ¼gbar' : '');
+    title.textContent = '⚠ ' + errors.length + ' Fehler gefunden' + (replaceable.length ? ' · ' + replaceable.length + ' Ersatz verfügbar' : '');
     fixAllBtn.style.display = 'block';
-    fixAllBtn.textContent   = 'âœ“ Alle ' + errors.length + ' automatisch beheben';
+    fixAllBtn.textContent   = '✓ Alle ' + errors.length + ' automatisch beheben';
   }
 
   autoFixIssues.forEach((issue, idx) => {
@@ -2474,20 +2454,20 @@ async function runAutoFix() {
     let icon, actionHtml;
 
     if (issue.type === 'duplicate') {
-      icon = 'â™Š';
+      icon = '♊';
       actionHtml = '<button class="autofix-item-action remove" onclick="autoFixRemove(' + idx + ')">Entfernen</button>';
     } else if (issue.type === 'notfound' && issue.replacement) {
-      icon = 'ðŸ”„';
+      icon = '🔄';
       actionHtml =
-        '<button class="autofix-item-action fix" onclick="autoFixReplace(' + idx + ')" title="Ersetze durch: ' + esc(issue.replacement.name) + '">â†‘ Ersetzen</button>' +
-        ' <button class="autofix-item-action remove" onclick="autoFixRemove(' + idx + ')">âœ•</button>';
+        '<button class="autofix-item-action fix" onclick="autoFixReplace(' + idx + ')" title="Ersetze durch: ' + esc(issue.replacement.name) + '">↑ Ersetzen</button>' +
+        ' <button class="autofix-item-action remove" onclick="autoFixRemove(' + idx + ')">✕</button>';
     } else {
-      icon = 'âŒ';
+      icon = '❌';
       actionHtml = '<button class="autofix-item-action remove" onclick="autoFixRemove(' + idx + ')">Entfernen</button>';
     }
 
     const replacementHint = (issue.replacement)
-      ? '<div style="font-size:.67rem;color:var(--blue);margin-top:2px">â†’ Ersatz: <b>' + esc(issue.replacement.name) + '</b> (' + esc(issue.replacement.slug) + ')</div>'
+      ? '<div style="font-size:.67rem;color:var(--blue);margin-top:2px">→ Ersatz: <b>' + esc(issue.replacement.name) + '</b> (' + esc(issue.replacement.slug) + ')</div>'
       : '';
 
     el.innerHTML =
@@ -2501,19 +2481,19 @@ async function runAutoFix() {
     items.appendChild(el);
   });
 
-  // â”€â”€ 4. Summary â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── 4. Summary ────────────────────────────────────────────────────────
   summary.style.display = 'flex';
   summary.innerHTML =
     '<span>Gesamt: <b>' + all.length + '</b></span>' +
-    '<span style="color:var(--green)">âœ“ OK: <b>' + oks.length + '</b></span>' +
-    (errors.length ? '<span style="color:var(--red)">âœ— Fehler: <b>' + errors.length + '</b></span>' : '') +
-    (replaceable.length ? '<span style="color:var(--blue)">ðŸ”„ Ersatz: <b>' + replaceable.length + '</b></span>' : '');
+    '<span style="color:var(--green)">✓ OK: <b>' + oks.length + '</b></span>' +
+    (errors.length ? '<span style="color:var(--red)">✗ Fehler: <b>' + errors.length + '</b></span>' : '') +
+    (replaceable.length ? '<span style="color:var(--blue)">🔄 Ersatz: <b>' + replaceable.length + '</b></span>' : '');
 
   btn.disabled    = false;
-  btn.textContent = 'ðŸ”§ Nochmals analysieren';
+  btn.textContent = '🔧 Nochmals analysieren';
 }
 
-/* â”€â”€ Auto-Fix actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Auto-Fix actions ─────────────────────────────────────────── */
 function autoFixRemove(idx) {
   const issue = autoFixIssues[idx];
   if (!issue) return;
@@ -2521,8 +2501,8 @@ function autoFixRemove(idx) {
   if (issue.item.isRP) RESOURCEPACKS = RESOURCEPACKS.filter(r => r.slug !== issue.item.slug);
   else MODS = MODS.filter(m => m.slug !== issue.item.slug);
   renderMods(); renderRPs();
-  _markFixed(idx, 'ðŸ—‘ Entfernt');
-  showToast('ðŸ—‘ ' + issue.item.name + ' entfernt');
+  _markFixed(idx, '🗑 Entfernt');
+  showToast('🗑 ' + issue.item.name + ' entfernt');
   _updateFixTitle();
 }
 
@@ -2541,8 +2521,8 @@ function autoFixReplace(idx) {
     );
   }
   renderMods(); renderRPs();
-  _markFixed(idx, 'âœ… Ersetzt durch ' + rep.name);
-  showToast('ðŸ”„ ' + issue.item.name + ' â†’ ' + rep.name);
+  _markFixed(idx, '✅ Ersetzt durch ' + rep.name);
+  showToast('🔄 ' + issue.item.name + ' → ' + rep.name);
   _updateFixTitle();
 }
 
@@ -2568,11 +2548,11 @@ function _updateFixTitle() {
     const parts = [];
     if (replaced) parts.push(replaced + ' Mod' + (replaced !== 1 ? 's' : '') + ' ersetzt');
     if (removed)  parts.push(removed  + ' entfernt');
-    title.textContent = 'âœ… Alle Fehler behoben â€“ ' + parts.join(', ');
+    title.textContent = '✅ Alle Fehler behoben – ' + parts.join(', ');
     fixAllBtn.style.display = 'none';
   } else if (remaining > 0) {
     title.className   = 'errors';
-    title.textContent = 'âš  Noch ' + remaining + ' Fehler offen';
+    title.textContent = '⚠ Noch ' + remaining + ' Fehler offen';
   }
 }
 
@@ -2591,30 +2571,30 @@ async function fixAll() {
 }
 
 
-/* â•â• BEST PVP PACK â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ══ BEST PVP PACK ═════════════════════════════════════════════ */
 const BEST_PVP_PACK = {
   name: "Best PvP Pack",
   mc:   "1.21.11",
   mods: [
-    // â”€â”€ Performance â”€â”€
+    // ── Performance ──
     { slug: "sodium",                  name: "Sodium",                  cat: "Performance" },
     { slug: "lithium",                 name: "Lithium",                 cat: "Performance" },
     { slug: "ferritecore",             name: "FerriteCore",             cat: "Performance" },
     { slug: "krypton",                 name: "Krypton",                 cat: "Performance" },
     { slug: "entityculling",           name: "EntityCulling",           cat: "Performance" },
     { slug: "dynamic-fps",             name: "Dynamic FPS",             cat: "Performance" },
-    // â”€â”€ Crystal PvP â”€â”€
+    // ── Crystal PvP ──
     { slug: "clickcrystals",           name: "ClickCrystals",           cat: "PvP / Crystal" },
     { slug: "clientsidecrystals",      name: "Client Side Crystals",    cat: "PvP / Crystal" },
     { slug: "hcscr",                   name: "HCSCR",                   cat: "PvP / Crystal" },
     { slug: "totem-counter",           name: "Totem Counter",           cat: "PvP / Crystal" },
-    // â”€â”€ HUD â”€â”€
+    // ── HUD ──
     { slug: "minihud",                 name: "MiniHUD",                 cat: "HUD" },
     { slug: "betterf3",                name: "BetterF3",                cat: "HUD" },
     { slug: "appleskin",               name: "AppleSkin",               cat: "HUD" },
     { slug: "shulkerboxtooltip",       name: "Shulker Box Tooltip",     cat: "HUD" },
     { slug: "inventoryhud",            name: "Inventory HUD+",          cat: "HUD" },
-    // â”€â”€ QoL â”€â”€
+    // ── QoL ──
     { slug: "zoomify",                 name: "Zoomify",                 cat: "QoL" },
     { slug: "no-hurt-cam",             name: "No Hurt Cam",             cat: "QoL" },
     { slug: "mousetweaks",             name: "Mouse Tweaks",            cat: "QoL" },
@@ -2645,9 +2625,9 @@ function loadBestPvpPack() {
   });
   unlockPack && unlockPack();
 
-  showToast('ðŸ’Ž Best PvP Pack geladen â€“ ' + MODS.length + ' Mods fÃ¼r MC ' + BEST_PVP_PACK.mc + '!', 3000);
+  showToast('💎 Best PvP Pack geladen – ' + MODS.length + ' Mods für MC ' + BEST_PVP_PACK.mc + '!', 3000);
   document.getElementById('statusText').textContent =
-    'âœ“ Best PvP Pack geladen â€“ direkt generieren!';
+    '✓ Best PvP Pack geladen – direkt generieren!';
 
   // Scroll to mod list
   setTimeout(() => {
@@ -2657,10 +2637,10 @@ function loadBestPvpPack() {
 }
 
 
-/* â•â• BEST PVP PACK â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ══ BEST PVP PACK ══════════════════════════════════════════════ */
 
 
-/* â•â• PACK CONVERTER â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ══ PACK CONVERTER ════════════════════════════════════════════ */
 let convPackData  = null;
 let convDirection = null; // 'mr-to-cf' | 'cf-to-mr'
 
@@ -2684,7 +2664,7 @@ function loadConvPack(inp) { if(inp.files[0]) parseConvPack(inp.files[0]); }
 function clearConvDZ(e) {
   e.stopPropagation(); convPackData = null;
   document.getElementById('convDZ').classList.remove('loaded');
-  document.getElementById('convDZ-icon').textContent = 'ðŸ“¦';
+  document.getElementById('convDZ-icon').textContent = '📦';
   document.getElementById('convDZ-label').textContent = 'Pack hier ablegen oder klicken';
   ['convDZ-name','convDZ-stats'].forEach(id => document.getElementById(id).textContent = '');
   document.getElementById('convDZ-clear').style.display = 'none';
@@ -2701,7 +2681,7 @@ async function parseConvPack(file) {
     const isMR  = !!zip.file('modrinth.index.json');
     const isCF  = !!zip.file('manifest.json');
 
-    if (!isMR && !isCF) throw new Error('Kein unterstÃ¼tztes Modpack-Format gefunden');
+    if (!isMR && !isCF) throw new Error('Kein unterstütztes Modpack-Format gefunden');
 
     let index, packType;
     if (isMR) {
@@ -2730,17 +2710,17 @@ async function parseConvPack(file) {
       : index.files?.length || 0;
 
     document.getElementById('convDZ').classList.add('loaded');
-    document.getElementById('convDZ-icon').textContent = 'âœ…';
+    document.getElementById('convDZ-icon').textContent = '✅';
     document.getElementById('convDZ-label').textContent = '';
     document.getElementById('convDZ-name').textContent  = name;
     document.getElementById('convDZ-stats').textContent =
-      mods + ' Mods â€¢ MC ' + mc + ' â€¢ ' + (packType === 'modrinth' ? 'Modrinth .mrpack' : 'CurseForge .zip');
+      mods + ' Mods • MC ' + mc + ' • ' + (packType === 'modrinth' ? 'Modrinth .mrpack' : 'CurseForge .zip');
     document.getElementById('convDZ-clear').style.display = 'block';
     document.getElementById('convStatus').textContent = '';
     previewConvert();
     updateConvBtn();
   } catch(e) {
-    document.getElementById('convStatus').textContent = 'âš  ' + e.message;
+    document.getElementById('convStatus').textContent = '⚠ ' + e.message;
   }
 }
 
@@ -2763,7 +2743,7 @@ function previewConvert() {
       cstat('MC ' + mc,  'Version',      'var(--blue)') +
       cstat('Fabric ' + fl, 'Loader',   'var(--muted)');
     warnEl.style.display = 'block';
-    warnEl.innerHTML = 'âš  <b>Hinweis:</b> CurseForge benÃ¶tigt eigene Mod-IDs. Da die Mods von Modrinth stammen, werden alle Download-Links in eine <code>modlist.html</code> im ZIP exportiert. Die Mods mÃ¼ssen einmalig manuell in den <code>mods/</code> Ordner gelegt werden.';
+    warnEl.innerHTML = '⚠ <b>Hinweis:</b> CurseForge benötigt eigene Mod-IDs. Da die Mods von Modrinth stammen, werden alle Download-Links in eine <code>modlist.html</code> im ZIP exportiert. Die Mods müssen einmalig manuell in den <code>mods/</code> Ordner gelegt werden.';
   } else {
     const mods = index.files?.length || 0;
     const mc   = index.minecraft?.version || '?';
@@ -2773,7 +2753,7 @@ function previewConvert() {
       cstat('MC ' + mc, 'Version',  'var(--blue)') +
       cstat(ml, 'Loader',           'var(--muted)');
     warnEl.style.display = 'block';
-    warnEl.innerHTML = 'âš  <b>Hinweis:</b> CurseForge Mod-IDs werden Ã¼ber die Modrinth API nach passenden Mods gesucht. Nicht alle Mods sind auf Modrinth verfÃ¼gbar. Nicht gefundene Mods werden Ã¼bersprungen.';
+    warnEl.innerHTML = '⚠ <b>Hinweis:</b> CurseForge Mod-IDs werden über die Modrinth API nach passenden Mods gesucht. Nicht alle Mods sind auf Modrinth verfügbar. Nicht gefundene Mods werden übersprungen.';
   }
 }
 
@@ -2803,7 +2783,7 @@ async function runConvert() {
   }
 }
 
-/* â”€â”€ Modrinth â†’ CurseForge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Modrinth → CurseForge ───────────────────────────────────── */
 async function convertMRtoCF(btn, st, pb) {
   const { index } = convPackData;
   const mc  = (index.dependencies || {}).minecraft || '1.21.11';
@@ -2862,8 +2842,8 @@ async function convertMRtoCF(btn, st, pb) {
     '<li><a href="' + m.url + '">' + esc(m.name) + '</a></li>'
   ).join('\n');
 
-  const modlistHtml = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + esc(name) + '</title></head><body style="font-family:sans-serif;max-width:800px;margin:2rem auto;background:#1a1a2e;color:#f0f6fc"><h1 style="color:#4ade80">ðŸ“¦ ' + esc(name) + '</h1><p>MC ' + mc + ' Â· Fabric ' + fl + ' Â· ' + resolved.length + ' Dateien</p><h2>Mods</h2><ul>' + modRows + '</ul>' + (rpRows ? '<h2>Texture Packs</h2><ul>' + rpRows + '</ul>' : '') + '<hr><p style="color:#666">Konvertiert mit MC Toolkit</p></body></html>';
-  const readme = name + '\nMC ' + mc + ' Â· Fabric ' + fl + '\nKonvertiert von .mrpack â†’ CurseForge mit MC Toolkit\n\nMods manuell aus modlist.html herunterladen und in den mods/ Ordner legen.';
+  const modlistHtml = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + esc(name) + '</title></head><body style="font-family:sans-serif;max-width:800px;margin:2rem auto;background:#1a1a2e;color:#f0f6fc"><h1 style="color:#4ade80">📦 ' + esc(name) + '</h1><p>MC ' + mc + ' · Fabric ' + fl + ' · ' + resolved.length + ' Dateien</p><h2>Mods</h2><ul>' + modRows + '</ul>' + (rpRows ? '<h2>Texture Packs</h2><ul>' + rpRows + '</ul>' : '') + '<hr><p style="color:#666">Konvertiert mit MC Toolkit</p></body></html>';
+  const readme = name + '\nMC ' + mc + ' · Fabric ' + fl + '\nKonvertiert von .mrpack → CurseForge mit MC Toolkit\n\nMods manuell aus modlist.html herunterladen und in den mods/ Ordner legen.';
 
   const zip = new JSZip();
   zip.file('manifest.json', JSON.stringify(manifest, null, 2));
@@ -2878,13 +2858,13 @@ async function convertMRtoCF(btn, st, pb) {
   const a = document.createElement('a'); a.href = blobUrl; a.download = fn;
   document.body.appendChild(a); a.click(); a.remove();
 
-  st.textContent = 'âœ… ' + resolved.length + ' Mods konvertiert' + (notFound.length ? ' Â· ' + notFound.length + ' nicht gefunden' : ' Â· Alle OK!') + ' â†’ ' + fn;
+  st.textContent = '✅ ' + resolved.length + ' Mods konvertiert' + (notFound.length ? ' · ' + notFound.length + ' nicht gefunden' : ' · Alle OK!') + ' → ' + fn;
   btn.disabled = false;
   launchConfetti();
   showOpenInApp(fn, 'curseforge', blobUrl);
 }
 
-/* â”€â”€ CurseForge â†’ Modrinth â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── CurseForge → Modrinth ───────────────────────────────────── */
 async function convertCFtoMR(btn, st, pb) {
   const { index, zip: origZip } = convPackData;
   const mc   = index.minecraft?.version || '1.21.11';
@@ -2897,9 +2877,9 @@ async function convertCFtoMR(btn, st, pb) {
   const overrideMods = {}; // files embedded directly in overrides/mods/
   const results      = []; // log per mod: {name, status, detail}
 
-  // â”€â”€ 1. Parse modlist.html â†’ CF slug map â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  const cfSlugMap = new Map(); // index â†’ cfSlug
-  const cfNameMap = new Map(); // index â†’ display name
+  // ── 1. Parse modlist.html → CF slug map ─────────────────────────────────
+  const cfSlugMap = new Map(); // index → cfSlug
+  const cfNameMap = new Map(); // index → display name
   if (origZip) {
     const mlFile = origZip.file('modlist.html');
     if (mlFile) {
@@ -2917,7 +2897,7 @@ async function convertCFtoMR(btn, st, pb) {
     }
   }
 
-  // â”€â”€ 2. Also extract any existing override files â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── 2. Also extract any existing override files ──────────────────────────
   if (origZip) {
     for (const key of Object.keys(origZip.files)) {
       if ((key.startsWith('overrides/mods/') || key.startsWith('overrides/resourcepacks/') || key.startsWith('overrides/config/')) && !origZip.files[key].dir) {
@@ -2926,7 +2906,7 @@ async function convertCFtoMR(btn, st, pb) {
     }
   }
 
-  // â”€â”€ 3. Resolve each mod â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── 3. Resolve each mod ──────────────────────────────────────────────────
   for (let i = 0; i < cfFiles.length; i++) {
     const cf       = cfFiles[i];
     const cfSlug   = cfSlugMap.get(i) || '';
@@ -2941,7 +2921,7 @@ async function convertCFtoMR(btn, st, pb) {
 
     let found = false;
 
-    // â”€â”€ Strategy A: CF slug â†’ Modrinth directly (most reliable) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Strategy A: CF slug → Modrinth directly (most reliable) ───────────
     if (cfSlug && !found) {
       try {
         const ver = await fetchVersion(cfSlug, mc, false);
@@ -2956,7 +2936,7 @@ async function convertCFtoMR(btn, st, pb) {
       } catch(e) {}
     }
 
-    // â”€â”€ Strategy B: Name search on Modrinth â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Strategy B: Name search on Modrinth ───────────────────────────────
     if (!found && modName && modName.length > 2) {
       try {
         const r = await fetch(
@@ -2993,7 +2973,7 @@ async function convertCFtoMR(btn, st, pb) {
       } catch(e) {}
     }
 
-    // â”€â”€ Strategy C: Use downloadUrl from CF manifest directly â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Strategy C: Use downloadUrl from CF manifest directly ─────────────
     if (!found && dlUrl && dlUrl.startsWith('http')) {
       const fname = dlUrl.split('/').pop().split('?')[0] || (modName.replace(/\s+/g, '-') + '.jar');
       mrFiles.push({ path: 'mods/' + fname, hashes: {}, env: { client: 'required', server: 'unsupported' }, downloads: [dlUrl], fileSize: cf.fileSize || 0 });
@@ -3001,7 +2981,7 @@ async function convertCFtoMR(btn, st, pb) {
       found = true;
     }
 
-    // â”€â”€ Strategy D: Construct CurseForge CDN URL from fileID â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Strategy D: Construct CurseForge CDN URL from fileID ─────────────
     // CF CDN pattern: https://edge.forgecdn.net/files/{fileId/1000}/{fileId%1000}/{filename}
     // We don't know the filename, but we can try a common pattern
     if (!found && fileId > 0) {
@@ -3026,7 +3006,7 @@ async function convertCFtoMR(btn, st, pb) {
     }
 
     if (!found) {
-      results.push({ name: modName, status: 'fail', detail: 'Nicht gefunden â€“ manuell hinzufÃ¼gen' });
+      results.push({ name: modName, status: 'fail', detail: 'Nicht gefunden – manuell hinzufügen' });
     }
   }
 
@@ -3036,7 +3016,7 @@ async function convertCFtoMR(btn, st, pb) {
   const failCount = results.filter(r => r.status === 'fail').length;
 
   if (okCount === 0 && Object.keys(overrideMods).length === 0) {
-    st.textContent = 'âš  Keine Mods gefunden. Das ZIP enthÃ¤lt keine verwertbaren Daten. Nutze eine CF-App-Export-ZIP (nicht die manuelle Downloadversion).';
+    st.textContent = '⚠ Keine Mods gefunden. Das ZIP enthält keine verwertbaren Daten. Nutze eine CF-App-Export-ZIP (nicht die manuelle Downloadversion).';
     btn.disabled = false;
     return;
   }
@@ -3064,7 +3044,7 @@ async function convertCFtoMR(btn, st, pb) {
 
   // Build a results report
   if (failCount > 0) {
-    const report = ['# Nicht konvertierte Mods\n\nDiese Mods wurden nicht gefunden und mÃ¼ssen manuell hinzugefÃ¼gt werden:\n'];
+    const report = ['# Nicht konvertierte Mods\n\nDiese Mods wurden nicht gefunden und müssen manuell hinzugefügt werden:\n'];
     results.filter(r => r.status === 'fail').forEach(r => report.push('- ' + r.name));
     newZip.file('FEHLENDE_MODS.txt', report.join('\n'));
   }
@@ -3075,9 +3055,9 @@ async function convertCFtoMR(btn, st, pb) {
   const a = document.createElement('a'); a.href = blobUrl; a.download = fn;
   document.body.appendChild(a); a.click(); a.remove();
 
-  const msg = 'âœ… ' + okCount + '/' + cfFiles.length + ' Mods' +
-    (failCount ? ' Â· âš  ' + failCount + ' fehlen (â†’ FEHLENDE_MODS.txt im ZIP)' : ' Â· Alle gefunden! ðŸŽ‰') +
-    ' â†’ ' + fn;
+  const msg = '✅ ' + okCount + '/' + cfFiles.length + ' Mods' +
+    (failCount ? ' · ⚠ ' + failCount + ' fehlen (→ FEHLENDE_MODS.txt im ZIP)' : ' · Alle gefunden! 🎉') +
+    ' → ' + fn;
   st.textContent = msg;
   btn.disabled = false;
   if (okCount > 0) { launchConfetti(); showOpenInApp(fn, 'modrinth', blobUrl); }
@@ -3095,7 +3075,7 @@ function switchTut(id, btn) {
 }
 
 
-/* â•â• COOKIE BANNER â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ══ COOKIE BANNER ═════════════════════════════════════════════ */
 function initCookieBanner() {
   const accepted = localStorage.getItem('mctoolkit_cookies');
   if (!accepted) {
@@ -3120,7 +3100,7 @@ function hideCookieBanner() {
   setTimeout(() => b.style.display = 'none', 350);
 }
 
-/* â•â• AGB MODAL â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ══ AGB MODAL ══════════════════════════════════════════════════ */
 function openAgb() {
   document.getElementById('agbOverlay').classList.add('open');
 }
@@ -3146,7 +3126,7 @@ if (_savedPlatform) {
   document.documentElement.style.overflow = 'hidden';
 }
 
-/* â•â• AI SIDEBAR â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ══ AI SIDEBAR ══════════════════════════════════════════════════ */
 
 let aiIsVip = false;
 let aiLastModpackData = null;
@@ -3170,11 +3150,11 @@ function checkAndActivateOwner(email) {
   const chat  = document.getElementById('aiChatScreen');
   const badge = document.querySelector('.ai-vip-badge');
   const collapseBtn = document.getElementById('aiCollapseBtn');
-  // Force show chat, hide lock â€” override any mobile collapsed state
+  // Force show chat, hide lock — override any mobile collapsed state
   if (lock)  { lock.style.display = 'none'; }
   if (chat)  { chat.style.display = 'flex'; chat.classList.add('visible'); }
-  if (badge) { badge.textContent = 'ðŸ‘‘ Owner'; badge.classList.add('owner'); }
-  if (collapseBtn) collapseBtn.textContent = 'â–² Bolt ausblenden';
+  if (badge) { badge.textContent = '👑 Owner'; badge.classList.add('owner'); }
+  if (collapseBtn) collapseBtn.textContent = '▲ Bolt ausblenden';
   initBoltMcSelect();
   refreshApiKeyUI();
 }
@@ -3196,7 +3176,7 @@ function activateAiDemo() {
   document.getElementById('aiLockScreen').style.display = 'none';
   document.getElementById('aiChatScreen').classList.add('visible');
   const badge = document.querySelector('.ai-vip-badge');
-  badge.textContent = 'ðŸŽ® Demo';
+  badge.textContent = '🎮 Demo';
   badge.classList.remove('owner');
   badge.classList.add('demo');
   refreshApiKeyUI();
@@ -3214,11 +3194,11 @@ function toggleAiSidebar() {
   if (isOpen) {
     if (isChatVisible) chat.style.display = 'none';
     lock.style.display = 'none';
-    btn.textContent = 'â–¼ Bolt anzeigen';
+    btn.textContent = '▼ Bolt anzeigen';
   } else {
     if (isChatVisible) chat.style.display = '';
     else lock.style.display = '';
-    btn.textContent = 'â–² Bolt ausblenden';
+    btn.textContent = '▲ Bolt ausblenden';
   }
 }
 
@@ -3231,7 +3211,7 @@ function autoResizeAiInput(el) {
   el.style.height = Math.min(el.scrollHeight, 100) + 'px';
 }
 
-/* â•â• BOLT AI â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ══ BOLT AI ════════════════════════════════════════════════════ */
 const BOLT_NAME = 'Bolt';
 
 const BOLT_PERF_CORE = ['sodium', 'lithium', 'entityculling', 'dynamic-fps', 'ferritecore', 'krypton', 'immediatelyfast', 'moreculling', 'modernfix', 'iris', 'indium', 'sodium-extra', 'reeses-sodium-options', 'fabric-api', 'fabric-language-kotlin', 'cloth-config', 'modmenu', 'placeholder-api', 'architectury'];
@@ -3258,7 +3238,7 @@ const BOLT_SERVER_RULES = {
     forbidden: ['wurst', 'meteor-client', 'xray', 'aristois', 'impact', 'liquidbounce', 'sigma'],
     risky: [],
     allowed: ['sodium', 'lithium', 'iris', 'ferritecore', 'jei', 'roughly-enough-items', 'waystones', 'journeymap', 'xaeros-minimap', 'appleskin', 'jade', 'fabric-api'],
-    note: 'Private SMPs sind oft lockerer â€“ Cheat-Clients trotzdem vermeiden.'
+    note: 'Private SMPs sind oft lockerer – Cheat-Clients trotzdem vermeiden.'
   }
 };
 
@@ -3288,12 +3268,12 @@ function boltEnsureChatVisible() {
 
 function boltRequireAccess() {
   if (!aiIsVip) {
-    showToast('â­ Bolt ist ein VIP-Feature');
+    showToast('⭐ Bolt ist ein VIP-Feature');
     openVipModal();
     return false;
   }
   if (!localStorage.getItem('mctoolkit_groq_key')) {
-    appendAiMsg('bot', 'âš  Trage zuerst deinen Groq API-Key oben ein.');
+    appendAiMsg('bot', '⚠ Trage zuerst deinen Groq API-Key oben ein.');
     return false;
   }
   return true;
@@ -3451,7 +3431,7 @@ async function boltRunWithUi(label, fn) {
   if (!boltRequireAccess()) return;
   boltEnsureChatVisible();
   document.getElementById('aiSendBtn').disabled = true;
-  appendAiMsg('user', 'âš¡ ' + label);
+  appendAiMsg('user', '⚡ ' + label);
   appendTyping();
   try {
     const html = await fn();
@@ -3459,49 +3439,49 @@ async function boltRunWithUi(label, fn) {
     appendAiMsg('bot', html);
   } catch (e) {
     removeTyping();
-    appendAiMsg('bot', 'âš  ' + e.message);
+    appendAiMsg('bot', '⚠ ' + e.message);
   }
   document.getElementById('aiSendBtn').disabled = false;
 }
 
-const BOLT_SYSTEM = `Du bist Bolt âš¡, der Minecraft Fabric Modpack-Experte von MC Toolkit.
-Antworte IMMER auf Deutsch. Sei prÃ¤zise, freundlich, nutze Bullet-Points mit "- ".
-Wenn du konkrete Pack-Ã„nderungen empfiehlst, fÃ¼ge am Ende ein:
+const BOLT_SYSTEM = `Du bist Bolt ⚡, der Minecraft Fabric Modpack-Experte von MC Toolkit.
+Antworte IMMER auf Deutsch. Sei präzise, freundlich, nutze Bullet-Points mit "- ".
+Wenn du konkrete Pack-Änderungen empfiehlst, füge am Ende ein:
 <BOLT_APPLY>
 add: slug1, slug2
 remove: slug3
 explain:
-- Kurze ErklÃ¤rung pro Ã„nderung
+- Kurze Erklärung pro Änderung
 </BOLT_APPLY>
 Nur echte Modrinth-Fabric-Slugs. Keine erfundenen Mods.`;
 
 async function boltPackOptimize() {
   await boltRunWithUi('Pack optimieren', async () => {
     const ctx = boltGetPackContext();
-    if (!ctx.count) return 'âš  Dein Pack ist leer â€” fÃ¼ge zuerst Mods im Builder hinzu.';
+    if (!ctx.count) return '⚠ Dein Pack ist leer — füge zuerst Mods im Builder hinzu.';
 
     const missingPerf = boltLocalMissingPerf();
     const clientCheats = boltLocalClientCheats();
 
-    let html = '<b>âš¡ Bolt â€“ Pack-Optimierung</b><br><br>';
+    let html = '<b>⚡ Bolt – Pack-Optimierung</b><br><br>';
 
     const dupsRemoved = boltRemoveDuplicatesLocal();
-    if (dupsRemoved.length) html += 'ðŸ—‘ <b>Duplikate entfernt:</b> ' + dupsRemoved.join(', ') + '<br>';
+    if (dupsRemoved.length) html += '🗑 <b>Duplikate entfernt:</b> ' + dupsRemoved.join(', ') + '<br>';
 
     if (clientCheats.length) {
       const result = await boltApplySlugs([], clientCheats);
-      html += 'ðŸš« <b>Client-only / Cheat-Mods entfernt:</b> ' + result.removed.join(', ') + '<br>';
+      html += '🚫 <b>Client-only / Cheat-Mods entfernt:</b> ' + result.removed.join(', ') + '<br>';
       html += '<span style="font-size:.72rem;color:var(--muted)">Diese Mods sind reine Client-Cheats oder auf Servern riskant.</span><br>';
     }
 
-    const userPrompt = `Analysiere dieses Fabric-Modpack fÃ¼r MC ${ctx.mc}:
+    const userPrompt = `Analysiere dieses Fabric-Modpack für MC ${ctx.mc}:
 Name: ${ctx.name}
 Mods (${MODS.length}): ${MODS.map(m => m.slug).join(', ')}
 
 Aufgaben:
-1) Fehlende Performance-Basis ergÃ¤nzen (z.B. ${missingPerf.slice(0, 6).join(', ') || 'sodium, lithium'})
-2) ÃœberflÃ¼ssige/redundante Mods entfernen (nicht Performance-Core!)
-3) Kurz begrÃ¼nden â€“ pro Ã„nderung eine Zeile in explain:
+1) Fehlende Performance-Basis ergänzen (z.B. ${missingPerf.slice(0, 6).join(', ') || 'sodium, lithium'})
+2) Überflüssige/redundante Mods entfernen (nicht Performance-Core!)
+3) Kurz begründen – pro Änderung eine Zeile in explain:
 Performance-Core NIEMALS entfernen: sodium, lithium, fabric-api, iris, indium`;
 
     const raw = await boltCallGroq(BOLT_SYSTEM, userPrompt, 1100);
@@ -3511,20 +3491,20 @@ Performance-Core NIEMALS entfernen: sodium, lithium, fabric-api, iris, indium`;
     const { add, remove, explain } = boltParseApplyBlock(raw);
     if (add.length || remove.length) {
       const result = await boltApplySlugs(add, remove);
-      html += '<br><br>âœ… <b>Angewendet:</b>';
+      html += '<br><br>✅ <b>Angewendet:</b>';
       if (result.added.length) html += '<br>+ ' + result.added.join(', ');
-      if (result.removed.length) html += '<br>âˆ’ ' + result.removed.join(', ');
-      if (result.failed.length) html += '<br>âš  Nicht gefunden: ' + result.failed.join(', ');
-      if (explain.length) html += '<br><br>' + explain.map(e => 'â€¢ ' + esc(e)).join('<br>');
+      if (result.removed.length) html += '<br>− ' + result.removed.join(', ');
+      if (result.failed.length) html += '<br>⚠ Nicht gefunden: ' + result.failed.join(', ');
+      if (explain.length) html += '<br><br>' + explain.map(e => '• ' + esc(e)).join('<br>');
     }
     return html;
   });
 }
 
 async function boltAutoFixExplain() {
-  await boltRunWithUi('Auto-Fix mit ErklÃ¤rung', async () => {
+  await boltRunWithUi('Auto-Fix mit Erklärung', async () => {
     const ctx = boltGetPackContext();
-    if (!ctx.count) return 'âš  Keine Mods zum PrÃ¼fen.';
+    if (!ctx.count) return '⚠ Keine Mods zum Prüfen.';
 
     const mcV = ctx.mc;
     const issues = [];
@@ -3541,14 +3521,14 @@ async function boltAutoFixExplain() {
       for (const dep of (DEP_MAP[m.slug] || [])) {
         if (!has(dep, 'mod')) {
           const res = await detectAndResolve(dep);
-          if (res && addResolved(res, 'Bolt-Dep')) depsAdded.push((res.name || dep) + ' (fÃ¼r ' + m.name + ')');
+          if (res && addResolved(res, 'Bolt-Dep')) depsAdded.push((res.name || dep) + ' (für ' + m.name + ')');
         }
       }
     }
     if (depsAdded.length) {
       renderMods();
-      issues.push({ type: 'dep', slug: '-', name: 'Dependencies', msg: 'ErgÃ¤nzt: ' + depsAdded.join(', ') });
-      explanations.push('Fehlende AbhÃ¤ngigkeiten wurden ergÃ¤nzt: ' + depsAdded.join(', '));
+      issues.push({ type: 'dep', slug: '-', name: 'Dependencies', msg: 'Ergänzt: ' + depsAdded.join(', ') });
+      explanations.push('Fehlende Abhängigkeiten wurden ergänzt: ' + depsAdded.join(', '));
     }
 
     const versionIssues = [];
@@ -3567,7 +3547,7 @@ async function boltAutoFixExplain() {
         versionIssues.push({ slug: m.slug, name: m.name, replacement });
         issues.push({
           type: 'version', slug: m.slug, name: m.name,
-          msg: 'Nicht fÃ¼r MC ' + mcV,
+          msg: 'Nicht für MC ' + mcV,
           replacement: replacement ? replacement.slug + ' (' + replacement.name + ')' : null
         });
       }
@@ -3576,11 +3556,11 @@ async function boltAutoFixExplain() {
 
     const autoReplaced = boltApplyVersionReplacements(versionIssues);
     if (autoReplaced.length) {
-      issues.push({ type: 'replaced', slug: '-', name: 'Ersatz-Mods', msg: autoReplaced.map(r => r.from + ' â†’ ' + r.to).join(', ') });
+      issues.push({ type: 'replaced', slug: '-', name: 'Ersatz-Mods', msg: autoReplaced.map(r => r.from + ' → ' + r.to).join(', ') });
       explanations.push('Inkompatible Mods wurden durch Modrinth-Ersatz ersetzt.');
     }
 
-    let html = '<b>ðŸ”§ Bolt â€“ Auto-Fix mit ErklÃ¤rung</b><br><br>';
+    let html = '<b>🔧 Bolt – Auto-Fix mit Erklärung</b><br><br>';
     if (explanations.length) {
       html += '<b>Was Bolt gemacht hat:</b><ul style="margin:.35rem 0 .6rem;padding-left:1.1rem">';
       explanations.forEach(e => { html += '<li>' + esc(e) + '</li>'; });
@@ -3590,25 +3570,25 @@ async function boltAutoFixExplain() {
       html += '<b>Gefundene Punkte:</b><ul style="margin:.35rem 0;padding-left:1.1rem">';
       issues.forEach(i => {
         html += '<li><b>' + esc(i.name) + '</b>: ' + esc(i.msg);
-        if (i.replacement && typeof i.replacement === 'string') html += ' â†’ <code>' + esc(i.replacement) + '</code>';
-        else if (i.replacement?.slug) html += ' â†’ <code>' + esc(i.replacement.slug) + '</code>';
+        if (i.replacement && typeof i.replacement === 'string') html += ' → <code>' + esc(i.replacement) + '</code>';
+        else if (i.replacement?.slug) html += ' → <code>' + esc(i.replacement.slug) + '</code>';
         html += '</li>';
       });
       html += '</ul>';
     } else {
-      html += 'âœ… Keine kritischen Probleme gefunden.<br>';
+      html += '✅ Keine kritischen Probleme gefunden.<br>';
     }
 
     const issueText = issues.map(i => {
       let line = `- [${i.type}] ${i.name} (${i.slug}): ${i.msg}`;
-      if (i.replacement?.slug) line += ' â†’ Ersatz: ' + i.replacement.slug;
-      else if (typeof i.replacement === 'string') line += ' â†’ Ersatz: ' + i.replacement;
+      if (i.replacement?.slug) line += ' → Ersatz: ' + i.replacement.slug;
+      else if (typeof i.replacement === 'string') line += ' → Ersatz: ' + i.replacement;
       return line;
     }).join('\n');
 
     const raw = await boltCallGroq(
       BOLT_SYSTEM,
-      `ErklÃ¤re dem Nutzer auf Deutsch â€“ freundlich und konkret â€“ was die folgenden Auto-Fix-Ergebnisse bedeuten und was er noch tun kann:\n${issueText || 'Keine Fehler â€” Pack sieht gut aus.'}\n\nBereits automatisch erledigt:\n${explanations.join('\n') || 'nichts'}\n\nPack: ${ctx.name}, MC ${mcV}`,
+      `Erkläre dem Nutzer auf Deutsch – freundlich und konkret – was die folgenden Auto-Fix-Ergebnisse bedeuten und was er noch tun kann:\n${issueText || 'Keine Fehler — Pack sieht gut aus.'}\n\nBereits automatisch erledigt:\n${explanations.join('\n') || 'nichts'}\n\nPack: ${ctx.name}, MC ${mcV}`,
       1000
     );
     html += '<br>' + boltFormatHtml(raw.replace(/<BOLT_APPLY>[\s\S]*?<\/BOLT_APPLY>/gi, '').trim());
@@ -3616,13 +3596,13 @@ async function boltAutoFixExplain() {
     const { add, remove, explain } = boltParseApplyBlock(raw);
     if (add.length || remove.length) {
       const result = await boltApplySlugs(add, remove);
-      html += '<br><br>âœ… <b>ZusÃ¤tzlich angewendet:</b>';
+      html += '<br><br>✅ <b>Zusätzlich angewendet:</b>';
       if (result.added.length) html += '<br>+ ' + result.added.join(', ');
-      if (result.removed.length) html += '<br>âˆ’ ' + result.removed.join(', ');
-      if (explain.length) html += '<br>' + explain.map(e => 'â€¢ ' + esc(e)).join('<br>');
+      if (result.removed.length) html += '<br>− ' + result.removed.join(', ');
+      if (explain.length) html += '<br>' + explain.map(e => '• ' + esc(e)).join('<br>');
     }
 
-    html += '<br><br><button class="bolt-inline-btn" onclick="runAutoFix();showPage(\'builder\')">ðŸ”§ Detail-Auto-Fix im Builder</button>';
+    html += '<br><br><button class="bolt-inline-btn" onclick="runAutoFix();showPage(\'builder\')">🔧 Detail-Auto-Fix im Builder</button>';
     return html;
   });
 }
@@ -3630,22 +3610,22 @@ async function boltAutoFixExplain() {
 async function boltServerCheck() {
   await boltRunWithUi('Server-Check', async () => {
     const ctx = boltGetPackContext();
-    if (!ctx.count) return 'âš  Keine Mods im Pack.';
+    if (!ctx.count) return '⚠ Keine Mods im Pack.';
 
     const serverKey = document.getElementById('boltServerSelect')?.value || 'hypixel';
     const { rules, forbidden, risky } = boltLocalServerHits(serverKey);
 
-    let html = '<b>ðŸ›¡ Bolt â€“ Server-Check: ' + esc(rules.label) + '</b><br>';
+    let html = '<b>🛡 Bolt – Server-Check: ' + esc(rules.label) + '</b><br>';
     html += '<span style="font-size:.75rem;color:var(--muted)">' + esc(rules.note) + '</span><br><br>';
 
     if (forbidden.length) {
-      html += 'âŒ <b>Stark riskant / oft verboten:</b><br><code>' + forbidden.join('</code>, <code>') + '</code><br><br>';
+      html += '❌ <b>Stark riskant / oft verboten:</b><br><code>' + forbidden.join('</code>, <code>') + '</code><br><br>';
     }
     if (risky.length) {
-      html += 'âš  <b>Vorsicht (Server-abhÃ¤ngig):</b><br><code>' + risky.join('</code>, <code>') + '</code><br><br>';
+      html += '⚠ <b>Vorsicht (Server-abhängig):</b><br><code>' + risky.join('</code>, <code>') + '</code><br><br>';
     }
     if (!forbidden.length && !risky.length) {
-      html += 'âœ… Keine bekannten High-Risk-Mods in deiner Liste.<br><br>';
+      html += '✅ Keine bekannten High-Risk-Mods in deiner Liste.<br><br>';
     }
 
     const raw = await boltCallGroq(
@@ -3659,8 +3639,8 @@ Lokal verboten (werden entfernt): ${forbidden.join(', ') || 'keine'}
 Lokal riskant: ${risky.join(', ') || 'keine'}
 
 Aufgabe:
-1) ErklÃ¤re was problematisch ist
-2) FÃ¼r JEDEN entfernten Mod eine ERLAUBTE Alternative nennen (Modrinth slug) â€“ z.B. statt Freecam: Zoomify
+1) Erkläre was problematisch ist
+2) Für JEDEN entfernten Mod eine ERLAUBTE Alternative nennen (Modrinth slug) – z.B. statt Freecam: Zoomify
 3) Fehlende erlaubte Performance-Mods vorschlagen (add:)
 4) BOLT_APPLY mit remove + add + explain`,
       1100
@@ -3671,10 +3651,10 @@ Aufgabe:
     const autoRemove = [...new Set([...forbidden, ...remove])];
     if (autoRemove.length || add.length) {
       const result = await boltApplySlugs(add, autoRemove);
-      html += '<br><br>âœ… <b>Ã„nderungen:</b>';
+      html += '<br><br>✅ <b>Änderungen:</b>';
       if (result.removed.length) html += '<br>Entfernt: ' + result.removed.join(', ');
-      if (result.added.length) html += '<br>HinzugefÃ¼gt: ' + result.added.join(', ');
-      if (explain.length) html += '<br>' + explain.map(e => 'â€¢ ' + esc(e)).join('<br>');
+      if (result.added.length) html += '<br>Hinzugefügt: ' + result.added.join(', ');
+      if (explain.length) html += '<br>' + explain.map(e => '• ' + esc(e)).join('<br>');
     }
     return html;
   });
@@ -3683,39 +3663,39 @@ Aufgabe:
 async function boltVersionUpdate() {
   await boltRunWithUi('MC-Versions-Update', async () => {
     const ctx = boltGetPackContext();
-    if (!ctx.count) return 'âš  Keine Mods zum PrÃ¼fen.';
+    if (!ctx.count) return '⚠ Keine Mods zum Prüfen.';
 
     const targetMc = document.getElementById('boltTargetMc')?.value || ctx.mc;
     if (targetMc === ctx.mc) {
-      return 'â„¹ï¸ Zielversion ist bereits <b>' + esc(targetMc) + '</b>. WÃ¤hle eine andere Version im Dropdown.';
+      return 'ℹ️ Zielversion ist bereits <b>' + esc(targetMc) + '</b>. Wähle eine andere Version im Dropdown.';
     }
 
-    let html = '<b>â¬† Bolt â€“ Update auf MC ' + esc(targetMc) + '</b><br>';
-    html += 'Aktuell: <b>' + esc(ctx.mc) + '</b> â†’ Ziel: <b>' + esc(targetMc) + '</b><br>';
-    html += '<span style="font-size:.72rem;color:var(--muted)">PrÃ¼fe alle ' + ctx.count + ' Mods auf Modrinthâ€¦</span><br><br>';
+    let html = '<b>⬆ Bolt – Update auf MC ' + esc(targetMc) + '</b><br>';
+    html += 'Aktuell: <b>' + esc(ctx.mc) + '</b> → Ziel: <b>' + esc(targetMc) + '</b><br>';
+    html += '<span style="font-size:.72rem;color:var(--muted)">Prüfe alle ' + ctx.count + ' Mods auf Modrinth…</span><br><br>';
 
     const issues = await boltCollectVersionIssues(targetMc);
     const withReplacement = issues.filter(i => i.replacement);
     const withoutReplacement = issues.filter(i => !i.replacement);
 
     if (!issues.length) {
-      html += 'âœ… Alle Mods haben eine Version fÃ¼r <b>' + esc(targetMc) + '</b>!<br>';
+      html += '✅ Alle Mods haben eine Version für <b>' + esc(targetMc) + '</b>!<br>';
       document.getElementById('mcVersion').value = targetMc;
-      html += '<br>ðŸ“Œ MC-Version im Builder auf <b>' + esc(targetMc) + '</b> gesetzt.';
+      html += '<br>📌 MC-Version im Builder auf <b>' + esc(targetMc) + '</b> gesetzt.';
       return html;
     }
 
     const autoReplaced = boltApplyVersionReplacements(withReplacement);
     if (autoReplaced.length) {
-      html += 'âœ… <b>Automatisch ersetzt (' + autoReplaced.length + '):</b><ul style="margin:.35rem 0;padding-left:1.1rem">';
+      html += '✅ <b>Automatisch ersetzt (' + autoReplaced.length + '):</b><ul style="margin:.35rem 0;padding-left:1.1rem">';
       autoReplaced.forEach(r => {
-        html += '<li><code>' + esc(r.from) + '</code> â†’ <code>' + esc(r.to) + '</code> (' + esc(r.name) + ')</li>';
+        html += '<li><code>' + esc(r.from) + '</code> → <code>' + esc(r.to) + '</code> (' + esc(r.name) + ')</li>';
       });
       html += '</ul>';
     }
 
     if (withoutReplacement.length) {
-      html += 'âš  <b>Ohne Ersatz auf ' + esc(targetMc) + ':</b><ul style="margin:.35rem 0;padding-left:1.1rem">';
+      html += '⚠ <b>Ohne Ersatz auf ' + esc(targetMc) + ':</b><ul style="margin:.35rem 0;padding-left:1.1rem">';
       withoutReplacement.forEach(i => {
         html += '<li><b>' + esc(i.name) + '</b> (<code>' + esc(i.slug) + '</code>)</li>';
       });
@@ -3723,19 +3703,19 @@ async function boltVersionUpdate() {
     }
 
     const issueLines = issues.map(i =>
-      `- ${i.name} (${i.slug})${i.replacement ? ' â†’ Ersatz: ' + i.replacement.slug + ' (' + i.replacement.name + ')' : ' â†’ kein Ersatz, ggf. entfernen'}`
+      `- ${i.name} (${i.slug})${i.replacement ? ' → Ersatz: ' + i.replacement.slug + ' (' + i.replacement.name + ')' : ' → kein Ersatz, ggf. entfernen'}`
     ).join('\n');
 
     const raw = await boltCallGroq(
       BOLT_SYSTEM,
-      `MC-Versions-Update: ${ctx.mc} â†’ ${targetMc}
+      `MC-Versions-Update: ${ctx.mc} → ${targetMc}
 Pack: ${ctx.name}
 
-Bereits automatisch ersetzt: ${autoReplaced.map(r => r.from + ' â†’ ' + r.to).join(', ') || 'keine'}
+Bereits automatisch ersetzt: ${autoReplaced.map(r => r.from + ' → ' + r.to).join(', ') || 'keine'}
 
 Probleme:\n${issueLines}
 
-ErklÃ¤re auf Deutsch was noch zu tun ist. FÃ¼r Mods ohne Ersatz: remove in BOLT_APPLY. FÃ¼r bessere Alternativen: remove + add.`,
+Erkläre auf Deutsch was noch zu tun ist. Für Mods ohne Ersatz: remove in BOLT_APPLY. Für bessere Alternativen: remove + add.`,
       1100
     );
     html += '<br>' + boltFormatHtml(raw.replace(/<BOLT_APPLY>[\s\S]*?<\/BOLT_APPLY>/gi, '').trim());
@@ -3743,14 +3723,14 @@ ErklÃ¤re auf Deutsch was noch zu tun ist. FÃ¼r Mods ohne Ersatz: remove in B
     const { remove, add, explain } = boltParseApplyBlock(raw);
     if (remove.length || add.length) {
       const result = await boltApplySlugs(add, remove);
-      html += '<br><br>âœ… <b>Weitere Anpassungen:</b>';
+      html += '<br><br>✅ <b>Weitere Anpassungen:</b>';
       if (result.added.length) html += '<br>+ ' + result.added.join(', ');
-      if (result.removed.length) html += '<br>âˆ’ ' + result.removed.join(', ');
-      if (explain.length) html += '<br>' + explain.map(e => 'â€¢ ' + esc(e)).join('<br>');
+      if (result.removed.length) html += '<br>− ' + result.removed.join(', ');
+      if (explain.length) html += '<br>' + explain.map(e => '• ' + esc(e)).join('<br>');
     }
 
     document.getElementById('mcVersion').value = targetMc;
-    html += '<br><br>ðŸ“Œ MC-Version im Builder auf <b>' + esc(targetMc) + '</b> gesetzt.';
+    html += '<br><br>📌 MC-Version im Builder auf <b>' + esc(targetMc) + '</b> gesetzt.';
     return html;
   });
 }
@@ -3793,7 +3773,7 @@ const AI_PRESETS = {
     slugs: ['sodium','lithium','ferritecore','dynamic-fps','appleskin','shulkerboxtooltip','mousetweaks','zoomify','inventoryhud','betterf3','remove-reloading-screen','gamma-utils']
   },
   hypixel: {
-    name: 'VollstÃ¤ndiger Pack',
+    name: 'Vollständiger Pack',
     version: '1.21.1',
     slugs: ['sodium','lithium','ferritecore','krypton','entityculling','dynamic-fps','chunky','clickcrystals','clientsidecrystals','hcscr','totem-counter','minihud','appleskin','betterf3','shulkerboxtooltip','inventoryhud','zoomify','mousetweaks','no-hurt-cam','remove-reloading-screen','reeses-sodium-options','gamma-utils']
   }
@@ -3803,11 +3783,11 @@ function aiLoadPreset(key) {
   const preset = AI_PRESETS[key];
   if (!preset) return;
   aiLastModpackData = preset;
-  appendAiMsg('bot', `ðŸ§© <b>${preset.name}</b> bereit! <br><code>${preset.slugs.length} Mods</code> â€“ klick auf "In Builder laden"!`);
+  appendAiMsg('bot', `🧩 <b>${preset.name}</b> bereit! <br><code>${preset.slugs.length} Mods</code> – klick auf "In Builder laden"!`);
   document.getElementById('aiApplyStrip').classList.add('visible');
 }
 
-// Hero mini-template loader â€” scrolls to app, picks platform if needed, loads preset
+// Hero mini-template loader — scrolls to app, picks platform if needed, loads preset
 function heroLoadPreset(key) {
   const preset = AI_PRESETS[key];
   if (!preset) return;
@@ -3827,7 +3807,7 @@ function heroLoadPreset(key) {
     if (pasteEl) { pasteEl.value = preset.slugs.join('\n'); addFromPaste(); }
     showPage('builder');
     document.getElementById('app').scrollIntoView({ behavior: 'smooth', block: 'start' });
-    showToast('ðŸ§© ' + preset.name + ' wird geladen...');
+    showToast('🧩 ' + preset.name + ' wird geladen...');
   };
 
   // If platform not chosen yet, show overlay first then load
@@ -3853,7 +3833,7 @@ function appendAiMsg(role, html) {
   const div = document.createElement('div');
   div.className = 'ai-msg ' + role;
   div.innerHTML = `
-    <div class="ai-msg-avatar"><span>${role === 'bot' ? 'âš¡' : 'Du'}</span></div>
+    <div class="ai-msg-avatar"><span>${role === 'bot' ? '⚡' : 'Du'}</span></div>
     <div class="ai-msg-bubble">${html}</div>
   `;
   box.appendChild(div);
@@ -3866,7 +3846,7 @@ function appendTyping() {
   const div = document.createElement('div');
   div.className = 'ai-msg bot';
   div.id = 'aiTypingIndicator';
-  div.innerHTML = `<div class="ai-msg-avatar"><span>âš¡</span></div><div class="ai-msg-bubble"><div class="ai-typing"><span></span><span></span><span></span></div></div>`;
+  div.innerHTML = `<div class="ai-msg-avatar"><span>⚡</span></div><div class="ai-msg-bubble"><div class="ai-typing"><span></span><span></span><span></span></div></div>`;
   box.appendChild(div);
   box.scrollTop = box.scrollHeight;
 }
@@ -3885,7 +3865,7 @@ async function sendAiMessage() {
   appendAiMsg('user', text);
   appendTyping();
 
-  const systemPrompt = `Du bist Bolt âš¡, der Minecraft Fabric Modpack-Experte von MC Toolkit. Wenn der Nutzer einen Server oder Spielstil beschreibt, erstelle eine optimale Modliste.
+  const systemPrompt = `Du bist Bolt ⚡, der Minecraft Fabric Modpack-Experte von MC Toolkit. Wenn der Nutzer einen Server oder Spielstil beschreibt, erstelle eine optimale Modliste.
 
 WICHTIG: Antworte IMMER auf Deutsch. Sei freundlich und kompetent.
 
@@ -3897,14 +3877,14 @@ version: 1.21.1
 </MODPACK>
 
 Nutze nur echte, bekannte Fabric-Mods von Modrinth. Empfehle immer sodium+lithium als Performance-Basis.
-FÃ¼r PvP: sodium, lithium, iris, badoptimizations, moreculling, entityculling, nvidium, clickcrystals, crystalvault, minihud, xaeros-minimap
-FÃ¼r Survival/QoL: sodium, lithium, iris, roughly-enough-items, waystones, jei, appleskin, jade, xaeros-minimap
-FÃ¼r Performance: sodium, lithium, iris, featherlight, nvidium, moreculling, entityculling, lazydfu`;
+Für PvP: sodium, lithium, iris, badoptimizations, moreculling, entityculling, nvidium, clickcrystals, crystalvault, minihud, xaeros-minimap
+Für Survival/QoL: sodium, lithium, iris, roughly-enough-items, waystones, jei, appleskin, jade, xaeros-minimap
+Für Performance: sodium, lithium, iris, featherlight, nvidium, moreculling, entityculling, lazydfu`;
 
   const apiKey = localStorage.getItem('mctoolkit_groq_key');
   if (!apiKey) {
     removeTyping();
-    appendAiMsg('bot', 'âš  Kein API-Key gesetzt. Bitte trage deinen kostenlosen Groq API-Key oben ein.');
+    appendAiMsg('bot', '⚠ Kein API-Key gesetzt. Bitte trage deinen kostenlosen Groq API-Key oben ein.');
     document.getElementById('aiSendBtn').disabled = false;
     return;
   }
@@ -3929,7 +3909,7 @@ FÃ¼r Performance: sodium, lithium, iris, featherlight, nvidium, moreculling, e
     removeTyping();
 
     if (data.error) {
-      appendAiMsg('bot', 'âš  API Fehler: ' + (data.error.message || 'PrÃ¼fe deinen Groq API-Key.'));
+      appendAiMsg('bot', '⚠ API Fehler: ' + (data.error.message || 'Prüfe deinen Groq API-Key.'));
       document.getElementById('aiSendBtn').disabled = false;
       return;
     }
@@ -3960,19 +3940,19 @@ FÃ¼r Performance: sodium, lithium, iris, featherlight, nvidium, moreculling, e
     }
   } catch(e) {
     removeTyping();
-    appendAiMsg('bot', 'âš  Verbindungsfehler: ' + e.message);
+    appendAiMsg('bot', '⚠ Verbindungsfehler: ' + e.message);
   }
   document.getElementById('aiSendBtn').disabled = false;
 }
 
 function saveAiApiKey() {
   const val = document.getElementById('aiApiKeyInput').value.trim();
-  if (!val) { showToast('âš  Bitte einen API-Key eingeben'); return; }
+  if (!val) { showToast('⚠ Bitte einen API-Key eingeben'); return; }
   localStorage.setItem('mctoolkit_groq_key', val);
   document.getElementById('aiApiKeyInput').value = '';
   document.getElementById('aiApiKeyRow').style.display = 'none';
   document.getElementById('aiApiKeySet').style.display = 'flex';
-  showToast('âœ… Groq API-Key gespeichert!');
+  showToast('✅ Groq API-Key gespeichert!');
 }
 
 function clearAiApiKey() {
@@ -4003,7 +3983,7 @@ function applyAiModpack() {
 
   // Load via slugs (same as template system) OR via paste area for AI-generated packs
   if (aiLastModpackData.slugs) {
-    // Use the paste area with slugs â€” exact same flow as manual templates
+    // Use the paste area with slugs — exact same flow as manual templates
     const pasteEl = document.getElementById('pasteArea');
     if (pasteEl) {
       pasteEl.value = aiLastModpackData.slugs.join('\n');
@@ -4019,10 +3999,10 @@ function applyAiModpack() {
 
   // Flash confirmation
   const strip = document.getElementById('aiApplyStrip');
-  strip.innerHTML = '<span>âœ… In Builder geladen!</span>';
+  strip.innerHTML = '<span>✅ In Builder geladen!</span>';
   setTimeout(() => {
     strip.classList.remove('visible');
-    strip.innerHTML = '<span>ðŸ§© Modpack bereit</span><button class="ai-apply-btn" onclick="applyAiModpack()">In Builder laden â†—</button>';
+    strip.innerHTML = '<span>🧩 Modpack bereit</span><button class="ai-apply-btn" onclick="applyAiModpack()">In Builder laden ↗</button>';
   }, 2500);
 }
 
@@ -4031,227 +4011,3 @@ if (document.readyState === 'loading') {
 } else {
   initBoltMcSelect();
 }
-
-
-/* MODRINTH ACCOUNT INTEGRATION */
-const MODRINTH_TOKEN_KEY = 'mctoolkit_modrinth_token';
-let modrinthUser = null;
-let modrinthProjects = [];
-let selectedModrinthProjectId = null;
-
-function getModrinthToken() {
-  return localStorage.getItem(MODRINTH_TOKEN_KEY) || '';
-}
-function setModrinthMessage(text, type='') {
-  const el = document.getElementById('modrinthMsg');
-  if (!el) return;
-  el.className = 'auth-msg ' + (type || '');
-  el.textContent = text || '';
-}
-async function modrinthFetch(path, options={}) {
-  const token = getModrinthToken();
-  if (!token) throw new Error('Bitte zuerst Modrinth verbinden.');
-  const headers = Object.assign({
-    'Authorization': token,
-    'User-Agent': '9000schraubengreutze/mctoolkit/1.0'
-  }, options.headers || {});
-  const res = await fetch(API + path, Object.assign({}, options, { headers }));
-  if (!res.ok) {
-    let msg = res.status + ' ' + res.statusText;
-    try { const data = await res.json(); msg = data.description || data.error || msg; } catch(_) {}
-    throw new Error(msg);
-  }
-  if (res.status === 204) return null;
-  return res.json();
-}
-function openModrinthPanel() {
-  closeAuth?.();
-  document.getElementById('modrinthOverlay')?.classList.add('open');
-  document.body.style.overflow = 'hidden';
-  refreshModrinthPanel();
-  if (getModrinthToken() && !modrinthProjects.length) loadModrinthProjects().catch(() => {});
-}
-function closeModrinthPanel() {
-  document.getElementById('modrinthOverlay')?.classList.remove('open');
-  document.body.style.overflow = '';
-}
-function refreshModrinthPanel() {
-  const connected = !!getModrinthToken();
-  document.getElementById('modrinthConnectRow')?.style.setProperty('display', connected ? 'none' : 'flex');
-  const card = document.getElementById('modrinthAccountCard');
-  if (card) card.style.display = connected ? 'flex' : 'none';
-  if (modrinthUser) {
-    document.getElementById('modrinthUserName').textContent = modrinthUser.username || 'Modrinth';
-    document.getElementById('modrinthUserMeta').textContent = (modrinthProjects.length || 0) + ' Modpacks gefunden';
-  }
-}
-async function connectModrinth() {
-  const input = document.getElementById('modrinthTokenInput');
-  const token = input?.value.trim();
-  if (!token) { setModrinthMessage('Bitte Modrinth Token einfügen.', 'err'); return; }
-  localStorage.setItem(MODRINTH_TOKEN_KEY, token);
-  try {
-    setModrinthMessage('Verbinde mit Modrinth...');
-    modrinthUser = await modrinthFetch('/user');
-    input.value = '';
-    setModrinthMessage('Verbunden als ' + (modrinthUser.username || 'Modrinth') + '.', 'ok');
-    await loadModrinthProjects();
-  } catch(e) {
-    localStorage.removeItem(MODRINTH_TOKEN_KEY);
-    modrinthUser = null;
-    setModrinthMessage('Modrinth Login fehlgeschlagen: ' + e.message, 'err');
-  }
-  refreshModrinthPanel();
-}
-function disconnectModrinth() {
-  localStorage.removeItem(MODRINTH_TOKEN_KEY);
-  modrinthUser = null;
-  modrinthProjects = [];
-  selectedModrinthProjectId = null;
-  document.getElementById('modrinthProjects').innerHTML = '<div class="empty-profiles">Noch keine Modrinth-Modpacks geladen.</div>';
-  setModrinthMessage('Modrinth getrennt.');
-  refreshModrinthPanel();
-}
-async function ensureModrinthUser() {
-  if (!getModrinthToken()) throw new Error('Bitte zuerst Modrinth verbinden.');
-  if (!modrinthUser) modrinthUser = await modrinthFetch('/user');
-  return modrinthUser;
-}
-async function loadModrinthProjects() {
-  const box = document.getElementById('modrinthProjects');
-  try {
-    const user = await ensureModrinthUser();
-    setModrinthMessage('Lade Modrinth-Modpacks...');
-    const projects = await modrinthFetch('/user/' + encodeURIComponent(user.id || user.username) + '/projects');
-    modrinthProjects = (projects || []).filter(p => p.project_type === 'modpack');
-    renderModrinthProjects();
-    setModrinthMessage(modrinthProjects.length + ' Modpack-Projekte geladen.', 'ok');
-  } catch(e) {
-    if (box) box.innerHTML = '<div class="empty-profiles">' + escapeHtml(e.message) + '</div>';
-    setModrinthMessage(e.message, 'err');
-  }
-  refreshModrinthPanel();
-}
-function renderModrinthProjects() {
-  const box = document.getElementById('modrinthProjects');
-  if (!box) return;
-  if (!modrinthProjects.length) {
-    box.innerHTML = '<div class="empty-profiles">Keine eigenen Modrinth-Modpacks gefunden.</div>';
-    return;
-  }
-  box.innerHTML = modrinthProjects.map(p => {
-    const icon = p.icon_url ? '<img src="'+escapeHtml(p.icon_url)+'" alt="">' : '<span>'+escapeHtml((p.title||'?').charAt(0).toUpperCase())+'</span>';
-    const active = selectedModrinthProjectId === p.id ? ' selected' : '';
-    return '<div class="modrinth-project'+active+'" onclick="selectModrinthProject(\''+p.id+'\')">'
-      + '<div class="modrinth-project-icon">'+icon+'</div>'
-      + '<div class="modrinth-project-main"><b>'+escapeHtml(p.title||p.slug)+'</b><span>'+escapeHtml(p.slug||p.id)+' · '+escapeHtml(p.status||'')+'</span></div>'
-      + '<div class="modrinth-project-actions">'
-      + '<button onclick="event.stopPropagation();loadModrinthProjectPack(\''+p.id+'\')">Laden</button>'
-      + '<button onclick="event.stopPropagation();window.open(\'https://modrinth.com/modpack/'+escapeHtml(p.slug||p.id)+'\',\'_blank\')">Öffnen</button>'
-      + '</div></div>';
-  }).join('');
-}
-function selectModrinthProject(id) {
-  selectedModrinthProjectId = id;
-  renderModrinthProjects();
-  const p = modrinthProjects.find(x => x.id === id);
-  if (p) setModrinthMessage('Ziel gewählt: ' + p.title, 'ok');
-}
-async function loadModrinthProjectPack(projectId) {
-  try {
-    setModrinthMessage('Lade neueste .mrpack-Version...');
-    const versions = await modrinthFetch('/project/' + encodeURIComponent(projectId) + '/version');
-    const version = (versions || []).find(v => (v.files || []).some(f => (f.filename || '').endsWith('.mrpack')));
-    if (!version) throw new Error('Keine .mrpack-Version in diesem Projekt gefunden.');
-    const file = version.files.find(f => (f.filename || '').endsWith('.mrpack')) || version.files[0];
-    const res = await fetch(file.url);
-    if (!res.ok) throw new Error('Download der .mrpack-Datei fehlgeschlagen.');
-    const zip = await JSZip.loadAsync(await res.blob());
-    const idxFile = zip.file('modrinth.index.json');
-    if (!idxFile) throw new Error('modrinth.index.json fehlt in der .mrpack-Datei.');
-    const index = JSON.parse(await idxFile.async('string'));
-    importModrinthIndexToBuilder(index);
-    setModrinthMessage('Pack geladen: ' + (index.name || version.name), 'ok');
-    closeModrinthPanel();
-    showToast('Modrinth-Pack in Builder geladen');
-  } catch(e) {
-    setModrinthMessage(e.message, 'err');
-  }
-}
-function importModrinthIndexToBuilder(index) {
-  document.getElementById('packName').value = index.name || 'Modrinth Pack';
-  document.getElementById('packVersion').value = index.versionId || '1.0.0';
-  if (index.dependencies?.minecraft) document.getElementById('mcVersion').value = index.dependencies.minecraft;
-  if (index.dependencies?.['fabric-loader']) document.getElementById('fabricLoader').value = index.dependencies['fabric-loader'];
-  MODS = [];
-  RESOURCEPACKS = [];
-  (index.files || []).forEach(file => {
-    const isRP = (file.path || '').startsWith('resourcepacks/');
-    const filename = (file.path || '').split('/').pop() || 'project';
-    const name = filename.replace(/\.jar$|\.zip$/i,'').replace(/[-_]+/g,' ').trim();
-    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') || 'project';
-    const item = { slug, name, cat: 'Imported' };
-    if (isRP) RESOURCEPACKS.push(item); else MODS.push(item);
-  });
-  renderMods();
-  renderRPs();
-  updateCounters?.();
-}
-async function uploadCurrentPackToModrinth() {
-  try {
-    await ensureModrinthUser();
-    if (!selectedModrinthProjectId) {
-      if (!modrinthProjects.length) await loadModrinthProjects();
-      if (modrinthProjects.length === 1) selectedModrinthProjectId = modrinthProjects[0].id;
-    }
-    if (!selectedModrinthProjectId) throw new Error('Bitte zuerst ein Modrinth-Modpack als Ziel auswählen.');
-    const mcV = document.getElementById('mcVersion').value;
-    const pName = document.getElementById('packName').value.trim() || 'MC Toolkit Pack';
-    const pVer = document.getElementById('packVersion').value.trim() || new Date().toISOString().slice(0,10);
-    const fl = document.getElementById('fabricLoader').value;
-    setModrinthMessage('Erstelle .mrpack für Upload...');
-    const pack = await createMrpackBlob(mcV,pName,pVer,fl, ev => {
-      if (ev.step === 'item') setModrinthMessage('Prüfe ' + (ev.index+1) + '/' + ev.total + ': ' + ev.item.name);
-      if (ev.step === 'zip') setModrinthMessage('Pack wird verpackt...');
-    });
-    const data = {
-      name: pName + ' ' + pVer,
-      version_number: pVer,
-      changelog: 'Uploaded with MC Toolkit.',
-      dependencies: [],
-      game_versions: [mcV],
-      version_type: 'release',
-      loaders: ['fabric'],
-      featured: false,
-      project_id: selectedModrinthProjectId,
-      file_parts: ['file'],
-      primary_file: 'file'
-    };
-    const form = new FormData();
-    form.append('data', JSON.stringify(data));
-    form.append('file', pack.blob, pack.filename);
-    setModrinthMessage('Lade zu Modrinth hoch...');
-    const res = await fetch(API + '/version', {
-      method: 'POST',
-      headers: { 'Authorization': getModrinthToken(), 'User-Agent': '9000schraubengreutze/mctoolkit/1.0' },
-      body: form
-    });
-    if (!res.ok) {
-      let msg = res.status + ' ' + res.statusText;
-      try { const err = await res.json(); msg = err.description || err.error || msg; } catch(_) {}
-      throw new Error(msg);
-    }
-    setModrinthMessage('Upload fertig: neue Version erstellt.', 'ok');
-    showToast('Modrinth-Version hochgeladen');
-    await loadModrinthProjects();
-  } catch(e) {
-    setModrinthMessage(e.message, 'err');
-  }
-}
-function escapeHtml(str) {
-  return String(str ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
-}
-document.addEventListener('DOMContentLoaded', () => {
-  if (getModrinthToken()) ensureModrinthUser().then(() => refreshModrinthPanel()).catch(() => localStorage.removeItem(MODRINTH_TOKEN_KEY));
-  document.addEventListener('click', e => { if (e.target === document.getElementById('modrinthOverlay')) closeModrinthPanel(); });
-});

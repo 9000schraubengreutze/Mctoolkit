@@ -1082,6 +1082,25 @@ footer { border-top: 1px solid var(--border); padding: 3rem 2.5rem; display: gri
   outline: none; transition: border-color .2s; font-family: var(--font);
 }
 .a-input:focus { border-color: var(--green); }
+select,
+select.a-input,
+.bolt-select {
+  color-scheme: dark;
+  background-color: var(--bg2) !important;
+  color: var(--text) !important;
+}
+select option,
+select optgroup,
+.bolt-select option,
+.bolt-select optgroup {
+  background-color: var(--bg2) !important;
+  color: var(--text) !important;
+}
+select option:checked,
+.bolt-select option:checked {
+  background-color: var(--bg3) !important;
+  color: var(--text) !important;
+}
 .search-section { background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; margin-bottom: 1rem; }
 .search-section h2 { font-size: .72rem; font-weight: 700; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; margin-bottom: .7rem; }
 .s-hint { font-size: .7rem; color: var(--sub); margin-bottom: 7px; line-height: 1.6; }

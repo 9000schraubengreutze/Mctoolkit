@@ -2603,7 +2603,8 @@ body.light .hero::before {
 
       <!-- Extra actions -->
       <div class="extra-actions">
-        <button class="extra-btn share"  onclick="openShareModal()">🔗 Pack teilen &amp; Link kopieren</button>
+        <button class="extra-btn share"  onclick="openShareModal()">↑ Pack veröffentlichen</button>
+        <button class="extra-btn" style="border-color:rgba(96,165,250,.4);color:#60a5fa" onclick="document.getElementById('loadCodeOverlay').classList.add('open');document.getElementById('packCodeInput').focus()">🔑 Code eingeben</button>
         <button class="extra-btn export" onclick="exportTextList()">📄 Als Text exportieren</button>
         <button class="extra-btn"        onclick="openShortcuts()">⌨ Shortcuts</button>
       </div>
@@ -2857,60 +2858,102 @@ body.light .hero::before {
   </div><!-- /app-wrap -->
   </div><!-- /app-outer -->
 
-  <!-- ══ SHARE PACK MODAL ═══════════════════════════════════════════ -->
+  <!-- ══ SHARE / PUBLISH MODAL ════════════════════════════════════ -->
   <div class="profiles-overlay" id="shareOverlay">
     <div class="profiles-modal" style="max-width:480px">
       <div class="pm-header">
-        <h2>↑ Pack teilen</h2>
+        <h2>↑ Pack veröffentlichen</h2>
         <button class="pm-close" onclick="document.getElementById('shareOverlay').classList.remove('open')">✕</button>
       </div>
       <div style="padding:.2rem 0 .5rem;display:flex;flex-direction:column;gap:.8rem">
 
-        <div id="shareNeedsMods" style="display:none;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:8px;padding:10px 12px;font-size:.8rem;color:var(--red)">
-          ⚠ Füge zuerst Mods zum Pack Builder hinzu!
-        </div>
-
-        <div>
-          <label style="font-size:.75rem;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">Pack-Name</label>
-          <input id="shareName" class="a-input" style="width:100%" placeholder="Mein Modpack">
-        </div>
-
-        <div>
-          <label style="font-size:.75rem;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">Beschreibung (optional)</label>
-          <textarea id="shareDesc" class="a-input" style="width:100%;resize:vertical;min-height:70px" placeholder="Wofür ist der Pack? Welche Mods sind enthalten?"></textarea>
-        </div>
-
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem">
-          <div>
-            <label style="font-size:.75rem;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">Kategorie</label>
-            <select id="shareCategory" class="a-input" style="width:100%">
-              <option value="general">Allgemein</option>
-              <option value="pvp">⚔ PvP</option>
-              <option value="performance">⚡ Performance</option>
-              <option value="survival">🌲 Survival</option>
-              <option value="tech">⚙ Technik</option>
-              <option value="modded">🔮 Modded</option>
-            </select>
+        <!-- Step 1: Form -->
+        <div id="shareFormStep">
+          <div id="shareNeedsMods" style="display:none;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:8px;padding:10px 12px;font-size:.8rem;color:var(--red);margin-bottom:.5rem">
+            ⚠ Füge zuerst Mods zum Pack Builder hinzu!
           </div>
-          <div>
-            <label style="font-size:.75rem;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">Plattform</label>
-            <input class="a-input" style="width:100%;opacity:.85;cursor:default" id="sharePlatformDisplay" readonly placeholder="Wird automatisch gesetzt">
+          <div style="display:flex;flex-direction:column;gap:.75rem">
+            <div>
+              <label style="font-size:.72rem;font-weight:700;color:var(--muted);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">Pack-Name</label>
+              <input id="shareName" class="a-input" style="width:100%" placeholder="Mein Modpack">
+            </div>
+            <div>
+              <label style="font-size:.72rem;font-weight:700;color:var(--muted);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">Beschreibung (optional)</label>
+              <textarea id="shareDesc" class="a-input" style="width:100%;resize:vertical;min-height:60px" placeholder="Wofür ist der Pack? z.B. Crystal PvP auf Anarchy Servern"></textarea>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem">
+              <div>
+                <label style="font-size:.72rem;font-weight:700;color:var(--muted);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">Kategorie</label>
+                <select id="shareCategory" class="a-input" style="width:100%">
+                  <option value="general">Allgemein</option>
+                  <option value="pvp">⚔ PvP</option>
+                  <option value="performance">⚡ Performance</option>
+                  <option value="survival">🌲 Survival</option>
+                  <option value="tech">⚙ Technik</option>
+                  <option value="modded">🔮 Modded</option>
+                </select>
+              </div>
+              <div>
+                <label style="font-size:.72rem;font-weight:700;color:var(--muted);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">Plattform</label>
+                <input class="a-input" style="width:100%;opacity:.85;cursor:default" id="sharePlatformDisplay" readonly placeholder="Automatisch">
+              </div>
+            </div>
+            <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 12px">
+              <div style="font-size:.68rem;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Pack Inhalt</div>
+              <div id="sharePreviewList" style="font-size:.76rem;color:var(--sub);max-height:100px;overflow-y:auto"></div>
+            </div>
+            <div style="font-size:.71rem;color:var(--muted);background:rgba(255,255,255,.03);border-radius:7px;padding:8px 10px">
+              🌍 Dein Pack ist für alle sichtbar. Dein Username wird angezeigt.
+            </div>
+            <button id="shareSubmitBtn" onclick="submitSharePack()" style="width:100%;padding:11px;border-radius:10px;border:none;background:var(--green);color:#000;font-family:var(--font);font-size:.88rem;font-weight:800;cursor:pointer">
+              🚀 Pack veröffentlichen
+            </button>
+            <div id="shareStatus" style="font-size:.77rem;text-align:center;color:var(--muted)"></div>
           </div>
         </div>
 
-        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 12px">
-          <div style="font-size:.72rem;font-weight:700;color:var(--muted);margin-bottom:6px">PACK INHALT</div>
-          <div id="sharePreviewList" style="font-size:.77rem;color:var(--sub);max-height:120px;overflow-y:auto"></div>
+        <!-- Step 2: Success — show code -->
+        <div id="shareSuccessStep" style="display:none;text-align:center;padding:.5rem 0">
+          <div style="font-size:2.5rem;margin-bottom:.6rem">🎉</div>
+          <div style="font-size:.85rem;font-weight:700;color:var(--text);margin-bottom:1rem">Pack veröffentlicht!</div>
+          <div style="font-size:.75rem;color:var(--muted);margin-bottom:.6rem">Dein Pack-Code:</div>
+          <div id="shareCodeDisplay" style="
+            font-family:var(--mono);font-size:2rem;font-weight:900;letter-spacing:.15em;
+            color:var(--green);background:rgba(74,222,128,.1);border:2px solid rgba(74,222,128,.3);
+            border-radius:14px;padding:1rem 1.5rem;margin:0 auto .8rem;cursor:pointer;
+            transition:opacity .15s;user-select:all
+          " onclick="copyPackCode(this.textContent)" title="Klicken zum Kopieren">
+            –
+          </div>
+          <div style="font-size:.73rem;color:var(--muted);margin-bottom:1.2rem">
+            Gib diesen Code auf MC Toolkit ein um den Pack zu laden.<br>Funktioniert für alle — kein Link nötig.
+          </div>
+          <button onclick="copyPackCode(document.getElementById('shareCodeDisplay').textContent)" style="width:100%;padding:10px;border-radius:9px;border:1px solid var(--green);background:rgba(74,222,128,.1);color:var(--green);font-family:var(--font);font-size:.82rem;font-weight:800;cursor:pointer;margin-bottom:.5rem">
+            📋 Code kopieren
+          </button>
+          <button onclick="document.getElementById('shareOverlay').classList.remove('open');resetShareModal()" style="width:100%;padding:8px;border-radius:9px;border:1px solid var(--border);background:none;color:var(--muted);font-family:var(--font);font-size:.78rem;cursor:pointer">
+            Schließen
+          </button>
         </div>
 
-        <div style="font-size:.72rem;color:var(--muted);background:rgba(255,255,255,.03);border-radius:7px;padding:8px 10px">
-          🌍 Dein Pack ist für alle sichtbar. Dein Username wird angezeigt.
-        </div>
+      </div>
+    </div>
+  </div>
 
-        <button id="shareSubmitBtn" onclick="submitSharePack()" style="width:100%;padding:11px;border-radius:10px;border:none;background:var(--green);color:#000;font-family:var(--font);font-size:.88rem;font-weight:800;cursor:pointer">
-          🌍 Pack veröffentlichen
+  <!-- ══ LOAD BY CODE MODAL ════════════════════════════════════════ -->
+  <div class="profiles-overlay" id="loadCodeOverlay">
+    <div class="profiles-modal" style="max-width:380px">
+      <div class="pm-header">
+        <h2>🔑 Pack-Code eingeben</h2>
+        <button class="pm-close" onclick="document.getElementById('loadCodeOverlay').classList.remove('open')">✕</button>
+      </div>
+      <div style="padding:.5rem 0;display:flex;flex-direction:column;gap:.8rem">
+        <p style="font-size:.8rem;color:var(--sub);line-height:1.6">Gib den 8-stelligen Pack-Code ein den du erhalten hast:</p>
+        <input id="packCodeInput" class="a-input" style="width:100%;font-family:var(--mono);font-size:1.4rem;font-weight:800;letter-spacing:.15em;text-align:center;text-transform:uppercase" placeholder="MC-XXXXXX" maxlength="9" oninput="formatPackCodeInput(this)">
+        <button onclick="loadPackByCode()" style="width:100%;padding:11px;border-radius:10px;border:none;background:var(--green);color:#000;font-family:var(--font);font-size:.88rem;font-weight:800;cursor:pointer">
+          ⬇ Pack laden
         </button>
-        <div id="shareStatus" style="font-size:.77rem;text-align:center;color:var(--muted)"></div>
+        <div id="loadCodeStatus" style="font-size:.77rem;text-align:center;color:var(--muted)"></div>
       </div>
     </div>
   </div>
@@ -5220,10 +5263,37 @@ function openShareModal() {
   document.getElementById('shareOverlay').classList.add('open');
 }
 
+function generatePackCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = 'MC-';
+  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  return code;
+}
+
+function copyPackCode(code) {
+  navigator.clipboard.writeText(code.trim()).catch(() => {});
+  showToast('📋 Code ' + code.trim() + ' kopiert!');
+}
+
+function formatPackCodeInput(el) {
+  let val = el.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (val.startsWith('MC')) val = val.slice(2);
+  val = val.slice(0, 6);
+  el.value = val.length > 0 ? 'MC-' + val : '';
+}
+
+function resetShareModal() {
+  document.getElementById('shareFormStep').style.display = '';
+  document.getElementById('shareSuccessStep').style.display = 'none';
+  const btn = document.getElementById('shareSubmitBtn');
+  if (btn) { btn.disabled = false; btn.textContent = '🚀 Pack veröffentlichen'; }
+  const st = document.getElementById('shareStatus');
+  if (st) st.textContent = '';
+}
+
 async function submitSharePack() {
   const btn = document.getElementById('shareSubmitBtn');
   const statusEl = document.getElementById('shareStatus');
-
   if (btn.disabled) return;
   btn.disabled = true;
   btn.textContent = '⏳ Wird veröffentlicht...';
@@ -5232,99 +5302,83 @@ async function submitSharePack() {
   if (!currentUser) {
     statusEl.textContent = '⚠ Bitte zuerst anmelden!';
     statusEl.style.color = 'var(--red)';
-    btn.disabled = false;
-    btn.textContent = '🌍 Pack veröffentlichen';
-    setTimeout(() => openAuth(), 600);
-    return;
+    btn.disabled = false; btn.textContent = '🚀 Pack veröffentlichen';
+    setTimeout(() => openAuth(), 600); return;
   }
-
   if (!MODS.length && !RESOURCEPACKS.length) {
     statusEl.textContent = '⚠ Keine Mods im Pack!';
     statusEl.style.color = 'var(--red)';
-    btn.disabled = false;
-    btn.textContent = '🌍 Pack veröffentlichen';
-    return;
+    btn.disabled = false; btn.textContent = '🚀 Pack veröffentlichen'; return;
   }
 
   const name     = document.getElementById('shareName')?.value.trim() || document.getElementById('packName').value.trim() || 'Mein Modpack';
   const desc     = document.getElementById('shareDesc')?.value.trim() || '';
   const category = document.getElementById('shareCategory')?.value || 'general';
   const mcVer    = document.getElementById('mcVersion').value;
-
-  // Build shareable URL-encoded pack data
-  const packData = {
-    name, mc: mcVer,
-    mods: MODS.map(m => ({ s: m.slug, n: m.name, c: m.cat })),
-    rps:  RESOURCEPACKS.map(r => ({ s: r.slug, n: r.name }))
-  };
-  const encoded  = btoa(unescape(encodeURIComponent(JSON.stringify(packData))));
-  const shareUrl = location.origin + location.pathname + '?pack=' + encoded;
+  const packCode = generatePackCode();
 
   try {
     const { error } = await sb.from('public_packs').insert({
-      name,
-      description: desc,
-      category,
+      name, description: desc, category,
       platform: selectedPlatform || 'modrinth',
       mc_version: mcVer,
       mods: MODS.map(m => ({ slug: m.slug, name: m.name, cat: m.cat })),
       resource_packs: RESOURCEPACKS.map(r => ({ slug: r.slug, name: r.name })),
-      share_url: shareUrl,
+      pack_code: packCode,
       user_id: currentUser.id,
       username: currentUser.email?.split('@')[0] || 'User',
       mod_count: MODS.length,
       likes: 0
     });
-
     if (error) throw error;
 
-    btn.textContent = '✅ Veröffentlicht!';
-    btn.style.background = 'var(--green)';
-    statusEl.style.color = 'var(--green)';
-    statusEl.textContent = '🎉 Dein Pack ist jetzt öffentlich sichtbar!';
-
-    // Also copy share link
-    navigator.clipboard.writeText(shareUrl).catch(() => {});
-
-    setTimeout(() => {
-      document.getElementById('shareOverlay').classList.remove('open');
-      btn.disabled = false;
-      btn.textContent = '🌍 Pack veröffentlichen';
-      showToast('✅ Pack veröffentlicht & Link kopiert!');
-    }, 2000);
+    // Show success step with code
+    document.getElementById('shareFormStep').style.display = 'none';
+    document.getElementById('shareSuccessStep').style.display = '';
+    document.getElementById('shareCodeDisplay').textContent = packCode;
+    navigator.clipboard.writeText(packCode).catch(() => {});
+    _communityLoaded = false; // force reload on next visit
 
   } catch (err) {
     console.error(err);
-    // Fallback: just copy URL even if DB fails
-    navigator.clipboard.writeText(shareUrl).catch(() => {});
-    btn.disabled = false;
-    btn.textContent = '🌍 Pack veröffentlichen';
-    statusEl.style.color = 'var(--green)';
-    statusEl.textContent = '🔗 Share-Link kopiert! (Supabase-Tabelle noch nicht erstellt)';
+    statusEl.style.color = 'var(--red)';
+    statusEl.textContent = '⚠ Fehler: ' + (err.message || 'Unbekannt');
+    btn.disabled = false; btn.textContent = '🚀 Pack veröffentlichen';
   }
 }
 
-function copyShareUrl() {
-  const url  = window._shareUrl || document.getElementById('shareUrlInput').value;
-  const note = document.getElementById('shareNote');
-  const btn  = document.getElementById('shareCopyBtn');
-  navigator.clipboard.writeText(url).then(() => {
-    btn.textContent = '✅ Kopiert!';
-    note.style.color = 'var(--green)';
-    note.textContent = 'Link in die Zwischenablage kopiert!';
-    setTimeout(() => {
-      btn.textContent = '🔗 Link kopieren';
-      document.getElementById('shareOverlay').classList.remove('open');
-    }, 1400);
-  }).catch(() => {
-    // Fallback
-    const inp = document.getElementById('shareUrlInput');
-    inp.select(); inp.setSelectionRange(0, 99999);
-    document.execCommand('copy');
-    note.style.color = 'var(--green)';
-    note.textContent = '✅ Link kopiert!';
-    setTimeout(() => document.getElementById('shareOverlay').classList.remove('open'), 1400);
-  });
+async function loadPackByCode() {
+  const input  = document.getElementById('packCodeInput');
+  const status = document.getElementById('loadCodeStatus');
+  const code   = input.value.trim().toUpperCase();
+
+  if (!code.match(/^MC-[A-Z0-9]{6}$/)) {
+    status.style.color = 'var(--red)';
+    status.textContent = '⚠ Format: MC-XXXXXX'; return;
+  }
+  status.style.color = 'var(--muted)';
+  status.textContent = '⏳ Suche Pack...';
+
+  try {
+    const { data, error } = await sb.from('public_packs').select('*').eq('pack_code', code).single();
+    if (error || !data) { status.style.color='var(--red)'; status.textContent='❌ Code nicht gefunden.'; return; }
+
+    MODS          = (data.mods || []).map(m => ({ slug: m.slug, name: m.name, cat: m.cat || 'Geteilt' }));
+    RESOURCEPACKS = (data.resource_packs || []).map(r => ({ slug: r.slug, name: r.name }));
+    document.getElementById('packName').value = data.name || '';
+    if (data.mc_version) {
+      const sel = document.getElementById('mcVersion');
+      for (const opt of sel.options) { if (opt.value === data.mc_version) { sel.value = opt.value; break; } }
+    }
+    renderMods(); renderRPs();
+    document.getElementById('loadCodeOverlay').classList.remove('open');
+    input.value = ''; status.textContent = '';
+    showPage('builder');
+    showToast('✅ "' + data.name + '" geladen – ' + MODS.length + ' Mods!');
+  } catch(e) {
+    status.style.color = 'var(--red)';
+    status.textContent = '⚠ ' + e.message;
+  }
 }
 
 function loadFromUrl() {

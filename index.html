@@ -539,9 +539,14 @@
   <aside class="ai-sidebar" id="aiSidebar">
     <!-- Header -->
     <div class="ai-sidebar-header">
+      <div class="ai-header-glow" aria-hidden="true"></div>
+      <div class="ai-icon" aria-hidden="true">✦</div>
       <div class="ai-sidebar-title">
-        <h3>AI Modpack Assistant</h3>
-        <p>Erstellt perfekte Modpacks für dich</p>
+        <div class="ai-title-row">
+          <h3>AI Modpack Assistant</h3>
+          <span class="ai-status-dot" title="Online"></span>
+        </div>
+        <p>Powered by Groq · Modpack-Experte</p>
       </div>
       <span class="ai-vip-badge">⭐ VIP</span>
     </div>
@@ -565,28 +570,33 @@
     <!-- CHAT SCREEN (hidden until VIP/demo) -->
     <div class="ai-chat-screen" id="aiChatScreen">
       <!-- API Key row -->
-      <div id="aiApiKeyRow" style="display:flex;align-items:center;gap:6px;padding:.6rem 1rem;border-bottom:1px solid var(--border);background:rgba(251,191,36,.06)">
-        <span style="font-size:.7rem;color:var(--yellow);white-space:nowrap">🔑 Groq Key:</span>
-        <input id="aiApiKeyInput" type="password" placeholder="gsk_..." style="flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:4px 8px;font-size:.72rem;font-family:var(--mono);outline:none">
-        <button onclick="saveAiApiKey()" style="padding:4px 9px;border-radius:6px;border:none;background:var(--yellow);color:#000;font-size:.7rem;font-weight:800;cursor:pointer;font-family:var(--font);white-space:nowrap">Speichern</button>
+      <div class="ai-api-bar ai-api-bar--warn" id="aiApiKeyRow">
+        <span class="ai-api-label">🔑 Groq API</span>
+        <input class="ai-api-input" id="aiApiKeyInput" type="password" placeholder="gsk_...">
+        <button class="ai-api-save" onclick="saveAiApiKey()">Speichern</button>
       </div>
-      <div id="aiApiKeySet" style="display:none;align-items:center;gap:6px;padding:.5rem 1rem;border-bottom:1px solid var(--border);background:rgba(74,222,128,.06)">
-        <span style="font-size:.7rem;color:var(--green);flex:1">✅ API-Key gespeichert</span>
-        <button onclick="clearAiApiKey()" style="padding:3px 8px;border-radius:5px;border:1px solid var(--border2);background:none;color:var(--muted);font-size:.67rem;cursor:pointer;font-family:var(--font)">ändern</button>
+      <div class="ai-api-bar ai-api-bar--ok" id="aiApiKeySet" style="display:none">
+        <span class="ai-api-ok">✓ API-Key aktiv</span>
+        <button class="ai-api-change" onclick="clearAiApiKey()">ändern</button>
       </div>
       <!-- Quick suggestions -->
       <div class="ai-suggestions">
         <div class="ai-suggestion-label">Schnellauswahl</div>
-        <button class="ai-suggestion-chip" onclick="aiLoadPreset('hypixel')">⚔ Hypixel SkyWars Modpack</button>
-        <button class="ai-suggestion-chip" onclick="aiLoadPreset('performance')">⚡ Max Performance (Low-End)</button>
-        <button class="ai-suggestion-chip" onclick="aiLoadPreset('survival')">🌲 Hardcore Survival</button>
-        <button class="ai-suggestion-chip" onclick="aiLoadPreset('crystalpvp')">💎 Crystal PvP / Anarchy</button>
+        <div class="ai-suggestion-grid">
+          <button class="ai-suggestion-chip" onclick="aiLoadPreset('hypixel')"><span class="chip-emoji">⚔</span><span>SkyWars</span></button>
+          <button class="ai-suggestion-chip" onclick="aiLoadPreset('performance')"><span class="chip-emoji">⚡</span><span>Performance</span></button>
+          <button class="ai-suggestion-chip" onclick="aiLoadPreset('survival')"><span class="chip-emoji">🌲</span><span>Survival</span></button>
+          <button class="ai-suggestion-chip" onclick="aiLoadPreset('crystalpvp')"><span class="chip-emoji">💎</span><span>Crystal PvP</span></button>
+        </div>
       </div>
       <!-- Messages -->
       <div class="ai-messages" id="aiMessages">
         <div class="ai-msg bot">
-          <div class="ai-msg-avatar">🤖</div>
-          <div class="ai-msg-bubble">Hey! Ich bin dein <b>AI Modpack Assistant</b>. Beschreib mir deinen Server oder Spielstil und ich erstelle das perfekte Modpack für dich! 🚀</div>
+          <div class="ai-msg-avatar"><span>AI</span></div>
+          <div class="ai-msg-bubble">
+            <span class="ai-welcome-tag">Willkommen</span>
+            Hey! Ich bin dein <b>AI Modpack Assistant</b>. Beschreib mir Server, Modus oder Spielstil — ich baue dir das passende Modpack. 🚀
+          </div>
         </div>
       </div>
       <!-- Apply strip -->
@@ -596,8 +606,12 @@
       </div>
       <!-- Input -->
       <div class="ai-input-row">
-        <textarea class="ai-input" id="aiInput" rows="1" placeholder="z.B. Hypixel BedWars, Survival, Technik..." onkeydown="aiInputKey(event)" oninput="autoResizeAiInput(this)"></textarea>
-        <button class="ai-send-btn" id="aiSendBtn" onclick="sendAiMessage()">➤</button>
+        <div class="ai-input-wrap">
+          <textarea class="ai-input" id="aiInput" rows="1" placeholder="z.B. Hypixel BedWars, Survival, Technik…" onkeydown="aiInputKey(event)" oninput="autoResizeAiInput(this)"></textarea>
+          <button class="ai-send-btn" id="aiSendBtn" onclick="sendAiMessage()" aria-label="Senden">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg>
+          </button>
+        </div>
       </div>
     </div>
     <button class="ai-collapse-btn" id="aiCollapseBtn" onclick="toggleAiSidebar()">▼ AI Assistant anzeigen</button>

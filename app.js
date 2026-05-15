@@ -3153,7 +3153,7 @@ function checkAndActivateOwner(email) {
   // Force show chat, hide lock — override any mobile collapsed state
   if (lock)  { lock.style.display = 'none'; }
   if (chat)  { chat.style.display = 'flex'; chat.classList.add('visible'); }
-  if (badge) { badge.textContent = '👑 Owner'; badge.style.background = 'linear-gradient(135deg, #f59e0b, #ef4444)'; }
+  if (badge) { badge.textContent = '👑 Owner'; badge.classList.add('owner'); }
   if (collapseBtn) collapseBtn.textContent = '▲ AI Assistant ausblenden';
   refreshApiKeyUI();
 }
@@ -3176,7 +3176,8 @@ function activateAiDemo() {
   document.getElementById('aiChatScreen').classList.add('visible');
   const badge = document.querySelector('.ai-vip-badge');
   badge.textContent = '🎮 Demo';
-  badge.style.background = 'linear-gradient(135deg, #60a5fa, #3b82f6)';
+  badge.classList.remove('owner');
+  badge.classList.add('demo');
   refreshApiKeyUI();
 }
 
@@ -3306,7 +3307,7 @@ function appendAiMsg(role, html) {
   const div = document.createElement('div');
   div.className = 'ai-msg ' + role;
   div.innerHTML = `
-    <div class="ai-msg-avatar">${role === 'bot' ? '🤖' : '👤'}</div>
+    <div class="ai-msg-avatar"><span>${role === 'bot' ? 'AI' : 'Du'}</span></div>
     <div class="ai-msg-bubble">${html}</div>
   `;
   box.appendChild(div);
@@ -3319,7 +3320,7 @@ function appendTyping() {
   const div = document.createElement('div');
   div.className = 'ai-msg bot';
   div.id = 'aiTypingIndicator';
-  div.innerHTML = `<div class="ai-msg-avatar">🤖</div><div class="ai-msg-bubble"><div class="ai-typing"><span></span><span></span><span></span></div></div>`;
+  div.innerHTML = `<div class="ai-msg-avatar"><span>AI</span></div><div class="ai-msg-bubble"><div class="ai-typing"><span></span><span></span><span></span></div></div>`;
   box.appendChild(div);
   box.scrollTop = box.scrollHeight;
 }

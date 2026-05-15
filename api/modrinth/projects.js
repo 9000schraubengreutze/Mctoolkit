@@ -1,0 +1,2 @@
+const { json, modrinth } = require('./_helpers');
+module.exports = async (req, res) => { try { const user = await (await modrinth(req, '/user')).json(); const projects = await (await modrinth(req, '/user/' + encodeURIComponent(user.id || user.username) + '/projects')).json(); json(res, 200, { user, projects:(projects || []).filter(p => p.project_type === 'modpack') }); } catch(e) { json(res, e.status || 500, { error:e.message }); } };

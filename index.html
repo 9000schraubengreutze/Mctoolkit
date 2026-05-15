@@ -1369,6 +1369,34 @@
     </div>
   </div>
 
+
+
+  <!-- Modrinth Account Panel -->
+  <div class="profiles-overlay" id="modrinthOverlay" style="z-index:720">
+    <div class="profiles-modal modrinth-modal">
+      <div class="pm-header">
+        <h2>Modrinth Modpacks</h2>
+        <button class="pm-close" onclick="closeModrinthPanel()">x</button>
+      </div>
+      <div class="modrinth-account-card" id="modrinthAccountCard">
+        <div>
+          <b id="modrinthUserName">Nicht verbunden</b>
+          <span id="modrinthUserMeta">Melde dich mit Modrinth an, um deine Modpacks zu sehen.</span>
+        </div>
+        <button class="extra-btn" onclick="disconnectModrinth()">Trennen</button>
+      </div>
+      <div class="modrinth-actions">
+        <button class="extra-btn" onclick="startModrinthLogin()">Mit Modrinth anmelden</button>
+        <button class="extra-btn" onclick="loadModrinthProjects()">Modpacks laden</button>
+        <button class="extra-btn export" onclick="uploadCurrentPackToModrinth()">Aktuelles Pack hochladen</button>
+      </div>
+      <div class="auth-msg" id="modrinthMsg"></div>
+      <div class="modrinth-projects" id="modrinthProjects">
+        <div class="empty-profiles">Noch keine Modrinth-Modpacks geladen.</div>
+      </div>
+    </div>
+  </div>
+
   <!-- Cookie Banner -->
   <div class="cookie-banner" id="cookieBanner" style="display:none">
     <p>

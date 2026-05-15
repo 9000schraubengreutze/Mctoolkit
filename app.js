@@ -696,14 +696,13 @@ function changePlatform() {
 }
 
 /* ── Modrinth .mrpack build ── */
-async function buildMrpack(btn, st, pb, mcV, pName, pVer, fl) {
+async function createMrpackBlob(mcV, pName, pVer, fl, progress) {
   const all=[...MODS.map(m=>({...m,isRP:false})),...RESOURCEPACKS.map(r=>({...r,isRP:true}))];
   const fe=[],nf=[];
   for(let i=0;i<all.length;i++){
     const item=all[i],sid="st-"+(item.isRP?"rp":"mod")+"-"+item.slug;
+    progress?.({ step:'item', index:i, total:all.length, item });
     setSt(sid,"suche...","busy");
-    st.textContent="("+(i+1)+"/"+all.length+") "+item.name+"...";
-    pb.style.width=Math.round(i/all.length*100)+"%";
     if(i > 0) await sleep(120);
     const ver=await fetchVersion(item.slug,mcV,item.isRP);
     if(!ver||!ver.files||!ver.files.length){nf.push(item.name);setSt(sid,"nicht gefunden","err");continue;}
@@ -711,19 +710,37 @@ async function buildMrpack(btn, st, pb, mcV, pName, pVer, fl) {
     fe.push({path:(item.isRP?"resourcepacks":"mods")+"/"+f.filename,hashes:f.hashes,env:{client:"required",server:"unsupported"},downloads:[f.url],fileSize:f.size});
     setSt(sid,"v"+ver.version_number,"ok");
   }
-  pb.style.width="100%";
-  if(!fe.length){st.textContent="Keine Dateien gefunden. Localhost nutzen!";btn.disabled=false;return;}
-  st.textContent="Erstelle .mrpack...";
-  const idx={formatVersion:1,game:"minecraft",versionId:pVer,name:pName,summary:"MC Toolkit – Modpack für MC "+mcV,files:fe,dependencies:{minecraft:mcV,"fabric-loader":fl}};
+  if(!fe.length) throw new Error("Keine Dateien gefunden. Pruefe die Modliste und Minecraft-Version.");
+  progress?.({ step:'zip', found:fe.length, missing:nf });
+  const idx={formatVersion:1,game:"minecraft",versionId:pVer,name:pName,summary:"MC Toolkit - Modpack fuer MC "+mcV,files:fe,dependencies:{minecraft:mcV,"fabric-loader":fl}};
   const zip=new JSZip();
   zip.file("modrinth.index.json",JSON.stringify(idx,null,2));
   zip.folder("overrides");
   const blob=await zip.generateAsync({type:"blob",compression:"DEFLATE"});
   const fn=pName.replace(/\s+/g,"_")+"-"+mcV+".mrpack";
-  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=fn;document.body.appendChild(a);a.click();a.remove();
-  st.textContent=fe.length+" Mods/Packs"+(nf.length?" · Nicht gefunden: "+nf.join(", "):" · Alle OK!")+" → "+fn;
-  btn.innerHTML="⬇ Nochmals downloaden";btn.disabled=false;
-  showOpenInApp(fn, "modrinth");
+  return { blob, filename:fn, index:idx, found:fe.length, missing:nf };
+}
+
+async function buildMrpack(btn, st, pb, mcV, pName, pVer, fl) {
+  try {
+    const pack=await createMrpackBlob(mcV,pName,pVer,fl, ev => {
+      if(ev.step==='item'){
+        st.textContent="("+(ev.index+1)+"/"+ev.total+") "+ev.item.name+"...";
+        pb.style.width=Math.round(ev.index/ev.total*100)+"%";
+      }
+      if(ev.step==='zip'){
+        pb.style.width="100%";
+        st.textContent="Erstelle .mrpack...";
+      }
+    });
+    const a=document.createElement("a");a.href=URL.createObjectURL(pack.blob);a.download=pack.filename;document.body.appendChild(a);a.click();a.remove();
+    st.textContent=pack.found+" Mods/Packs"+(pack.missing.length?" - Nicht gefunden: "+pack.missing.join(", "):" - Alle OK!")+" -> "+pack.filename;
+    btn.innerHTML="Download nochmals";btn.disabled=false;
+    showOpenInApp(pack.filename, "modrinth");
+  } catch(e) {
+    st.textContent=e.message||"Fehler beim Erstellen";
+    btn.disabled=false;
+  }
 }
 
 /* ── CurseForge .zip build ── */
@@ -4011,3 +4028,26 @@ if (document.readyState === 'loading') {
 } else {
   initBoltMcSelect();
 }
+undefined
+
+/* MODRINTH ACCOUNT BACKEND INTEGRATION */
+let modrinthUser = null;
+let modrinthProjects = [];
+let selectedModrinthProjectId = null;
+function startModrinthLogin() { location.href = '/api/modrinth/auth'; }
+function openModrinthPanel() { closeAuth?.(); document.getElementById('modrinthOverlay')?.classList.add('open'); document.body.style.overflow = 'hidden'; refreshModrinthPanel(); loadModrinthSession().catch(() => {}); }
+function closeModrinthPanel() { document.getElementById('modrinthOverlay')?.classList.remove('open'); document.body.style.overflow = ''; }
+function setModrinthMessage(text, type='') { const el = document.getElementById('modrinthMsg'); if (!el) return; el.className = 'auth-msg ' + (type || ''); el.textContent = text || ''; }
+async function modrinthApi(path, options={}) { const res = await fetch('/api/modrinth/' + path, Object.assign({ credentials:'include' }, options)); if (!res.ok) { let msg = res.status + ' ' + res.statusText; try { const data = await res.json(); msg = data.error || data.message || msg; } catch(_) {} throw new Error(msg); } return res.json(); }
+function refreshModrinthPanel() { const nameEl = document.getElementById('modrinthUserName'); const metaEl = document.getElementById('modrinthUserMeta'); if (!nameEl || !metaEl) return; if (modrinthUser) { nameEl.textContent = modrinthUser.username || 'Modrinth'; metaEl.textContent = (modrinthProjects.length || 0) + ' Modpacks gefunden'; } else { nameEl.textContent = 'Nicht verbunden'; metaEl.textContent = 'Melde dich mit Modrinth an, um deine Modpacks zu sehen.'; } }
+async function loadModrinthSession() { try { modrinthUser = await modrinthApi('me'); refreshModrinthPanel(); if (!modrinthProjects.length) await loadModrinthProjects(); } catch(e) { modrinthUser = null; refreshModrinthPanel(); setModrinthMessage('Noch nicht mit Modrinth verbunden.'); } }
+async function disconnectModrinth() { await fetch('/api/modrinth/logout', { method:'POST', credentials:'include' }).catch(() => {}); modrinthUser = null; modrinthProjects = []; selectedModrinthProjectId = null; document.getElementById('modrinthProjects').innerHTML = '<div class="empty-profiles">Noch keine Modrinth-Modpacks geladen.</div>'; setModrinthMessage('Modrinth getrennt.'); refreshModrinthPanel(); }
+async function loadModrinthProjects() { const box = document.getElementById('modrinthProjects'); try { setModrinthMessage('Lade Modrinth-Modpacks...'); const data = await modrinthApi('projects'); modrinthUser = data.user; modrinthProjects = data.projects || []; renderModrinthProjects(); setModrinthMessage(modrinthProjects.length + ' Modpack-Projekte geladen.', 'ok'); } catch(e) { if (box) box.innerHTML = '<div class="empty-profiles">' + escapeHtml(e.message) + '</div>'; setModrinthMessage(e.message, 'err'); } refreshModrinthPanel(); }
+function renderModrinthProjects() { const box = document.getElementById('modrinthProjects'); if (!box) return; if (!modrinthProjects.length) { box.innerHTML = '<div class="empty-profiles">Keine eigenen Modrinth-Modpacks gefunden.</div>'; return; } box.innerHTML = modrinthProjects.map(p => { const icon = p.icon_url ? '<img src="'+escapeHtml(p.icon_url)+'" alt="">' : '<span>'+escapeHtml((p.title||'?').charAt(0).toUpperCase())+'</span>'; const active = selectedModrinthProjectId === p.id ? ' selected' : ''; return '<div class="modrinth-project'+active+'" onclick="selectModrinthProject(\''+p.id+'\')"><div class="modrinth-project-icon">'+icon+'</div><div class="modrinth-project-main"><b>'+escapeHtml(p.title||p.slug)+'</b><span>'+escapeHtml(p.slug||p.id)+' - '+escapeHtml(p.status||'')+'</span></div><div class="modrinth-project-actions"><button onclick="event.stopPropagation();loadModrinthProjectPack(\''+p.id+'\')">Laden</button><button onclick="event.stopPropagation();window.open(\'https://modrinth.com/modpack/'+escapeHtml(p.slug||p.id)+'\',\'_blank\')">Oeffnen</button></div></div>'; }).join(''); }
+function selectModrinthProject(id) { selectedModrinthProjectId = id; renderModrinthProjects(); const p = modrinthProjects.find(x => x.id === id); if (p) setModrinthMessage('Ziel gewaehlt: ' + p.title, 'ok'); }
+async function loadModrinthProjectPack(projectId) { try { setModrinthMessage('Lade neueste .mrpack-Version...'); const data = await modrinthApi('pack?projectId=' + encodeURIComponent(projectId)); importModrinthIndexToBuilder(data.index); setModrinthMessage('Pack geladen: ' + (data.index.name || data.version?.name || 'Modpack'), 'ok'); closeModrinthPanel(); showToast('Modrinth-Pack in Builder geladen'); } catch(e) { setModrinthMessage(e.message, 'err'); } }
+function importModrinthIndexToBuilder(index) { document.getElementById('packName').value = index.name || 'Modrinth Pack'; document.getElementById('packVersion').value = index.versionId || '1.0.0'; if (index.dependencies?.minecraft) document.getElementById('mcVersion').value = index.dependencies.minecraft; if (index.dependencies?.['fabric-loader']) document.getElementById('fabricLoader').value = index.dependencies['fabric-loader']; MODS = []; RESOURCEPACKS = []; (index.files || []).forEach(file => { const isRP = (file.path || '').startsWith('resourcepacks/'); const filename = (file.path || '').split('/').pop() || 'project'; const name = filename.replace(/\.jar$|\.zip$/i,'').replace(/[-_]+/g,' ').trim(); const slug = name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') || 'project'; const item = { slug, name, cat: 'Imported' }; if (isRP) RESOURCEPACKS.push(item); else MODS.push(item); }); renderMods(); renderRPs(); updateCounters?.(); }
+async function uploadCurrentPackToModrinth() { try { if (!selectedModrinthProjectId) { if (!modrinthProjects.length) await loadModrinthProjects(); if (modrinthProjects.length === 1) selectedModrinthProjectId = modrinthProjects[0].id; } if (!selectedModrinthProjectId) throw new Error('Bitte zuerst ein Modrinth-Modpack als Ziel auswaehlen.'); const mcV = document.getElementById('mcVersion').value; const pName = document.getElementById('packName').value.trim() || 'MC Toolkit Pack'; const pVer = document.getElementById('packVersion').value.trim() || new Date().toISOString().slice(0,10); const fl = document.getElementById('fabricLoader').value; setModrinthMessage('Erstelle .mrpack fuer Upload...'); const pack = await createMrpackBlob(mcV,pName,pVer,fl, ev => { if (ev.step === 'item') setModrinthMessage('Pruefe ' + (ev.index+1) + '/' + ev.total + ': ' + ev.item.name); if (ev.step === 'zip') setModrinthMessage('Pack wird verpackt...'); }); const base64 = await blobToBase64(pack.blob); setModrinthMessage('Lade zu Modrinth hoch...'); await modrinthApi('upload', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ projectId:selectedModrinthProjectId, filename:pack.filename, fileBase64:base64, name:pName, versionNumber:pVer, gameVersion:mcV, loader:'fabric' }) }); setModrinthMessage('Upload fertig: neue Version erstellt.', 'ok'); showToast('Modrinth-Version hochgeladen'); await loadModrinthProjects(); } catch(e) { setModrinthMessage(e.message, 'err'); } }
+function blobToBase64(blob) { return new Promise((resolve,reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result).split(',')[1]); reader.onerror = reject; reader.readAsDataURL(blob); }); }
+function escapeHtml(str) { return String(str ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
+document.addEventListener('DOMContentLoaded', () => { if (new URLSearchParams(location.search).get('modrinth') === 'connected') { history.replaceState(null, '', location.pathname + location.hash); openModrinthPanel(); } document.addEventListener('click', e => { if (e.target === document.getElementById('modrinthOverlay')) closeModrinthPanel(); }); });

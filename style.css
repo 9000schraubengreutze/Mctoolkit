@@ -465,6 +465,53 @@ footer { border-top: 1px solid var(--border); padding: 3rem 2.5rem; display: gri
 }
 .ai-api-change:hover { color: var(--text); border-color: rgba(255,255,255,.2); }
 
+/* Bolt Tools */
+.bolt-tools {
+  padding: .65rem 1rem;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  background: rgba(74,222,128,.04);
+}
+.bolt-tools-label {
+  font-size: .6rem; font-weight: 800; color: var(--green);
+  text-transform: uppercase; letter-spacing: .08em; margin-bottom: 8px;
+}
+.bolt-tools-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 8px;
+}
+.bolt-tools-row {
+  display: grid; grid-template-columns: 1fr 1fr auto; gap: 6px; align-items: center;
+}
+.bolt-select {
+  background: rgba(0,0,0,.25); border: 1px solid rgba(255,255,255,.1);
+  color: var(--sub); border-radius: 8px; padding: 6px 8px;
+  font-size: .68rem; font-family: var(--font); font-weight: 600; outline: none;
+  cursor: pointer; min-width: 0;
+}
+.bolt-select:focus { border-color: rgba(74,222,128,.4); }
+.bolt-tool-btn {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  padding: 8px 6px; border-radius: 10px;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.04);
+  color: var(--sub); font-family: var(--font); font-size: .65rem; font-weight: 700;
+  cursor: pointer; transition: border-color .15s, background .15s, transform .12s, color .15s;
+}
+.bolt-tool-btn:hover {
+  border-color: rgba(74,222,128,.4); color: var(--green);
+  background: rgba(74,222,128,.08); transform: translateY(-1px);
+}
+.bolt-tool-btn--wide {
+  flex-direction: row; gap: 5px; padding: 8px 12px; white-space: nowrap;
+}
+.bolt-tool-icon { font-size: 1rem; line-height: 1; }
+.bolt-inline-btn {
+  margin-top: .5rem; padding: 7px 12px; border-radius: 8px; border: 1px solid rgba(74,222,128,.35);
+  background: rgba(74,222,128,.12); color: var(--green);
+  font-family: var(--font); font-size: .72rem; font-weight: 700; cursor: pointer;
+  transition: background .15s;
+}
+.bolt-inline-btn:hover { background: rgba(74,222,128,.22); }
+
 /* Quick suggestions */
 .ai-suggestions {
   padding: .75rem 1rem .65rem;

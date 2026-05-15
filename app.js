@@ -3154,7 +3154,8 @@ function checkAndActivateOwner(email) {
   if (lock)  { lock.style.display = 'none'; }
   if (chat)  { chat.style.display = 'flex'; chat.classList.add('visible'); }
   if (badge) { badge.textContent = '👑 Owner'; badge.classList.add('owner'); }
-  if (collapseBtn) collapseBtn.textContent = '▲ AI Assistant ausblenden';
+  if (collapseBtn) collapseBtn.textContent = '▲ Bolt ausblenden';
+  initBoltMcSelect();
   refreshApiKeyUI();
 }
 
@@ -3179,6 +3180,7 @@ function activateAiDemo() {
   badge.classList.remove('owner');
   badge.classList.add('demo');
   refreshApiKeyUI();
+  initBoltMcSelect();
 }
 
 function toggleAiSidebar() {
@@ -3192,11 +3194,11 @@ function toggleAiSidebar() {
   if (isOpen) {
     if (isChatVisible) chat.style.display = 'none';
     lock.style.display = 'none';
-    btn.textContent = '▼ AI Assistant anzeigen';
+    btn.textContent = '▼ Bolt anzeigen';
   } else {
     if (isChatVisible) chat.style.display = '';
     else lock.style.display = '';
-    btn.textContent = '▲ AI Assistant ausblenden';
+    btn.textContent = '▲ Bolt ausblenden';
   }
 }
 
@@ -3207,6 +3209,426 @@ function aiInputKey(e) {
 function autoResizeAiInput(el) {
   el.style.height = 'auto';
   el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+}
+
+/* ══ BOLT AI ════════════════════════════════════════════════════ */
+const BOLT_NAME = 'Bolt';
+
+const BOLT_PERF_CORE = ['sodium', 'lithium', 'entityculling', 'dynamic-fps', 'ferritecore', 'krypton', 'immediatelyfast', 'moreculling', 'modernfix'];
+
+const BOLT_SERVER_RULES = {
+  hypixel: {
+    label: 'Hypixel',
+    forbidden: ['wurst', 'meteor-client', 'baritone', 'xray', 'x-ray', 'wi-freecam', 'freecam', 'aristois', 'impact', 'inertia', 'liquidbounce', 'sigma', 'bleachhack', 'future-client', 'phobos', 'kamiblue', 'rusherhack', 'gamesense', 'vape', 'entropy', 'novoline'],
+    risky: ['litematica', 'minihud', 'baritone', 'xaeros-world-map', 'journeymap', 'replaymod'],
+    note: 'Hypixel erlaubt Performance/QoL-Mods. Keine Hacked-Clients, Freecam, X-Ray, Baritone oder Map-Download.'
+  },
+  crystal: {
+    label: 'Crystal PvP / Anarchy',
+    forbidden: ['wurst', 'meteor-client', 'baritone', 'xray', 'aristois', 'impact', 'liquidbounce'],
+    risky: ['wi-freecam', 'freecam'],
+    note: 'Crystal-Server: Performance & Crystal-Mods OK. Keine Cheat-Clients.'
+  },
+  smp: {
+    label: 'Privater SMP',
+    forbidden: ['wurst', 'meteor-client', 'xray', 'aristois', 'impact', 'liquidbounce', 'sigma'],
+    risky: [],
+    note: 'Private SMPs sind oft lockerer – Cheat-Clients trotzdem vermeiden.'
+  }
+};
+
+function initBoltMcSelect() {
+  const src = document.getElementById('mcVersion');
+  const tgt = document.getElementById('boltTargetMc');
+  if (!src || !tgt || tgt.options.length) return;
+  [...src.options].forEach(o => {
+    const opt = document.createElement('option');
+    opt.value = o.value;
+    opt.textContent = o.textContent;
+    tgt.appendChild(opt);
+  });
+}
+
+function boltRequireAccess() {
+  if (!aiIsVip) {
+    showToast('⭐ Bolt ist ein VIP-Feature');
+    openVipModal();
+    return false;
+  }
+  if (!localStorage.getItem('mctoolkit_groq_key')) {
+    appendAiMsg('bot', '⚠ Trage zuerst deinen Groq API-Key oben ein.');
+    return false;
+  }
+  return true;
+}
+
+function boltGetPackContext() {
+  const mc = document.getElementById('mcVersion')?.value || '1.21.1';
+  const name = document.getElementById('packName')?.value?.trim() || 'Mein Modpack';
+  const slugs = MODS.map(m => m.slug);
+  const names = MODS.map(m => m.name + ' (' + m.slug + ')').join(', ');
+  return { mc, name, slugs, names, count: slugs.length };
+}
+
+function boltFormatHtml(text) {
+  return (text || '')
+    .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\n/g, '<br>');
+}
+
+async function boltCallGroq(systemPrompt, userPrompt, maxTokens = 1200) {
+  const apiKey = localStorage.getItem('mctoolkit_groq_key');
+  const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
+    body: JSON.stringify({
+      model: 'llama-3.3-70b-versatile',
+      max_tokens: maxTokens,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ]
+    })
+  });
+  const data = await resp.json();
+  if (data.error) throw new Error(data.error.message || 'Groq API Fehler');
+  return data.choices?.[0]?.message?.content || '';
+}
+
+function boltParseApplyBlock(raw) {
+  const m = raw.match(/<BOLT_APPLY>([\s\S]*?)<\/BOLT_APPLY>/i);
+  if (!m) return { add: [], remove: [], explain: [] };
+  const block = m[1];
+  const addM = block.match(/add:\s*(.+)/i);
+  const remM = block.match(/remove:\s*(.+)/i);
+  const expM = block.match(/explain:\s*([\s\S]*?)(?=\n\w+:|$)/i);
+  const parseList = s => (s || '').split(/[,;\n]+/).map(x => x.trim().toLowerCase()).filter(Boolean);
+  const explain = expM ? expM[1].trim().split(/\n-\s*/).filter(Boolean) : [];
+  return {
+    add: parseList(addM ? addM[1] : ''),
+    remove: parseList(remM ? remM[1] : ''),
+    explain
+  };
+}
+
+async function boltApplySlugs(addSlugs, removeSlugs) {
+  const added = [], removed = [], failed = [];
+  pushUndo();
+  if (removeSlugs.length) {
+    const remSet = new Set(removeSlugs);
+    removed.push(...MODS.filter(m => remSet.has(m.slug)).map(m => m.slug));
+    MODS = MODS.filter(m => !remSet.has(m.slug));
+    if (removed.length) renderMods();
+  }
+  for (const slug of addSlugs) {
+    if (has(slug, 'mod')) continue;
+    const res = await detectAndResolve(slug);
+    if (res && addResolved(res, 'Bolt')) added.push(res.name || slug);
+    else failed.push(slug);
+  }
+  updateBuildBtn();
+  return { added, removed, failed };
+}
+
+function boltLocalDuplicates() {
+  const seen = new Set();
+  const dups = [];
+  MODS.forEach(m => {
+    if (seen.has(m.slug)) dups.push(m.slug);
+    seen.add(m.slug);
+  });
+  return [...new Set(dups)];
+}
+
+function boltLocalServerHits(serverKey) {
+  const rules = BOLT_SERVER_RULES[serverKey] || BOLT_SERVER_RULES.smp;
+  const slugs = MODS.map(m => m.slug);
+  const forbidden = slugs.filter(s => rules.forbidden.some(f => s.includes(f) || f.includes(s)));
+  const risky = slugs.filter(s => rules.risky.some(r => s.includes(r) || r.includes(s)) && !forbidden.includes(s));
+  return { rules, forbidden, risky };
+}
+
+function boltLocalMissingPerf() {
+  const slugs = new Set(MODS.map(m => m.slug));
+  return BOLT_PERF_CORE.filter(s => !slugs.has(s));
+}
+
+async function boltCollectVersionIssues(targetMc) {
+  const issues = [];
+  for (const m of MODS) {
+    const ver = await fetchVersion(m.slug, targetMc, false);
+    if (!ver) {
+      let replacement = null;
+      try {
+        const r = await fetch(
+          'https://api.modrinth.com/v2/search?query=' + encodeURIComponent(m.name) +
+          '&limit=5&game_versions=["' + targetMc + '"]&loaders=["fabric"]',
+          { headers: { 'User-Agent': 'mctoolkit/1.0' } }
+        );
+        if (r.ok) {
+          const hit = (await r.json()).hits?.find(h => h.slug !== m.slug);
+          if (hit) replacement = { slug: hit.slug, name: hit.title };
+        }
+      } catch (_) {}
+      issues.push({ slug: m.slug, name: m.name, replacement });
+    }
+    await sleep(60);
+  }
+  return issues;
+}
+
+async function boltRunWithUi(label, fn) {
+  if (!boltRequireAccess()) return;
+  document.getElementById('aiSendBtn').disabled = true;
+  appendAiMsg('user', '⚡ ' + label);
+  appendTyping();
+  try {
+    const html = await fn();
+    removeTyping();
+    appendAiMsg('bot', html);
+  } catch (e) {
+    removeTyping();
+    appendAiMsg('bot', '⚠ ' + e.message);
+  }
+  document.getElementById('aiSendBtn').disabled = false;
+}
+
+const BOLT_SYSTEM = `Du bist Bolt ⚡, der Minecraft Fabric Modpack-Experte von MC Toolkit.
+Antworte IMMER auf Deutsch. Sei präzise, freundlich, nutze Bullet-Points mit "- ".
+Wenn du konkrete Pack-Änderungen empfiehlst, füge am Ende ein:
+<BOLT_APPLY>
+add: slug1, slug2
+remove: slug3
+explain:
+- Kurze Erklärung pro Änderung
+</BOLT_APPLY>
+Nur echte Modrinth-Fabric-Slugs. Keine erfundenen Mods.`;
+
+async function boltPackOptimize() {
+  await boltRunWithUi('Pack optimieren', async () => {
+    const ctx = boltGetPackContext();
+    if (!ctx.count) return '⚠ Dein Pack ist leer — füge zuerst Mods im Builder hinzu.';
+
+    const dups = boltLocalDuplicates();
+    const missingPerf = boltLocalMissingPerf();
+
+    let html = '<b>⚡ Bolt – Pack-Optimierung</b><br><br>';
+    if (dups.length) {
+      pushUndo();
+      const seen = new Set();
+      MODS = MODS.filter(m => { if (seen.has(m.slug)) return false; seen.add(m.slug); return true; });
+      renderMods();
+      html += '🗑 <b>Duplikate entfernt:</b> ' + dups.join(', ') + '<br>';
+    }
+
+    const userPrompt = `Analysiere dieses Fabric-Modpack für MC ${ctx.mc}:
+Name: ${ctx.name}
+Mods (${ctx.count}): ${ctx.slugs.join(', ')}
+
+Aufgaben:
+1) Fehlende Performance-Basis ergänzen (z.B. ${missingPerf.slice(0, 5).join(', ') || 'sodium, lithium'})
+2) Überflüssige/redundante Mods entfernen
+3) Client-only oder problematische Mods markieren
+4) Kurz begründen`;
+
+    const raw = await boltCallGroq(BOLT_SYSTEM, userPrompt, 1100);
+    const display = raw.replace(/<BOLT_APPLY>[\s\S]*?<\/BOLT_APPLY>/gi, '').trim();
+    html += boltFormatHtml(display);
+
+    const { add, remove, explain } = boltParseApplyBlock(raw);
+    if (add.length || remove.length) {
+      const result = await boltApplySlugs(add, remove);
+      html += '<br><br>✅ <b>Angewendet:</b>';
+      if (result.added.length) html += '<br>+ ' + result.added.join(', ');
+      if (result.removed.length) html += '<br>− ' + result.removed.join(', ');
+      if (result.failed.length) html += '<br>⚠ Nicht gefunden: ' + result.failed.join(', ');
+      if (explain.length) html += '<br><br>' + explain.map(e => '• ' + esc(e)).join('<br>');
+    }
+    return html;
+  });
+}
+
+async function boltAutoFixExplain() {
+  await boltRunWithUi('Auto-Fix mit Erklärung', async () => {
+    const ctx = boltGetPackContext();
+    if (!ctx.count) return '⚠ Keine Mods zum Prüfen.';
+
+    const mcV = ctx.mc;
+    const issues = [];
+    const dups = boltLocalDuplicates();
+    dups.forEach(slug => issues.push({ type: 'duplicate', slug, name: slug, msg: 'Doppelter Eintrag' }));
+
+    const depsAdded = [];
+    for (const m of [...MODS]) {
+      for (const dep of (DEP_MAP[m.slug] || [])) {
+        if (!has(dep, 'mod')) {
+          const res = await detectAndResolve(dep);
+          if (res && addResolved(res, 'Bolt-Dep')) depsAdded.push(res.name || dep);
+        }
+      }
+    }
+    if (depsAdded.length) {
+      renderMods();
+      issues.push({ type: 'dep', slug: '-', name: 'Dependencies', msg: 'Ergänzt: ' + depsAdded.join(', ') });
+    }
+
+    const seen = new Set();
+    MODS = MODS.filter(m => { if (seen.has(m.slug)) return false; seen.add(m.slug); return true; });
+
+    for (let i = 0; i < Math.min(MODS.length, 25); i++) {
+      const m = MODS[i];
+      const ver = await fetchVersion(m.slug, mcV, false);
+      if (!ver) {
+        let replacement = null;
+        try {
+          const r = await fetch('https://api.modrinth.com/v2/search?query=' + encodeURIComponent(m.name) + '&limit=3&game_versions=["' + mcV + '"]&loaders=["fabric"]', { headers: { 'User-Agent': 'mctoolkit/1.0' } });
+          if (r.ok) {
+            const hit = (await r.json()).hits?.find(h => h.slug !== m.slug);
+            if (hit) replacement = hit.slug + ' (' + hit.title + ')';
+          }
+        } catch (_) {}
+        issues.push({ type: 'version', slug: m.slug, name: m.name, msg: 'Nicht für MC ' + mcV, replacement });
+      }
+      await sleep(80);
+    }
+
+    if (MODS.length > 25) {
+      issues.push({ type: 'info', slug: '-', name: 'Hinweis', msg: 'Nur die ersten 25 Mods versiongeprüft — nutze „Auto-Fix“ im Builder für alle.' });
+    }
+
+    let html = '<b>🔧 Bolt – Auto-Fix</b><br><br>';
+    if (!issues.filter(x => x.type !== 'dep').length && !depsAdded.length) {
+      html += '✅ Keine kritischen Probleme in der Stichprobe.<br>';
+    } else {
+      html += '<ul style="margin:.4rem 0;padding-left:1.1rem">';
+      issues.forEach(i => {
+        html += '<li><b>' + esc(i.name) + '</b>: ' + esc(i.msg);
+        if (i.replacement) html += ' → <code>' + esc(i.replacement) + '</code>';
+        html += '</li>';
+      });
+      html += '</ul>';
+    }
+
+    const issueText = issues.map(i => `- [${i.type}] ${i.name} (${i.slug}): ${i.msg}${i.replacement ? ' → Ersatz: ' + i.replacement : ''}`).join('\n');
+    const raw = await boltCallGroq(
+      BOLT_SYSTEM,
+      `Erkläre diese Pack-Probleme verständlich auf Deutsch und was der Spieler tun sollte:\n${issueText || 'Keine Fehler — Pack sieht gut aus.'}\n\nPack: ${ctx.name}, MC ${ctx.mc}`,
+      900
+    );
+    html += '<br>' + boltFormatHtml(raw.replace(/<BOLT_APPLY>[\s\S]*?<\/BOLT_APPLY>/gi, '').trim());
+
+    const { add, remove } = boltParseApplyBlock(raw);
+    if (add.length || remove.length) {
+      const result = await boltApplySlugs(add, remove);
+      html += '<br><br>✅ Bolt hat zusätzlich angewendet: +' + (result.added.join(', ') || '—') + ' / −' + (result.removed.join(', ') || '—');
+    }
+
+    html += '<br><br><button class="bolt-inline-btn" onclick="runAutoFix();showPage(\'builder\')">🔧 Vollständigen Auto-Fix im Builder öffnen</button>';
+    return html;
+  });
+}
+
+async function boltServerCheck() {
+  await boltRunWithUi('Server-Check', async () => {
+    const ctx = boltGetPackContext();
+    if (!ctx.count) return '⚠ Keine Mods im Pack.';
+
+    const serverKey = document.getElementById('boltServerSelect')?.value || 'hypixel';
+    const { rules, forbidden, risky } = boltLocalServerHits(serverKey);
+
+    let html = '<b>🛡 Bolt – Server-Check: ' + esc(rules.label) + '</b><br>';
+    html += '<span style="font-size:.75rem;color:var(--muted)">' + esc(rules.note) + '</span><br><br>';
+
+    if (forbidden.length) {
+      html += '❌ <b>Stark riskant / oft verboten:</b><br><code>' + forbidden.join('</code>, <code>') + '</code><br><br>';
+    }
+    if (risky.length) {
+      html += '⚠ <b>Vorsicht (Server-abhängig):</b><br><code>' + risky.join('</code>, <code>') + '</code><br><br>';
+    }
+    if (!forbidden.length && !risky.length) {
+      html += '✅ Keine bekannten High-Risk-Mods in deiner Liste.<br><br>';
+    }
+
+    const raw = await boltCallGroq(
+      BOLT_SYSTEM,
+      `Server: ${rules.label}
+Regel: ${rules.note}
+Pack-Mods: ${ctx.slugs.join(', ')}
+
+Lokal erkannt verboten: ${forbidden.join(', ') || 'keine'}
+Lokal erkannt riskant: ${risky.join(', ') || 'keine'}
+
+Gib Empfehlungen: was entfernen, was behalten, erlaubte Alternativen. Nutze BOLT_APPLY nur für remove/add Slugs die du wirklich empfiehlst.`,
+      1000
+    );
+    html += boltFormatHtml(raw.replace(/<BOLT_APPLY>[\s\S]*?<\/BOLT_APPLY>/gi, '').trim());
+
+    const { add, remove, explain } = boltParseApplyBlock(raw);
+    const autoRemove = [...new Set([...forbidden, ...remove])];
+    if (autoRemove.length || add.length) {
+      const result = await boltApplySlugs(add, autoRemove);
+      html += '<br><br>✅ <b>Änderungen:</b>';
+      if (result.removed.length) html += '<br>Entfernt: ' + result.removed.join(', ');
+      if (result.added.length) html += '<br>Hinzugefügt: ' + result.added.join(', ');
+      if (explain.length) html += '<br>' + explain.map(e => '• ' + esc(e)).join('<br>');
+    }
+    return html;
+  });
+}
+
+async function boltVersionUpdate() {
+  await boltRunWithUi('MC-Versions-Update', async () => {
+    const ctx = boltGetPackContext();
+    if (!ctx.count) return '⚠ Keine Mods zum Prüfen.';
+
+    const targetMc = document.getElementById('boltTargetMc')?.value || ctx.mc;
+    if (targetMc === ctx.mc) {
+      return 'ℹ️ Zielversion ist bereits <b>' + esc(targetMc) + '</b>. Wähle eine andere Version im Dropdown.';
+    }
+
+    const issues = await boltCollectVersionIssues(targetMc);
+
+    let html = '<b>⬆ Bolt – Update auf MC ' + esc(targetMc) + '</b><br>';
+    html += 'Aktuell: <b>' + esc(ctx.mc) + '</b> → Ziel: <b>' + esc(targetMc) + '</b><br><br>';
+
+    if (!issues.length) {
+      html += '✅ Alle Mods haben eine Version für <b>' + esc(targetMc) + '</b>!<br>';
+      document.getElementById('mcVersion').value = targetMc;
+      return html;
+    }
+
+    html += '⚠ <b>' + issues.length + ' Mod(s) ohne passende Version:</b><ul style="margin:.4rem 0;padding-left:1.1rem">';
+    issues.forEach(i => {
+      html += '<li><b>' + esc(i.name) + '</b> (<code>' + esc(i.slug) + '</code>)';
+      if (i.replacement) html += ' → <code>' + esc(i.replacement.slug) + '</code>';
+      html += '</li>';
+    });
+    html += '</ul>';
+
+    const issueLines = issues.map(i =>
+      `- ${i.name} (${i.slug})${i.replacement ? ' → Ersatz: ' + i.replacement.slug + ' (' + i.replacement.name + ')' : ' → kein Ersatz'}`
+    ).join('\n');
+
+    const raw = await boltCallGroq(
+      BOLT_SYSTEM,
+      `Der Nutzer will von MC ${ctx.mc} auf MC ${targetMc} updaten.\nProbleme:\n${issueLines}\n\nErkläre was zu tun ist. Bei Ersatz-Mods: remove alte slug, add neue slug in BOLT_APPLY.`,
+      1100
+    );
+    html += '<br>' + boltFormatHtml(raw.replace(/<BOLT_APPLY>[\s\S]*?<\/BOLT_APPLY>/gi, '').trim());
+
+    const { remove, add } = boltParseApplyBlock(raw);
+    if (remove.length || add.length) {
+      const result = await boltApplySlugs(add, remove);
+      html += '<br><br>✅ Bolt hat Mods angepasst.';
+      if (result.added.length) html += '<br>+ ' + result.added.join(', ');
+      if (result.removed.length) html += '<br>− ' + result.removed.join(', ');
+    }
+
+    document.getElementById('mcVersion').value = targetMc;
+    html += '<br><br>📌 MC-Version im Builder auf <b>' + esc(targetMc) + '</b> gesetzt.';
+    return html;
+  });
 }
 
 const AI_PRESETS = {
@@ -3307,7 +3729,7 @@ function appendAiMsg(role, html) {
   const div = document.createElement('div');
   div.className = 'ai-msg ' + role;
   div.innerHTML = `
-    <div class="ai-msg-avatar"><span>${role === 'bot' ? 'AI' : 'Du'}</span></div>
+    <div class="ai-msg-avatar"><span>${role === 'bot' ? '⚡' : 'Du'}</span></div>
     <div class="ai-msg-bubble">${html}</div>
   `;
   box.appendChild(div);
@@ -3320,7 +3742,7 @@ function appendTyping() {
   const div = document.createElement('div');
   div.className = 'ai-msg bot';
   div.id = 'aiTypingIndicator';
-  div.innerHTML = `<div class="ai-msg-avatar"><span>AI</span></div><div class="ai-msg-bubble"><div class="ai-typing"><span></span><span></span><span></span></div></div>`;
+  div.innerHTML = `<div class="ai-msg-avatar"><span>⚡</span></div><div class="ai-msg-bubble"><div class="ai-typing"><span></span><span></span><span></span></div></div>`;
   box.appendChild(div);
   box.scrollTop = box.scrollHeight;
 }
@@ -3339,7 +3761,7 @@ async function sendAiMessage() {
   appendAiMsg('user', text);
   appendTyping();
 
-  const systemPrompt = `Du bist ein Minecraft Modpack Experte. Wenn der Nutzer einen Server oder Spielstil beschreibt, erstelle eine optimale Modliste.
+  const systemPrompt = `Du bist Bolt ⚡, der Minecraft Fabric Modpack-Experte von MC Toolkit. Wenn der Nutzer einen Server oder Spielstil beschreibt, erstelle eine optimale Modliste.
 
 WICHTIG: Antworte IMMER auf Deutsch. Sei freundlich und kompetent.
 
@@ -3406,7 +3828,7 @@ Für Performance: sodium, lithium, iris, featherlight, nvidium, moreculling, ent
       const modsM  = block.match(/mods:\s*(.+)/);
       const verM   = block.match(/version:\s*(.+)/);
       aiLastModpackData = {
-        name:    nameM  ? nameM[1].trim()  : 'AI Modpack',
+        name:    nameM  ? nameM[1].trim()  : 'Bolt Modpack',
         mods:    modsM  ? modsM[1].trim()  : '',
         version: verM   ? verM[1].trim()   : '1.21.1'
       };
@@ -3478,4 +3900,10 @@ function applyAiModpack() {
     strip.classList.remove('visible');
     strip.innerHTML = '<span>🧩 Modpack bereit</span><button class="ai-apply-btn" onclick="applyAiModpack()">In Builder laden ↗</button>';
   }, 2500);
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initBoltMcSelect);
+} else {
+  initBoltMcSelect();
 }

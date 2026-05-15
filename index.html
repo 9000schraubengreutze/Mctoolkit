@@ -540,13 +540,13 @@
     <!-- Header -->
     <div class="ai-sidebar-header">
       <div class="ai-header-glow" aria-hidden="true"></div>
-      <div class="ai-icon" aria-hidden="true">✦</div>
+      <div class="ai-icon" aria-hidden="true">⚡</div>
       <div class="ai-sidebar-title">
         <div class="ai-title-row">
-          <h3>AI Modpack Assistant</h3>
+          <h3>⚡ Bolt</h3>
           <span class="ai-status-dot" title="Online"></span>
         </div>
-        <p>Powered by Groq · Modpack-Experte</p>
+        <p>Dein Modpack-Experte · Groq</p>
       </div>
       <span class="ai-vip-badge">⭐ VIP</span>
     </div>
@@ -555,13 +555,12 @@
     <div class="ai-lock-screen" id="aiLockScreen">
       <div class="ai-lock-icon">🔒</div>
       <h4>VIP-Feature</h4>
-      <p>Der AI Assistant analysiert deinen Spielstil und erstellt automatisch das perfekte Modpack – für jeden Server und jede Situation.</p>
+      <p><b>Bolt</b> optimiert dein Pack, erklärt Fixes und prüft Server-Regeln.</p>
       <div class="ai-features-list">
-        <div class="ai-feature-item"><span class="ai-feat-dot">✦</span> Perfekte Mods für Hypixel, Mineplex & Co.</div>
-        <div class="ai-feature-item"><span class="ai-feat-dot">✦</span> PvP-, Survival- & Tech-Optimierung</div>
-        <div class="ai-feature-item"><span class="ai-feat-dot">✦</span> Automatisch in den Builder laden</div>
-        <div class="ai-feature-item"><span class="ai-feat-dot">✦</span> Konflikte & Updates erkennen</div>
-        <div class="ai-feature-item"><span class="ai-feat-dot">✦</span> Server-spezifische Empfehlungen</div>
+        <div class="ai-feature-item"><span class="ai-feat-dot">⚡</span> Pack optimieren & Auto-Fix</div>
+        <div class="ai-feature-item"><span class="ai-feat-dot">⬆</span> MC-Versions-Update</div>
+        <div class="ai-feature-item"><span class="ai-feat-dot">🛡</span> Server-Check (Hypixel, Crystal)</div>
+        <div class="ai-feature-item"><span class="ai-feat-dot">🧩</span> Modpack aus Beschreibung</div>
       </div>
       <button class="ai-unlock-btn" onclick="openVipModal()">⭐ VIP freischalten</button>
       <button class="ai-demo-btn" onclick="activateAiDemo()">Demo ausprobieren</button>
@@ -579,9 +578,35 @@
         <span class="ai-api-ok">✓ API-Key aktiv</span>
         <button class="ai-api-change" onclick="clearAiApiKey()">ändern</button>
       </div>
+      <!-- Bolt Tools -->
+      <div class="bolt-tools" id="boltTools">
+        <div class="bolt-tools-label">⚡ Bolt Tools</div>
+        <div class="bolt-tools-grid">
+          <button type="button" class="bolt-tool-btn" onclick="boltPackOptimize()" title="Performance, Duplikate, Client-Mods">
+            <span class="bolt-tool-icon">⚡</span><span>Optimieren</span>
+          </button>
+          <button type="button" class="bolt-tool-btn" onclick="boltAutoFixExplain()" title="Fehler finden & erklären">
+            <span class="bolt-tool-icon">🔧</span><span>Auto-Fix</span>
+          </button>
+          <button type="button" class="bolt-tool-btn" onclick="boltServerCheck()" title="Verbotene Mods prüfen">
+            <span class="bolt-tool-icon">🛡</span><span>Server</span>
+          </button>
+        </div>
+        <div class="bolt-tools-row">
+          <select class="bolt-select" id="boltServerSelect" title="Server für Check">
+            <option value="hypixel">Hypixel</option>
+            <option value="crystal">Crystal PvP</option>
+            <option value="smp">Privater SMP</option>
+          </select>
+          <select class="bolt-select" id="boltTargetMc" title="Ziel-MC-Version"></select>
+          <button type="button" class="bolt-tool-btn bolt-tool-btn--wide" onclick="boltVersionUpdate()">
+            <span class="bolt-tool-icon">⬆</span><span>MC-Update</span>
+          </button>
+        </div>
+      </div>
       <!-- Quick suggestions -->
       <div class="ai-suggestions">
-        <div class="ai-suggestion-label">Schnellauswahl</div>
+        <div class="ai-suggestion-label">Vorlagen</div>
         <div class="ai-suggestion-grid">
           <button class="ai-suggestion-chip" onclick="aiLoadPreset('hypixel')"><span class="chip-emoji">⚔</span><span>SkyWars</span></button>
           <button class="ai-suggestion-chip" onclick="aiLoadPreset('performance')"><span class="chip-emoji">⚡</span><span>Performance</span></button>
@@ -592,10 +617,10 @@
       <!-- Messages -->
       <div class="ai-messages" id="aiMessages">
         <div class="ai-msg bot">
-          <div class="ai-msg-avatar"><span>AI</span></div>
+          <div class="ai-msg-avatar"><span>⚡</span></div>
           <div class="ai-msg-bubble">
             <span class="ai-welcome-tag">Willkommen</span>
-            Hey! Ich bin dein <b>AI Modpack Assistant</b>. Beschreib mir Server, Modus oder Spielstil — ich baue dir das passende Modpack. 🚀
+            Hey! Ich bin <b>Bolt</b> ⚡ — nutze die Tools oben oder beschreib mir Server & Spielstil!
           </div>
         </div>
       </div>
@@ -607,14 +632,14 @@
       <!-- Input -->
       <div class="ai-input-row">
         <div class="ai-input-wrap">
-          <textarea class="ai-input" id="aiInput" rows="1" placeholder="z.B. Hypixel BedWars, Survival, Technik…" onkeydown="aiInputKey(event)" oninput="autoResizeAiInput(this)"></textarea>
+          <textarea class="ai-input" id="aiInput" rows="1" placeholder="Frag Bolt… z.B. Hypixel BedWars Pack" onkeydown="aiInputKey(event)" oninput="autoResizeAiInput(this)"></textarea>
           <button class="ai-send-btn" id="aiSendBtn" onclick="sendAiMessage()" aria-label="Senden">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg>
           </button>
         </div>
       </div>
     </div>
-    <button class="ai-collapse-btn" id="aiCollapseBtn" onclick="toggleAiSidebar()">▼ AI Assistant anzeigen</button>
+    <button class="ai-collapse-btn" id="aiCollapseBtn" onclick="toggleAiSidebar()">▼ Bolt anzeigen</button>
   </aside>
 
   <div class="app-wrap">
@@ -1094,7 +1119,7 @@
       <div style="text-align:center;padding:1rem 0 .5rem">
         <div style="font-size:2.5rem;margin-bottom:.6rem">🚀</div>
         <p style="font-size:.85rem;color:var(--sub);line-height:1.7;margin-bottom:1.2rem">
-          Schalte den <b style="color:var(--text)">AI Modpack Assistant</b> und alle VIP-Features frei:<br>
+          Schalte <b style="color:var(--text)">⚡ Bolt</b> und alle VIP-Features frei:<br>
           Unbegrenzte KI-Chats, Server-Optimierung & Prioritäts-Support.
         </p>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1.2rem;text-align:left">

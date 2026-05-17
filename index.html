@@ -1389,24 +1389,15 @@
         </div>
         <button class="extra-btn" onclick="disconnectModrinth()">Trennen</button>
       </div>
-      <div class="modrinth-actions">
-        <button class="extra-btn" onclick="startModrinthLogin()">Mit Modrinth anmelden</button>
-        <button class="extra-btn" onclick="loadModrinthProjects()">Modpacks laden</button>
-        <button class="extra-btn export" onclick="uploadCurrentPackToModrinth()">Aktuelles Pack hochladen</button>
-        <button class="extra-btn" onclick="document.getElementById('modrinthProfilesJsonFile').click()">Profil-Liste importieren</button>
-        <input id="modrinthProfilesJsonFile" type="file" accept=".json" style="display:none" onchange="importModrinthProfilesJson(this)">
-        <button class="extra-btn" onclick="scanModrinthAppProfiles()">Modrinth App-Ordner scannen</button>
-        <button class="extra-btn" onclick="document.getElementById('modrinthImportFile').click()">.mrpack importieren</button>
-        <input id="modrinthImportFile" type="file" accept=".mrpack,.zip" style="display:none" onchange="importLocalMrpackToBuilder(this)">
-      </div>
+
       <div class="auth-msg" id="modrinthMsg"></div>
       <div class="modrinth-local-helper">
         <button class="extra-btn" onclick="copyModrinthProfilesPath()">Pfad kopieren</button>
         <code>%appdata%\ModrinthApp\profiles</code>
       </div>
       <div class="modrinth-dropzone" id="modrinthProfileDropzone" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleModrinthProfileDrop(event)">
-        <b>profiles-Ordner hier reinziehen</b>
-        <span>Es werden nur Packs mit Mods geladen. Alte/leere gel?schte Profile werden automatisch ignoriert.</span>
+        <b>Modrinth App Packs laden</b>
+        <span>1. Pfad kopieren  2. im Explorer oeffnen  3. den profiles-Ordner hier reinziehen. Alte/leere Profile werden ignoriert.</span>
       </div>
       <div class="modrinth-projects" id="modrinthProjects">
         <div class="empty-profiles">Noch keine Modrinth-Modpacks geladen.</div>

@@ -4045,7 +4045,7 @@ async function disconnectModrinth() { await fetch('/api/modrinth/logout', { meth
 async function loadModrinthProjects() { const box = document.getElementById('modrinthProjects'); try { setModrinthMessage('Lade Modrinth-Modpacks...'); const data = await modrinthApi('projects'); modrinthUser = data.user; modrinthProjects = data.projects || []; renderModrinthProjects(); setModrinthMessage(modrinthProjects.length ? modrinthProjects.length + ' Modpack-Projekte geladen.' : 'Keine Web-Modpacks gefunden. Modrinth-App Packs bitte als .mrpack importieren.', modrinthProjects.length ? 'ok' : ''); } catch(e) { if (box) box.innerHTML = '<div class="empty-profiles">' + escapeHtml(e.message) + '</div>'; setModrinthMessage(e.message, 'err'); } refreshModrinthPanel(); }
 function renderModrinthProjects() { const box = document.getElementById('modrinthProjects'); if (!box) return; if (!modrinthProjects.length) { box.innerHTML = '<div class="empty-profiles">Keine eigenen Modrinth-Modpacks gefunden.</div>'; return; } box.innerHTML = modrinthProjects.map(p => { const icon = p.icon_url ? '<img src="'+escapeHtml(p.icon_url)+'" alt="">' : '<span>'+escapeHtml((p.title||'?').charAt(0).toUpperCase())+'</span>'; const active = selectedModrinthProjectId === p.id ? ' selected' : ''; return '<div class="modrinth-project'+active+'" onclick="selectModrinthProject(\''+p.id+'\')"><div class="modrinth-project-icon">'+icon+'</div><div class="modrinth-project-main"><b>'+escapeHtml(p.title||p.slug)+'</b><span>'+escapeHtml(p.slug||p.id)+' - '+escapeHtml(p.status||'')+'</span></div><div class="modrinth-project-actions"><button onclick="event.stopPropagation();loadModrinthProjectPack(\''+p.id+'\')">Laden</button><button onclick="event.stopPropagation();window.open(\'https://modrinth.com/modpack/'+escapeHtml(p.slug||p.id)+'\',\'_blank\')">Oeffnen</button></div></div>'; }).join(''); }
 function selectModrinthProject(id) { selectedModrinthProjectId = id; renderModrinthProjects(); const p = modrinthProjects.find(x => x.id === id); if (p) setModrinthMessage('Ziel gewaehlt: ' + p.title, 'ok'); }
-async function loadModrinthProjectPack(projectId) { try { if (String(projectId).startsWith('local:')) { return loadLocalModrinthInstance(modrinthProjects.find(p => p.id === projectId)); } setModrinthMessage('Lade neueste .mrpack-Version...'); const data = await modrinthApi('pack?projectId=' + encodeURIComponent(projectId)); importModrinthIndexToBuilder(data.index); setModrinthMessage('Pack geladen: ' + (data.index.name || data.version?.name || 'Modpack'), 'ok'); closeModrinthPanel(); showToast('Modrinth-Pack in Builder geladen'); } catch(e) { setModrinthMessage(e.message, 'err'); } }
+async function loadModrinthProjectPack(projectId) { try { if (String(projectId).startsWith('local:') || String(projectId).startsWith('local-drop:') || String(projectId).startsWith('local-json:')) { return loadLocalModrinthInstance(modrinthProjects.find(p => p.id === projectId)); } setModrinthMessage('Lade neueste .mrpack-Version...'); const data = await modrinthApi('pack?projectId=' + encodeURIComponent(projectId)); importModrinthIndexToBuilder(data.index); setModrinthMessage('Pack geladen: ' + (data.index.name || data.version?.name || 'Modpack'), 'ok'); closeModrinthPanel(); showToast('Modrinth-Pack in Builder geladen'); } catch(e) { setModrinthMessage(e.message, 'err'); } }
 
 
 
@@ -4075,11 +4075,11 @@ async function handleModrinthProfileDrop(event) {
   }
 }
 async function profilesFromDroppedEntry(entry) {
-  if (await directoryHasChild(entry, 'mods')) return [await localProfileFromEntry(entry)];
+  if (await directoryHasUsableMods(entry)) return [await localProfileFromEntry(entry)];
   const children = await readDirectoryEntries(entry);
   const profiles = [];
   for (const child of children) {
-    if (child.isDirectory && await directoryHasChild(child, 'mods')) profiles.push(await localProfileFromEntry(child));
+    if (child.isDirectory && await directoryHasUsableMods(child)) profiles.push(await localProfileFromEntry(child));
   }
   return profiles;
 }
@@ -4090,7 +4090,7 @@ async function localProfileFromEntry(profileEntry) {
     id: 'local-drop:' + profileEntry.fullPath,
     title: profileEntry.name.replace(/_/g, ' '),
     slug: 'local-drop',
-    status: mods.length + ' Mods' + (rps.length ? ' / ' + rps.length + ' Packs' : ''),
+    status: 'Modrinth App - ' + mods.length + ' Mods' + (rps.length ? ' / ' + rps.length + ' Packs' : ''),
     project_type: 'modpack',
     local_app: true,
     local_mods: mods,
@@ -4111,6 +4111,10 @@ async function readDroppedFolderFiles(profileEntry, folderName, extensions) {
 async function directoryHasChild(entry, childName) {
   const children = await readDirectoryEntries(entry);
   return children.some(e => e.isDirectory && e.name.toLowerCase() === childName.toLowerCase());
+}
+async function directoryHasUsableMods(entry) {
+  const mods = await readDroppedFolderFiles(entry, 'mods', ['.jar']);
+  return mods.length > 0;
 }
 function readDirectoryEntries(entry) {
   return new Promise((resolve, reject) => {
@@ -4144,7 +4148,7 @@ async function importModrinthProfilesJson(input) {
       id: p.id || ('local-json:' + i),
       title: p.title || p.name || ('Pack ' + (i + 1)),
       slug: p.slug || 'local-json',
-      status: p.status || ((p.local_mods?.length || p.mods?.length || 0) + ' Mods'),
+      status: p.status || ('Modrinth App - ' + (p.local_mods?.length || p.mods?.length || 0) + ' Mods'),
       project_type: 'modpack',
       local_app: true,
       local_mods: p.local_mods || p.mods || [],
@@ -4175,7 +4179,7 @@ async function scanModrinthAppProfiles() {
       if (handle.kind !== 'directory') continue;
       const mods = await readModrinthLocalFiles(handle, 'mods', ['.jar']);
       const rps = await readModrinthLocalFiles(handle, 'resourcepacks', ['.zip', '.jar']);
-      if (!mods.length && !rps.length) continue;
+      if (mods.length < 1) continue;
       profiles.push({
         id: 'local:' + name,
         title: name.replace(/_/g, ' '),
@@ -4266,3 +4270,8 @@ async function uploadCurrentPackToModrinth() { try { if (!selectedModrinthProjec
 function blobToBase64(blob) { return new Promise((resolve,reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result).split(',')[1]); reader.onerror = reject; reader.readAsDataURL(blob); }); }
 function escapeHtml(str) { return String(str ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
 document.addEventListener('DOMContentLoaded', () => { if (new URLSearchParams(location.search).get('modrinth') === 'connected') { history.replaceState(null, '', location.pathname + location.hash); openModrinthPanel(); } document.addEventListener('click', e => { if (e.target === document.getElementById('modrinthOverlay')) closeModrinthPanel(); }); });
+
+function copyModrinthProfilesPath() {
+  const path = '%appdata%\\ModrinthApp\\profiles';
+  navigator.clipboard?.writeText(path).then(() => showToast('Pfad kopiert')).catch(() => setModrinthMessage(path));
+}

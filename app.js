@@ -3243,6 +3243,41 @@ const BOLT_SERVER_RULES = {
     allowed: ['sodium', 'lithium', 'iris', 'ferritecore', 'entityculling', 'dynamic-fps', 'immediatelyfast', 'moreculling', 'krypton', 'badoptimizations', 'no-telemetry', 'appleskin', 'shulkerboxtooltip', 'modmenu', 'zoomify', 'yacl', 'fabric-api'],
     note: 'Hypixel erlaubt Performance/QoL-Mods. Keine Hacked-Clients, Freecam, X-Ray oder Baritone.'
   },
+  donutsmp: {
+    label: 'DonutSMP',
+    forbidden: ['wurst', 'meteor-client', 'baritone', 'xray', 'x-ray', 'wi-freecam', 'freecam', 'aristois', 'impact', 'inertia', 'liquidbounce', 'sigma', 'bleachhack', 'future-client', 'phobos', 'kamiblue', 'rusherhack', 'gamesense', 'vape', 'entropy', 'novoline'],
+    risky: ['litematica', 'minihud', 'schematica', 'replaymod', 'xaeros-world-map', 'journeymap'],
+    allowed: ['sodium', 'lithium', 'iris', 'ferritecore', 'entityculling', 'dynamic-fps', 'immediatelyfast', 'moreculling', 'krypton', 'badoptimizations', 'fabric-api', 'modmenu', 'appleskin', 'shulkerboxtooltip', 'zoomify'],
+    note: 'DonutSMP: Survival/SMP mit PvP. Performance/QoL ist sinnvoll, Cheat-Clients, X-Ray, Freecam und Baritone vermeiden.'
+  },
+  hugosmp: {
+    label: 'HugoSMP',
+    forbidden: ['wurst', 'meteor-client', 'baritone', 'xray', 'x-ray', 'wi-freecam', 'freecam', 'aristois', 'impact', 'inertia', 'liquidbounce', 'sigma', 'bleachhack'],
+    risky: ['litematica', 'minihud', 'schematica', 'replaymod'],
+    allowed: ['sodium', 'lithium', 'iris', 'ferritecore', 'entityculling', 'dynamic-fps', 'immediatelyfast', 'moreculling', 'krypton', 'fabric-api', 'modmenu', 'appleskin', 'jade', 'shulkerboxtooltip', 'zoomify'],
+    note: 'HugoSMP: SMP/Content-Server. Nutze Performance, HUD und QoL; keine Hacked-Clients, X-Ray, Freecam oder Baritone.'
+  },
+  minemen: {
+    label: 'Minemen Club',
+    forbidden: ['wurst', 'meteor-client', 'baritone', 'xray', 'x-ray', 'wi-freecam', 'freecam', 'aristois', 'impact', 'inertia', 'liquidbounce', 'sigma', 'bleachhack', 'future-client', 'phobos', 'kamiblue', 'gamesense', 'vape', 'entropy', 'novoline'],
+    risky: ['litematica', 'minihud', 'replaymod', 'xaeros-minimap', 'journeymap'],
+    allowed: ['sodium', 'lithium', 'entityculling', 'dynamic-fps', 'immediatelyfast', 'moreculling', 'krypton', 'badoptimizations', 'fabric-api', 'modmenu', 'appleskin', 'zoomify'],
+    note: 'Minemen Club: Practice/PvP. Bleib bei Performance, FPS, Ping und cleanem HUD. Keine Makros, Ghost/Hacked-Clients, Freecam oder X-Ray.'
+  },
+  pvplegacy: {
+    label: 'PvP Legacy',
+    forbidden: ['wurst', 'meteor-client', 'baritone', 'xray', 'x-ray', 'wi-freecam', 'freecam', 'aristois', 'impact', 'inertia', 'liquidbounce', 'sigma', 'bleachhack', 'vape'],
+    risky: ['litematica', 'minihud', 'replaymod', 'xaeros-world-map'],
+    allowed: ['sodium', 'lithium', 'entityculling', 'dynamic-fps', 'immediatelyfast', 'moreculling', 'krypton', 'fabric-api', 'modmenu', 'appleskin', 'zoomify'],
+    note: 'PvP Legacy: PvP-Kit-Server. Performance und QoL sind passend; Cheat-Clients, Freecam und X-Ray vermeiden.'
+  },
+  mcpvp: {
+    label: 'MCPvP Club',
+    forbidden: ['wurst', 'meteor-client', 'baritone', 'xray', 'x-ray', 'wi-freecam', 'freecam', 'aristois', 'impact', 'inertia', 'liquidbounce', 'sigma', 'bleachhack', 'vape'],
+    risky: ['litematica', 'minihud', 'replaymod'],
+    allowed: ['sodium', 'lithium', 'entityculling', 'dynamic-fps', 'immediatelyfast', 'moreculling', 'krypton', 'fabric-api', 'modmenu', 'appleskin', 'zoomify'],
+    note: 'MCPvP Club: PvP/Practice. Performance-Mods OK, alles mit unfairen Vorteilen vermeiden.'
+  },
   crystal: {
     label: 'Crystal PvP / Anarchy',
     forbidden: ['wurst', 'meteor-client', 'baritone', 'xray', 'aristois', 'impact', 'liquidbounce'],

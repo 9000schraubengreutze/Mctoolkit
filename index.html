@@ -1400,6 +1400,10 @@
         <input id="modrinthImportFile" type="file" accept=".mrpack,.zip" style="display:none" onchange="importLocalMrpackToBuilder(this)">
       </div>
       <div class="auth-msg" id="modrinthMsg"></div>
+      <div class="modrinth-dropzone" id="modrinthProfileDropzone" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleModrinthProfileDrop(event)">
+        <b>Modrinth App Packs hier reinziehen</b>
+        <span>Ordner ?ffnen: %appdata%\ModrinthApp\profiles - dann den profiles-Ordner oder einzelne Pack-Ordner hierher ziehen.</span>
+      </div>
       <div class="modrinth-projects" id="modrinthProjects">
         <div class="empty-profiles">Noch keine Modrinth-Modpacks geladen.</div>
       </div>

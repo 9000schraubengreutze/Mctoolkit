@@ -2133,3 +2133,8 @@ undefined
 .modrinth-project-actions button { border: 1px solid var(--border2); background: var(--bg2); color: var(--text); border-radius: 7px; padding: 7px 9px; font-family: var(--font); font-size: .72rem; font-weight: 750; cursor: pointer; }
 .modrinth-project-actions button:hover { border-color: var(--green); color: var(--green); }
 @media (max-width: 640px) { .modrinth-project { grid-template-columns: 38px 1fr; } .modrinth-project-actions { grid-column: 1 / -1; } .modrinth-project-actions button { flex: 1; } }
+
+.modrinth-dropzone { border: 1px dashed rgba(74,222,128,.45); background: rgba(74,222,128,.07); border-radius: 10px; padding: 14px; margin: 10px 0 12px; color: var(--text); display: grid; gap: 5px; text-align: center; transition: border-color .15s, background .15s, transform .15s; }
+.modrinth-dropzone b { color: var(--green); font-size: .88rem; }
+.modrinth-dropzone span { color: var(--muted); font-size: .72rem; line-height: 1.45; }
+.modrinth-dropzone.drag { border-color: var(--green); background: rgba(74,222,128,.15); transform: translateY(-1px); }

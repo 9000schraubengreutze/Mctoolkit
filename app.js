@@ -4049,6 +4049,91 @@ async function loadModrinthProjectPack(projectId) { try { if (String(projectId).
 
 
 
+
+async function handleModrinthProfileDrop(event) {
+  event.preventDefault();
+  document.getElementById('modrinthProfileDropzone')?.classList.remove('drag');
+  try {
+    const entries = Array.from(event.dataTransfer?.items || [])
+      .map(item => item.webkitGetAsEntry?.())
+      .filter(Boolean);
+    if (!entries.length) throw new Error('Bitte den profiles-Ordner oder Pack-Ordner aus dem Explorer hier hineinziehen.');
+    setModrinthMessage('Lese lokale Modrinth-App Packs...');
+    const profiles = [];
+    for (const entry of entries) {
+      if (!entry.isDirectory) continue;
+      const found = await profilesFromDroppedEntry(entry);
+      profiles.push(...found);
+    }
+    modrinthProjects = dedupeLocalProfiles(profiles);
+    selectedModrinthProjectId = null;
+    renderModrinthProjects();
+    setModrinthMessage(modrinthProjects.length ? modrinthProjects.length + ' lokale Packs geladen.' : 'Keine Pack-Ordner mit mods/ gefunden.', modrinthProjects.length ? 'ok' : '');
+    refreshModrinthPanel();
+  } catch(e) {
+    setModrinthMessage(e.message || 'Ordner konnte nicht gelesen werden.', 'err');
+  }
+}
+async function profilesFromDroppedEntry(entry) {
+  if (await directoryHasChild(entry, 'mods')) return [await localProfileFromEntry(entry)];
+  const children = await readDirectoryEntries(entry);
+  const profiles = [];
+  for (const child of children) {
+    if (child.isDirectory && await directoryHasChild(child, 'mods')) profiles.push(await localProfileFromEntry(child));
+  }
+  return profiles;
+}
+async function localProfileFromEntry(profileEntry) {
+  const mods = await readDroppedFolderFiles(profileEntry, 'mods', ['.jar']);
+  const rps = await readDroppedFolderFiles(profileEntry, 'resourcepacks', ['.zip', '.jar']);
+  return {
+    id: 'local-drop:' + profileEntry.fullPath,
+    title: profileEntry.name.replace(/_/g, ' '),
+    slug: 'local-drop',
+    status: mods.length + ' Mods' + (rps.length ? ' / ' + rps.length + ' Packs' : ''),
+    project_type: 'modpack',
+    local_app: true,
+    local_mods: mods,
+    local_rps: rps,
+    game_version: guessMcVersionFromName(profileEntry.name)
+  };
+}
+async function readDroppedFolderFiles(profileEntry, folderName, extensions) {
+  const children = await readDirectoryEntries(profileEntry);
+  const folder = children.find(e => e.isDirectory && e.name.toLowerCase() === folderName.toLowerCase());
+  if (!folder) return [];
+  const files = await readDirectoryEntries(folder);
+  return files
+    .filter(e => e.isFile && extensions.some(ext => e.name.toLowerCase().endsWith(ext)))
+    .map(e => ({ filename:e.name, name:cleanLocalModName(e.name), slug:slugifyLocalProject(e.name) }))
+    .sort((a,b) => a.name.localeCompare(b.name));
+}
+async function directoryHasChild(entry, childName) {
+  const children = await readDirectoryEntries(entry);
+  return children.some(e => e.isDirectory && e.name.toLowerCase() === childName.toLowerCase());
+}
+function readDirectoryEntries(entry) {
+  return new Promise((resolve, reject) => {
+    const reader = entry.createReader();
+    const out = [];
+    const readBatch = () => reader.readEntries(batch => {
+      if (!batch.length) return resolve(out);
+      out.push(...batch);
+      readBatch();
+    }, reject);
+    readBatch();
+  });
+}
+function dedupeLocalProfiles(profiles) {
+  const seen = new Set();
+  return profiles.filter(p => {
+    const key = p.id || p.title;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 async function importModrinthProfilesJson(input) {
   const file = input?.files?.[0];
   if (!file) return;

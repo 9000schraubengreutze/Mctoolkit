@@ -4045,7 +4045,87 @@ async function disconnectModrinth() { await fetch('/api/modrinth/logout', { meth
 async function loadModrinthProjects() { const box = document.getElementById('modrinthProjects'); try { setModrinthMessage('Lade Modrinth-Modpacks...'); const data = await modrinthApi('projects'); modrinthUser = data.user; modrinthProjects = data.projects || []; renderModrinthProjects(); setModrinthMessage(modrinthProjects.length ? modrinthProjects.length + ' Modpack-Projekte geladen.' : 'Keine Web-Modpacks gefunden. Modrinth-App Packs bitte als .mrpack importieren.', modrinthProjects.length ? 'ok' : ''); } catch(e) { if (box) box.innerHTML = '<div class="empty-profiles">' + escapeHtml(e.message) + '</div>'; setModrinthMessage(e.message, 'err'); } refreshModrinthPanel(); }
 function renderModrinthProjects() { const box = document.getElementById('modrinthProjects'); if (!box) return; if (!modrinthProjects.length) { box.innerHTML = '<div class="empty-profiles">Keine eigenen Modrinth-Modpacks gefunden.</div>'; return; } box.innerHTML = modrinthProjects.map(p => { const icon = p.icon_url ? '<img src="'+escapeHtml(p.icon_url)+'" alt="">' : '<span>'+escapeHtml((p.title||'?').charAt(0).toUpperCase())+'</span>'; const active = selectedModrinthProjectId === p.id ? ' selected' : ''; return '<div class="modrinth-project'+active+'" onclick="selectModrinthProject(\''+p.id+'\')"><div class="modrinth-project-icon">'+icon+'</div><div class="modrinth-project-main"><b>'+escapeHtml(p.title||p.slug)+'</b><span>'+escapeHtml(p.slug||p.id)+' - '+escapeHtml(p.status||'')+'</span></div><div class="modrinth-project-actions"><button onclick="event.stopPropagation();loadModrinthProjectPack(\''+p.id+'\')">Laden</button><button onclick="event.stopPropagation();window.open(\'https://modrinth.com/modpack/'+escapeHtml(p.slug||p.id)+'\',\'_blank\')">Oeffnen</button></div></div>'; }).join(''); }
 function selectModrinthProject(id) { selectedModrinthProjectId = id; renderModrinthProjects(); const p = modrinthProjects.find(x => x.id === id); if (p) setModrinthMessage('Ziel gewaehlt: ' + p.title, 'ok'); }
-async function loadModrinthProjectPack(projectId) { try { setModrinthMessage('Lade neueste .mrpack-Version...'); const data = await modrinthApi('pack?projectId=' + encodeURIComponent(projectId)); importModrinthIndexToBuilder(data.index); setModrinthMessage('Pack geladen: ' + (data.index.name || data.version?.name || 'Modpack'), 'ok'); closeModrinthPanel(); showToast('Modrinth-Pack in Builder geladen'); } catch(e) { setModrinthMessage(e.message, 'err'); } }
+async function loadModrinthProjectPack(projectId) { try { if (String(projectId).startsWith('local:')) { return loadLocalModrinthInstance(modrinthProjects.find(p => p.id === projectId)); } setModrinthMessage('Lade neueste .mrpack-Version...'); const data = await modrinthApi('pack?projectId=' + encodeURIComponent(projectId)); importModrinthIndexToBuilder(data.index); setModrinthMessage('Pack geladen: ' + (data.index.name || data.version?.name || 'Modpack'), 'ok'); closeModrinthPanel(); showToast('Modrinth-Pack in Builder geladen'); } catch(e) { setModrinthMessage(e.message, 'err'); } }
+
+
+async function scanModrinthAppProfiles() {
+  if (!window.showDirectoryPicker) {
+    setModrinthMessage('Dein Browser unterstuetzt Ordner-Auswahl nicht. Nutze Chrome/Edge oder .mrpack importieren.', 'err');
+    return;
+  }
+  try {
+    setModrinthMessage('Waehle den Ordner AppData/Roaming/ModrinthApp/profiles aus.');
+    const dir = await window.showDirectoryPicker({ mode: 'read' });
+    const profiles = [];
+    for await (const [name, handle] of dir.entries()) {
+      if (handle.kind !== 'directory') continue;
+      const mods = await readModrinthLocalFiles(handle, 'mods', ['.jar']);
+      const rps = await readModrinthLocalFiles(handle, 'resourcepacks', ['.zip', '.jar']);
+      if (!mods.length && !rps.length) continue;
+      profiles.push({
+        id: 'local:' + name,
+        title: name.replace(/_/g, ' '),
+        slug: 'local-app',
+        status: mods.length + ' Mods' + (rps.length ? ' / ' + rps.length + ' Packs' : ''),
+        project_type: 'modpack',
+        local_app: true,
+        local_mods: mods,
+        local_rps: rps,
+        game_version: guessMcVersionFromName(name)
+      });
+    }
+    modrinthProjects = profiles;
+    selectedModrinthProjectId = null;
+    renderModrinthProjects();
+    setModrinthMessage(profiles.length ? profiles.length + ' lokale Modrinth-App Packs gefunden.' : 'Keine lokalen Packs im ausgewaehlten Ordner gefunden.', profiles.length ? 'ok' : '');
+    refreshModrinthPanel();
+  } catch(e) {
+    if (e && e.name === 'AbortError') return;
+    setModrinthMessage(e.message || 'Ordner konnte nicht gelesen werden.', 'err');
+  }
+}
+async function readModrinthLocalFiles(profileHandle, folderName, extensions) {
+  try {
+    const folder = await profileHandle.getDirectoryHandle(folderName);
+    const files = [];
+    for await (const [name, handle] of folder.entries()) {
+      if (handle.kind !== 'file') continue;
+      const lower = name.toLowerCase();
+      if (!extensions.some(ext => lower.endsWith(ext))) continue;
+      files.push({ filename: name, name: cleanLocalModName(name), slug: slugifyLocalProject(name) });
+    }
+    return files.sort((a,b) => a.name.localeCompare(b.name));
+  } catch (_) {
+    return [];
+  }
+}
+function loadLocalModrinthInstance(profile) {
+  if (!profile) return;
+  document.getElementById('packName').value = profile.title || 'Modrinth App Pack';
+  if (profile.game_version) document.getElementById('mcVersion').value = profile.game_version;
+  MODS = (profile.local_mods || []).map(m => ({ slug:m.slug, name:m.name, cat:'Imported' }));
+  RESOURCEPACKS = (profile.local_rps || []).map(r => ({ slug:r.slug, name:r.name, cat:'Imported' }));
+  renderMods();
+  renderRPs();
+  updateCounters?.();
+  closeModrinthPanel();
+  showToast('Lokales Modrinth-Pack geladen');
+}
+function guessMcVersionFromName(name) {
+  const match = String(name).match(/(?:^|[^0-9])(1.d+(?:.d+)?)(?:[^0-9]|$)/);
+  return match ? match[1] : '';
+}
+function cleanLocalModName(filename) {
+  return String(filename)
+    .replace(/.(jar|zip)$/i, '')
+    .replace(/[-_]?d+(?:.d+)+(?:[+-][a-z0-9_.-]+)?/ig, '')
+    .replace(/[-_]+/g, ' ')
+    .replace(/s+/g, ' ')
+    .trim() || filename;
+}
+function slugifyLocalProject(filename) {
+  return cleanLocalModName(filename).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') || 'local-project';
+}
 
 async function importLocalMrpackToBuilder(input) {
   const file = input?.files?.[0];

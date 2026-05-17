@@ -4048,6 +4048,35 @@ function selectModrinthProject(id) { selectedModrinthProjectId = id; renderModri
 async function loadModrinthProjectPack(projectId) { try { if (String(projectId).startsWith('local:')) { return loadLocalModrinthInstance(modrinthProjects.find(p => p.id === projectId)); } setModrinthMessage('Lade neueste .mrpack-Version...'); const data = await modrinthApi('pack?projectId=' + encodeURIComponent(projectId)); importModrinthIndexToBuilder(data.index); setModrinthMessage('Pack geladen: ' + (data.index.name || data.version?.name || 'Modpack'), 'ok'); closeModrinthPanel(); showToast('Modrinth-Pack in Builder geladen'); } catch(e) { setModrinthMessage(e.message, 'err'); } }
 
 
+
+async function importModrinthProfilesJson(input) {
+  const file = input?.files?.[0];
+  if (!file) return;
+  try {
+    const data = JSON.parse(await file.text());
+    const profiles = Array.isArray(data) ? data : (data.profiles || []);
+    modrinthProjects = profiles.map((p, i) => ({
+      id: p.id || ('local-json:' + i),
+      title: p.title || p.name || ('Pack ' + (i + 1)),
+      slug: p.slug || 'local-json',
+      status: p.status || ((p.local_mods?.length || p.mods?.length || 0) + ' Mods'),
+      project_type: 'modpack',
+      local_app: true,
+      local_mods: p.local_mods || p.mods || [],
+      local_rps: p.local_rps || p.resourcepacks || [],
+      game_version: p.game_version || p.minecraft || ''
+    }));
+    selectedModrinthProjectId = null;
+    renderModrinthProjects();
+    setModrinthMessage(modrinthProjects.length + ' lokale Modrinth-App Packs importiert.', 'ok');
+    refreshModrinthPanel();
+  } catch(e) {
+    setModrinthMessage(e.message || 'Profil-Liste konnte nicht importiert werden.', 'err');
+  } finally {
+    if (input) input.value = '';
+  }
+}
+
 async function scanModrinthAppProfiles() {
   if (!window.showDirectoryPicker) {
     setModrinthMessage('Dein Browser unterstuetzt Ordner-Auswahl nicht. Nutze Chrome/Edge oder .mrpack importieren.', 'err');

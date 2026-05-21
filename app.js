@@ -4309,20 +4309,74 @@ function copyModrinthProfilesPath() {
 }
 
 /* ── Custom Server Logic ── */
-function handleServerChange() {
+let selectedServerIndex = -1;
+
+function renderMcServerList() {
+  const list = document.getElementById('mcServerList');
   const select = document.getElementById('boltServerSelect');
-  const customInput = document.getElementById('customServerIp');
-  if (select.value === 'custom') {
-    customInput.style.display = 'block';
-    customInput.focus();
-  } else {
-    customInput.style.display = 'none';
-  }
+  if (!list || !select) return;
+
+  const options = Array.from(select.options);
+  list.innerHTML = options.map((opt, i) => {
+    const isSelected = i === selectedServerIndex;
+    const motd = getMotdForServer(opt.value);
+    const icon = getIconForServer(opt.value);
+    
+    return `
+      <div class="mc-server-entry ${isSelected ? 'selected' : ''}" onclick="selectMcServer(${i})">
+        <div class="mc-server-icon">${icon}</div>
+        <div class="mc-server-info">
+          <span class="mc-server-name">${opt.text}</span>
+          <span class="mc-server-motd">${motd}</span>
+        </div>
+        <div class="mc-server-status">
+          <span class="mc-ping">📶</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  document.getElementById('mcJoinBtn').disabled = selectedServerIndex === -1;
+}
+
+function getMotdForServer(value) {
+  const motds = {
+    hypixel: 'A Minecraft Mini-Game Server',
+    donutsmp: 'Survival SMP - Hardcore',
+    hugosmp: 'HugoSMP.net - Spawner sind da!',
+    minemen: 'Minemen Club - Practice PvP',
+    pvplegacy: 'PvP Legacy - Kit PvP',
+    mcpvp: 'MCPvP Club - Practice',
+    crystal: 'Crystal PvP - Anarchy',
+    custom: 'Benutzerdefinierter Server'
+  };
+  return motds[value] || 'Minecraft Server';
+}
+
+function getIconForServer(value) {
+  const icons = {
+    hypixel: '⚔',
+    donutsmp: '🍩',
+    hugosmp: '📦',
+    minemen: '🤺',
+    pvplegacy: '🛡',
+    mcpvp: '⚔',
+    crystal: '💎',
+    custom: '🌐'
+  };
+  return icons[value] || '🎮';
+}
+
+function selectMcServer(index) {
+  selectedServerIndex = index;
+  const select = document.getElementById('boltServerSelect');
+  select.selectedIndex = index;
+  renderMcServerList();
 }
 
 function moveServer(direction) {
   const select = document.getElementById('boltServerSelect');
-  const index = select.selectedIndex;
+  const index = selectedServerIndex;
   if (index === -1) return;
   
   const options = Array.from(select.options);
@@ -4330,11 +4384,57 @@ function moveServer(direction) {
   
   if (direction === 'up' && index > 0) {
     select.insertBefore(option, options[index - 1]);
+    selectedServerIndex--;
   } else if (direction === 'down' && index < options.length - 1) {
     select.insertBefore(option, options[index + 1].nextSibling);
+    selectedServerIndex++;
   }
   
+  renderMcServerList();
   saveServerList();
+}
+
+function deleteSelectedServer() {
+  if (selectedServerIndex === -1) return;
+  const select = document.getElementById('boltServerSelect');
+  select.remove(selectedServerIndex);
+  selectedServerIndex = -1;
+  renderMcServerList();
+  saveServerList();
+}
+
+function refreshServerList() {
+  showToast('Refreshing server list...');
+  renderMcServerList();
+}
+
+function openAddServerModal() {
+  document.getElementById('addServerModal').style.display = 'flex';
+}
+
+function closeAddServerModal() {
+  document.getElementById('addServerModal').style.display = 'none';
+}
+
+function confirmAddServer() {
+  const name = document.getElementById('newServerName').value.trim();
+  const ip = document.getElementById('newServerIp').value.trim();
+  
+  if (!name || !ip) {
+    alert('Bitte Name und IP eingeben!');
+    return;
+  }
+  
+  const select = document.getElementById('boltServerSelect');
+  const opt = new Option(name, ip);
+  select.add(opt);
+  
+  closeAddServerModal();
+  renderMcServerList();
+  saveServerList();
+  
+  document.getElementById('newServerName').value = '';
+  document.getElementById('newServerIp').value = '';
 }
 
 function saveServerList() {
@@ -4348,33 +4448,43 @@ function saveServerList() {
 
 function loadServerList() {
   const saved = localStorage.getItem('mctoolkit_server_list');
-  if (!saved) return;
-  
-  try {
-    const options = JSON.parse(saved);
-    const select = document.getElementById('boltServerSelect');
-    if (!select) return;
-    
+  const select = document.getElementById('boltServerSelect');
+  if (!select) return;
+
+  if (saved) {
+    try {
+      const options = JSON.parse(saved);
+      select.innerHTML = '';
+      options.forEach(optData => {
+        const opt = new Option(optData.text, optData.value);
+        select.add(opt);
+      });
+    } catch (e) {
+      console.error('Fehler beim Laden der Serverliste:', e);
+    }
+  } else {
+    // Default servers if nothing saved
+    const defaults = [
+      { text: 'Hypixel', value: 'hypixel' },
+      { text: 'DonutSMP', value: 'donutsmp' },
+      { text: 'HugoSMP', value: 'hugosmp' },
+      { text: 'Minemen Club', value: 'minemen' },
+      { text: 'PvP Legacy', value: 'pvplegacy' },
+      { text: 'MCPvP Club', value: 'mcpvp' },
+      { text: 'Crystal PvP', value: 'crystal' }
+    ];
     select.innerHTML = '';
-    options.forEach(optData => {
-      const opt = new Option(optData.text, optData.value);
-      select.add(opt);
-    });
-  } catch (e) {
-    console.error('Fehler beim Laden der Serverliste:', e);
+    defaults.forEach(d => select.add(new Option(d.text, d.value)));
   }
+  renderMcServerList();
 }
 
-// Update boltServerCheck to handle custom IP
+// Update boltServerCheck to handle the new server list
 const originalBoltServerCheck = boltServerCheck;
 boltServerCheck = async function() {
-  const select = document.getElementById('boltServerSelect');
-  const customInput = document.getElementById('customServerIp');
-  
-  if (select.value === 'custom' && !customInput.value.trim()) {
-    appendAiMsg('bot', '⚠ Bitte gib eine Server-IP ein, wenn du "Eigener Server" auswählst.');
+  if (selectedServerIndex === -1) {
+    appendAiMsg('bot', '⚠ Bitte wähle zuerst einen Server aus der Liste aus.');
     return;
   }
-  
   return originalBoltServerCheck();
 };

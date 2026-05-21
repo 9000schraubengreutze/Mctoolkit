@@ -2142,3 +2142,168 @@ undefined
 .modrinth-local-helper { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
 .modrinth-local-helper code { flex: 1; min-width: 0; border: 1px solid var(--border2); background: var(--bg3); color: var(--muted); border-radius: 8px; padding: 8px 10px; font-family: var(--mono); font-size: .7rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 640px) { .modrinth-local-helper { flex-direction: column; align-items: stretch; } }
+
+/* ── Minecraft Server List UI ── */
+.mc-server-list-container {
+  background: #000;
+  border: 2px solid #555;
+  border-radius: 4px;
+  padding: 10px;
+  margin-top: 15px;
+  font-family: 'DM Mono', monospace;
+  color: #fff;
+}
+
+.mc-server-list-header {
+  display: flex;
+  border-bottom: 2px solid #333;
+  margin-bottom: 10px;
+}
+
+.mc-tab {
+  padding: 5px 15px;
+  background: #333;
+  border: 1px solid #555;
+  border-bottom: none;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.mc-tab.active {
+  background: #555;
+}
+
+.mc-server-list {
+  height: 200px;
+  overflow-y: auto;
+  background: rgba(0,0,0,0.5);
+  border: 1px solid #333;
+  margin-bottom: 10px;
+}
+
+.mc-server-entry {
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.mc-server-entry:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+.mc-server-entry.selected {
+  border: 1px solid #fff;
+  background: rgba(255,255,255,0.2);
+}
+
+.mc-server-icon {
+  width: 40px;
+  height: 40px;
+  background: #222;
+  margin-right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  border-radius: 2px;
+}
+
+.mc-server-info {
+  flex: 1;
+}
+
+.mc-server-name {
+  font-weight: bold;
+  font-size: 0.9rem;
+  display: block;
+}
+
+.mc-server-motd {
+  font-size: 0.7rem;
+  color: #aaa;
+  display: block;
+}
+
+.mc-server-status {
+  text-align: right;
+}
+
+.mc-ping {
+  color: #0f0;
+  font-size: 0.8rem;
+}
+
+.mc-server-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.mc-btn-row {
+  display: flex; gap: 5px;
+}
+
+.mc-btn {
+  flex: 1;
+  background: #444;
+  border: 2px solid #000;
+  box-shadow: inset 1px 1px #666, inset -1px -1px #222;
+  color: #fff;
+  padding: 6px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  text-align: center;
+}
+
+.mc-btn:hover:not(:disabled) {
+  background: #555;
+  box-shadow: inset 1px 1px #777, inset -1px -1px #333;
+}
+
+.mc-btn:active:not(:disabled) {
+  box-shadow: inset -1px -1px #777, inset 1px 1px #333;
+}
+
+.mc-btn:disabled {
+  color: #888;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.mc-btn.danger {
+  color: #f87171;
+}
+
+/* Modal */
+.mc-modal {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.mc-modal-content {
+  background: #222;
+  border: 2px solid #555;
+  padding: 20px;
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mc-modal-content h3 { margin: 0; font-size: 1rem; }
+.mc-modal-content label { font-size: 0.8rem; color: #aaa; }
+.mc-modal-content input {
+  background: #000;
+  border: 1px solid #555;
+  color: #fff;
+  padding: 8px;
+  font-family: inherit;
+}

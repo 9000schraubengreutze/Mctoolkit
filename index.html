@@ -592,36 +592,53 @@
           <button type="button" class="bolt-tool-btn" onclick="boltAutoFixExplain()" title="Fehler finden & erklären">
             <span class="bolt-tool-icon">🔧</span><span>Auto-Fix</span>
           </button>
-          <button type="button" class="bolt-tool-btn" onclick="boltServerCheck()" title="Verbotene Mods prüfen">
-            <span class="bolt-tool-icon">🛡</span><span>Server</span>
-          </button>
         </div>
-        <div class="bolt-tools-row">
-          <div class="bolt-server-container">
-            <select class="bolt-select" id="boltServerSelect" title="Server für Check" onchange="handleServerChange()">
-              <option value="hypixel">Hypixel</option>
-              <option value="donutsmp">DonutSMP</option>
-              <option value="hugosmp">HugoSMP</option>
-              <option value="minemen">Minemen Club</option>
-              <option value="pvplegacy">PvP Legacy</option>
-              <option value="mcpvp">MCPvP Club</option>
-              <option value="crystal">Crystal PvP</option>
-              <option value="custom">+ Eigener Server</option>
-            </select>
-            <input type="text" id="customServerIp" class="bolt-select" style="display:none; margin-top: 5px;" placeholder="Server IP eingeben...">
-            <div style="display: flex; gap: 5px; margin-top: 5px;">
-              <button type="button" class="bolt-tool-btn" style="flex: 1;" onclick="moveServer('up')" title="Nach oben verschieben">
-                <span class="bolt-tool-icon">▲</span>
-              </button>
-              <button type="button" class="bolt-tool-btn" style="flex: 1;" onclick="moveServer('down')" title="Nach unten verschieben">
-                <span class="bolt-tool-icon">▼</span>
-              </button>
+
+        <!-- Minecraft Server List UI -->
+        <div class="mc-server-list-container">
+          <div class="mc-server-list-header">
+            <div class="mc-tab active">Multiplayer</div>
+          </div>
+          <div class="mc-server-list" id="mcServerList">
+            <!-- Server entries will be injected here -->
+          </div>
+          <div class="mc-server-controls">
+            <div class="mc-btn-row">
+              <button class="mc-btn" id="mcJoinBtn" onclick="boltServerCheck()" disabled>Join Server</button>
+              <button class="mc-btn" onclick="openAddServerModal()">Add Server</button>
+            </div>
+            <div class="mc-btn-row">
+              <button class="mc-btn" onclick="moveServer('up')">Up</button>
+              <button class="mc-btn" onclick="moveServer('down')">Down</button>
+              <button class="mc-btn danger" onclick="deleteSelectedServer()">Delete</button>
+              <button class="mc-btn" onclick="refreshServerList()">Refresh</button>
             </div>
           </div>
+        </div>
+
+        <div class="bolt-tools-row" style="margin-top: 10px;">
           <select class="bolt-select" id="boltTargetMc" title="Ziel-MC-Version"></select>
           <button type="button" class="bolt-tool-btn bolt-tool-btn--wide" onclick="boltVersionUpdate()">
             <span class="bolt-tool-icon">⬆</span><span>MC-Update</span>
           </button>
+        </div>
+      </div>
+
+      <!-- Hidden select for compatibility with existing boltServerCheck -->
+      <select id="boltServerSelect" style="display:none"></select>
+
+      <!-- Add Server Modal -->
+      <div id="addServerModal" class="mc-modal" style="display:none">
+        <div class="mc-modal-content">
+          <h3>Add Server</h3>
+          <label>Server Name</label>
+          <input type="text" id="newServerName" placeholder="My Minecraft Server">
+          <label>Server Address</label>
+          <input type="text" id="newServerIp" placeholder="play.example.com">
+          <div class="mc-btn-row">
+            <button class="mc-btn" onclick="confirmAddServer()">Done</button>
+            <button class="mc-btn" onclick="closeAddServerModal()">Cancel</button>
+          </div>
         </div>
       </div>
       <!-- Quick suggestions -->

@@ -4052,9 +4052,13 @@ function applyAiModpack() {
 }
 
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initBoltMcSelect);
+  document.addEventListener('DOMContentLoaded', () => {
+    initBoltMcSelect();
+    loadServerList();
+  });
 } else {
   initBoltMcSelect();
+  loadServerList();
 }
 undefined
 
@@ -4320,8 +4324,6 @@ function sortServersAlphabetically() {
   const select = document.getElementById('boltServerSelect');
   const options = Array.from(select.options);
   
-  // Keep the first option if it's a placeholder, but here they are all servers.
-  // We sort all except the "custom" option which should stay at the bottom.
   const customOption = options.find(opt => opt.value === 'custom');
   const serverOptions = options.filter(opt => opt.value !== 'custom');
   
@@ -4331,7 +4333,36 @@ function sortServersAlphabetically() {
   serverOptions.forEach(opt => select.add(opt));
   if (customOption) select.add(customOption);
   
+  saveServerList();
   showToast('✅ Serverliste sortiert');
+}
+
+function saveServerList() {
+  const select = document.getElementById('boltServerSelect');
+  const options = Array.from(select.options).map(opt => ({
+    value: opt.value,
+    text: opt.text
+  }));
+  localStorage.setItem('mctoolkit_server_list', JSON.stringify(options));
+}
+
+function loadServerList() {
+  const saved = localStorage.getItem('mctoolkit_server_list');
+  if (!saved) return;
+  
+  try {
+    const options = JSON.parse(saved);
+    const select = document.getElementById('boltServerSelect');
+    if (!select) return;
+    
+    select.innerHTML = '';
+    options.forEach(optData => {
+      const opt = new Option(optData.text, optData.value);
+      select.add(opt);
+    });
+  } catch (e) {
+    console.error('Fehler beim Laden der Serverliste:', e);
+  }
 }
 
 // Update boltServerCheck to handle custom IP

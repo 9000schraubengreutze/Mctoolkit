@@ -609,9 +609,14 @@
               <option value="custom">+ Eigener Server</option>
             </select>
             <input type="text" id="customServerIp" class="bolt-select" style="display:none; margin-top: 5px;" placeholder="Server IP eingeben...">
-            <button type="button" class="bolt-tool-btn" style="margin-top: 5px; width: 100%;" onclick="sortServersAlphabetically()">
-              <span class="bolt-tool-icon">↕</span><span>Server sortieren</span>
-            </button>
+            <div style="display: flex; gap: 5px; margin-top: 5px;">
+              <button type="button" class="bolt-tool-btn" style="flex: 1;" onclick="moveServer('up')" title="Nach oben verschieben">
+                <span class="bolt-tool-icon">▲</span>
+              </button>
+              <button type="button" class="bolt-tool-btn" style="flex: 1;" onclick="moveServer('down')" title="Nach unten verschieben">
+                <span class="bolt-tool-icon">▼</span>
+              </button>
+            </div>
           </div>
           <select class="bolt-select" id="boltTargetMc" title="Ziel-MC-Version"></select>
           <button type="button" class="bolt-tool-btn bolt-tool-btn--wide" onclick="boltVersionUpdate()">

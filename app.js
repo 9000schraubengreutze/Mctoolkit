@@ -4320,21 +4320,21 @@ function handleServerChange() {
   }
 }
 
-function sortServersAlphabetically() {
+function moveServer(direction) {
   const select = document.getElementById('boltServerSelect');
+  const index = select.selectedIndex;
+  if (index === -1) return;
+  
   const options = Array.from(select.options);
+  const option = options[index];
   
-  const customOption = options.find(opt => opt.value === 'custom');
-  const serverOptions = options.filter(opt => opt.value !== 'custom');
-  
-  serverOptions.sort((a, b) => a.text.localeCompare(b.text));
-  
-  select.innerHTML = '';
-  serverOptions.forEach(opt => select.add(opt));
-  if (customOption) select.add(customOption);
+  if (direction === 'up' && index > 0) {
+    select.insertBefore(option, options[index - 1]);
+  } else if (direction === 'down' && index < options.length - 1) {
+    select.insertBefore(option, options[index + 1].nextSibling);
+  }
   
   saveServerList();
-  showToast('✅ Serverliste sortiert');
 }
 
 function saveServerList() {

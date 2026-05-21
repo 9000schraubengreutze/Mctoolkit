@@ -3285,13 +3285,6 @@ const BOLT_SERVER_RULES = {
     allowed: ['sodium', 'lithium', 'iris', 'marlow-crystal-optimizer', 'clickcrystals', 'pvpoptimizer', 'totem-counter', 'appleskin', 'fabric-api', 'modmenu'],
     note: 'Crystal-Server: Performance & Crystal-Mods OK. Keine Cheat-Clients.'
   },
-  smp: {
-    label: 'Privater SMP',
-    forbidden: ['wurst', 'meteor-client', 'xray', 'aristois', 'impact', 'liquidbounce', 'sigma'],
-    risky: [],
-    allowed: ['sodium', 'lithium', 'iris', 'ferritecore', 'jei', 'roughly-enough-items', 'waystones', 'journeymap', 'xaeros-minimap', 'appleskin', 'jade', 'fabric-api'],
-    note: 'Private SMPs sind oft lockerer – Cheat-Clients trotzdem vermeiden.'
-  }
 };
 
 function initBoltMcSelect() {
@@ -4310,3 +4303,47 @@ function copyModrinthProfilesPath() {
   const path = '%appdata%\\ModrinthApp\\profiles';
   navigator.clipboard?.writeText(path).then(() => showToast('Pfad kopiert')).catch(() => setModrinthMessage(path));
 }
+
+/* ── Custom Server Logic ── */
+function handleServerChange() {
+  const select = document.getElementById('boltServerSelect');
+  const customInput = document.getElementById('customServerIp');
+  if (select.value === 'custom') {
+    customInput.style.display = 'block';
+    customInput.focus();
+  } else {
+    customInput.style.display = 'none';
+  }
+}
+
+function sortServersAlphabetically() {
+  const select = document.getElementById('boltServerSelect');
+  const options = Array.from(select.options);
+  
+  // Keep the first option if it's a placeholder, but here they are all servers.
+  // We sort all except the "custom" option which should stay at the bottom.
+  const customOption = options.find(opt => opt.value === 'custom');
+  const serverOptions = options.filter(opt => opt.value !== 'custom');
+  
+  serverOptions.sort((a, b) => a.text.localeCompare(b.text));
+  
+  select.innerHTML = '';
+  serverOptions.forEach(opt => select.add(opt));
+  if (customOption) select.add(customOption);
+  
+  showToast('✅ Serverliste sortiert');
+}
+
+// Update boltServerCheck to handle custom IP
+const originalBoltServerCheck = boltServerCheck;
+boltServerCheck = async function() {
+  const select = document.getElementById('boltServerSelect');
+  const customInput = document.getElementById('customServerIp');
+  
+  if (select.value === 'custom' && !customInput.value.trim()) {
+    appendAiMsg('bot', '⚠ Bitte gib eine Server-IP ein, wenn du "Eigener Server" auswählst.');
+    return;
+  }
+  
+  return originalBoltServerCheck();
+};

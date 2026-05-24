@@ -3285,7 +3285,39 @@ const BOLT_SERVER_RULES = {
     allowed: ['sodium', 'lithium', 'iris', 'marlow-crystal-optimizer', 'clickcrystals', 'pvpoptimizer', 'totem-counter', 'appleskin', 'fabric-api', 'modmenu'],
     note: 'Crystal-Server: Performance & Crystal-Mods OK. Keine Cheat-Clients.'
   },
+  smp: {
+    label: 'Privater SMP',
+    forbidden: ['wurst', 'meteor-client', 'xray', 'aristois', 'impact', 'liquidbounce', 'sigma'],
+    risky: [],
+    allowed: ['sodium', 'lithium', 'iris', 'ferritecore', 'jei', 'roughly-enough-items', 'waystones', 'journeymap', 'xaeros-minimap', 'appleskin', 'jade', 'fabric-api'],
+    note: 'Private SMPs sind oft lockerer – Cheat-Clients trotzdem vermeiden.'
+  }
 };
+
+
+function toggleBoltServerPanel(event) {
+  event?.stopPropagation?.();
+  const panel = document.getElementById('boltServerPanel');
+  if (!panel) return;
+  panel.classList.toggle('open');
+}
+function closeBoltServerPanel() {
+  document.getElementById('boltServerPanel')?.classList.remove('open');
+}
+function selectBoltServer(key) {
+  const input = document.getElementById('boltServerSelect');
+  const label = document.getElementById('boltServerLabel');
+  const rules = BOLT_SERVER_RULES[key] || BOLT_SERVER_RULES.hypixel;
+  if (input) input.value = key;
+  if (label) label.textContent = rules.label;
+  document.querySelectorAll('.bolt-server-option').forEach(btn => btn.classList.toggle('active', btn.dataset.server === key));
+  closeBoltServerPanel();
+}
+document.addEventListener('click', e => {
+  const panel = document.getElementById('boltServerPanel');
+  const picker = document.querySelector('.bolt-server-picker');
+  if (panel && !panel.contains(e.target) && picker && !picker.contains(e.target)) closeBoltServerPanel();
+});
 
 function initBoltMcSelect() {
   const src = document.getElementById('mcVersion');
@@ -4052,13 +4084,9 @@ function applyAiModpack() {
 }
 
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    initBoltMcSelect();
-    loadServerList();
-  });
+  document.addEventListener('DOMContentLoaded', initBoltMcSelect);
 } else {
   initBoltMcSelect();
-  loadServerList();
 }
 undefined
 
@@ -4307,184 +4335,3 @@ function copyModrinthProfilesPath() {
   const path = '%appdata%\\ModrinthApp\\profiles';
   navigator.clipboard?.writeText(path).then(() => showToast('Pfad kopiert')).catch(() => setModrinthMessage(path));
 }
-
-/* ── Custom Server Logic ── */
-let selectedServerIndex = -1;
-
-function renderMcServerList() {
-  const list = document.getElementById('mcServerList');
-  const select = document.getElementById('boltServerSelect');
-  if (!list || !select) return;
-
-  const options = Array.from(select.options);
-  list.innerHTML = options.map((opt, i) => {
-    const isSelected = i === selectedServerIndex;
-    const motd = getMotdForServer(opt.value);
-    const icon = getIconForServer(opt.value);
-    
-    return `
-      <div class="mc-server-entry ${isSelected ? 'selected' : ''}" onclick="selectMcServer(${i})">
-        <div class="mc-server-icon">${icon}</div>
-        <div class="mc-server-info">
-          <span class="mc-server-name">${opt.text}</span>
-          <span class="mc-server-motd">${motd}</span>
-        </div>
-        <div class="mc-server-status">
-          <span class="mc-ping">📶</span>
-        </div>
-      </div>
-    `;
-  }).join('');
-
-  document.getElementById('mcJoinBtn').disabled = selectedServerIndex === -1;
-}
-
-function getMotdForServer(value) {
-  const motds = {
-    hypixel: 'A Minecraft Mini-Game Server',
-    donutsmp: 'Survival SMP - Hardcore',
-    hugosmp: 'HugoSMP.net - Spawner sind da!',
-    minemen: 'Minemen Club - Practice PvP',
-    pvplegacy: 'PvP Legacy - Kit PvP',
-    mcpvp: 'MCPvP Club - Practice',
-    crystal: 'Crystal PvP - Anarchy',
-    custom: 'Benutzerdefinierter Server'
-  };
-  return motds[value] || 'Minecraft Server';
-}
-
-function getIconForServer(value) {
-  const icons = {
-    hypixel: '⚔',
-    donutsmp: '🍩',
-    hugosmp: '📦',
-    minemen: '🤺',
-    pvplegacy: '🛡',
-    mcpvp: '⚔',
-    crystal: '💎',
-    custom: '🌐'
-  };
-  return icons[value] || '🎮';
-}
-
-function selectMcServer(index) {
-  selectedServerIndex = index;
-  const select = document.getElementById('boltServerSelect');
-  select.selectedIndex = index;
-  renderMcServerList();
-}
-
-function moveServer(direction) {
-  const select = document.getElementById('boltServerSelect');
-  const index = selectedServerIndex;
-  if (index === -1) return;
-  
-  const options = Array.from(select.options);
-  const option = options[index];
-  
-  if (direction === 'up' && index > 0) {
-    select.insertBefore(option, options[index - 1]);
-    selectedServerIndex--;
-  } else if (direction === 'down' && index < options.length - 1) {
-    select.insertBefore(option, options[index + 1].nextSibling);
-    selectedServerIndex++;
-  }
-  
-  renderMcServerList();
-  saveServerList();
-}
-
-function deleteSelectedServer() {
-  if (selectedServerIndex === -1) return;
-  const select = document.getElementById('boltServerSelect');
-  select.remove(selectedServerIndex);
-  selectedServerIndex = -1;
-  renderMcServerList();
-  saveServerList();
-}
-
-function refreshServerList() {
-  showToast('Refreshing server list...');
-  renderMcServerList();
-}
-
-function openAddServerModal() {
-  document.getElementById('addServerModal').style.display = 'flex';
-}
-
-function closeAddServerModal() {
-  document.getElementById('addServerModal').style.display = 'none';
-}
-
-function confirmAddServer() {
-  const name = document.getElementById('newServerName').value.trim();
-  const ip = document.getElementById('newServerIp').value.trim();
-  
-  if (!name || !ip) {
-    alert('Bitte Name und IP eingeben!');
-    return;
-  }
-  
-  const select = document.getElementById('boltServerSelect');
-  const opt = new Option(name, ip);
-  select.add(opt);
-  
-  closeAddServerModal();
-  renderMcServerList();
-  saveServerList();
-  
-  document.getElementById('newServerName').value = '';
-  document.getElementById('newServerIp').value = '';
-}
-
-function saveServerList() {
-  const select = document.getElementById('boltServerSelect');
-  const options = Array.from(select.options).map(opt => ({
-    value: opt.value,
-    text: opt.text
-  }));
-  localStorage.setItem('mctoolkit_server_list', JSON.stringify(options));
-}
-
-function loadServerList() {
-  const saved = localStorage.getItem('mctoolkit_server_list');
-  const select = document.getElementById('boltServerSelect');
-  if (!select) return;
-
-  if (saved) {
-    try {
-      const options = JSON.parse(saved);
-      select.innerHTML = '';
-      options.forEach(optData => {
-        const opt = new Option(optData.text, optData.value);
-        select.add(opt);
-      });
-    } catch (e) {
-      console.error('Fehler beim Laden der Serverliste:', e);
-    }
-  } else {
-    // Default servers if nothing saved
-    const defaults = [
-      { text: 'Hypixel', value: 'hypixel' },
-      { text: 'DonutSMP', value: 'donutsmp' },
-      { text: 'HugoSMP', value: 'hugosmp' },
-      { text: 'Minemen Club', value: 'minemen' },
-      { text: 'PvP Legacy', value: 'pvplegacy' },
-      { text: 'MCPvP Club', value: 'mcpvp' },
-      { text: 'Crystal PvP', value: 'crystal' }
-    ];
-    select.innerHTML = '';
-    defaults.forEach(d => select.add(new Option(d.text, d.value)));
-  }
-  renderMcServerList();
-}
-
-// Update boltServerCheck to handle the new server list
-const originalBoltServerCheck = boltServerCheck;
-boltServerCheck = async function() {
-  if (selectedServerIndex === -1) {
-    appendAiMsg('bot', '⚠ Bitte wähle zuerst einen Server aus der Liste aus.');
-    return;
-  }
-  return originalBoltServerCheck();
-};

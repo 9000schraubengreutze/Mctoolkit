@@ -592,53 +592,33 @@
           <button type="button" class="bolt-tool-btn" onclick="boltAutoFixExplain()" title="Fehler finden & erklären">
             <span class="bolt-tool-icon">🔧</span><span>Auto-Fix</span>
           </button>
+          <button type="button" class="bolt-tool-btn" onclick="boltServerCheck()" title="Verbotene Mods prüfen">
+            <span class="bolt-tool-icon">🛡</span><span>Server</span>
+          </button>
         </div>
-
-        <!-- Minecraft Server List UI -->
-        <div class="mc-server-list-container">
-          <div class="mc-server-list-header">
-            <div class="mc-tab active">Multiplayer</div>
+        <div class="bolt-tools-row">
+          <input type="hidden" id="boltServerSelect" value="hypixel">
+          <button type="button" class="bolt-server-picker" onclick="toggleBoltServerPanel(event)" title="Server waehlen">
+            <span id="boltServerLabel">Hypixel</span>
+            <span class="bolt-server-caret">&gt;</span>
+          </button>
+          <div class="bolt-server-popout" id="boltServerPanel">
+            <div class="bolt-server-popout-title">Beliebte Server</div>
+            <button type="button" class="bolt-server-option active" data-server="hypixel" onclick="selectBoltServer('hypixel')"><b>Hypixel</b><span>Mini-Games, BedWars, SkyWars</span></button>
+            <button type="button" class="bolt-server-option" data-server="donutsmp" onclick="selectBoltServer('donutsmp')"><b>DonutSMP</b><span>Survival SMP, PvP, Hardcore</span></button>
+            <button type="button" class="bolt-server-option" data-server="hugosmp" onclick="selectBoltServer('hugosmp')"><b>HugoSMP</b><span>SMP, Creator, Survival</span></button>
+            <div class="bolt-server-popout-title">PvP / Practice</div>
+            <button type="button" class="bolt-server-option" data-server="minemen" onclick="selectBoltServer('minemen')"><b>Minemen Club</b><span>Practice PvP, ranked, clean client</span></button>
+            <button type="button" class="bolt-server-option" data-server="pvplegacy" onclick="selectBoltServer('pvplegacy')"><b>PvP Legacy</b><span>Kit PvP, 1.9+ combat</span></button>
+            <button type="button" class="bolt-server-option" data-server="mcpvp" onclick="selectBoltServer('mcpvp')"><b>MCPvP Club</b><span>Practice and PvP</span></button>
+            <button type="button" class="bolt-server-option" data-server="crystal" onclick="selectBoltServer('crystal')"><b>Crystal PvP</b><span>Anarchy, crystals, performance</span></button>
+            <div class="bolt-server-popout-title">Eigene Server</div>
+            <button type="button" class="bolt-server-option" data-server="smp" onclick="selectBoltServer('smp')"><b>Privater SMP</b><span>Survival, QoL, relaxed rules</span></button>
           </div>
-          <div class="mc-server-list" id="mcServerList">
-            <!-- Server entries will be injected here -->
-          </div>
-          <div class="mc-server-controls">
-            <div class="mc-btn-row">
-              <button class="mc-btn" id="mcJoinBtn" onclick="boltServerCheck()" disabled>Join Server</button>
-              <button class="mc-btn" onclick="openAddServerModal()">Add Server</button>
-            </div>
-            <div class="mc-btn-row">
-              <button class="mc-btn" onclick="moveServer('up')">Up</button>
-              <button class="mc-btn" onclick="moveServer('down')">Down</button>
-              <button class="mc-btn danger" onclick="deleteSelectedServer()">Delete</button>
-              <button class="mc-btn" onclick="refreshServerList()">Refresh</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="bolt-tools-row" style="margin-top: 10px;">
           <select class="bolt-select" id="boltTargetMc" title="Ziel-MC-Version"></select>
           <button type="button" class="bolt-tool-btn bolt-tool-btn--wide" onclick="boltVersionUpdate()">
             <span class="bolt-tool-icon">⬆</span><span>MC-Update</span>
           </button>
-        </div>
-      </div>
-
-      <!-- Hidden select for compatibility with existing boltServerCheck -->
-      <select id="boltServerSelect" style="display:none"></select>
-
-      <!-- Add Server Modal -->
-      <div id="addServerModal" class="mc-modal" style="display:none">
-        <div class="mc-modal-content">
-          <h3>Add Server</h3>
-          <label>Server Name</label>
-          <input type="text" id="newServerName" placeholder="My Minecraft Server">
-          <label>Server Address</label>
-          <input type="text" id="newServerIp" placeholder="play.example.com">
-          <div class="mc-btn-row">
-            <button class="mc-btn" onclick="confirmAddServer()">Done</button>
-            <button class="mc-btn" onclick="closeAddServerModal()">Cancel</button>
-          </div>
         </div>
       </div>
       <!-- Quick suggestions -->

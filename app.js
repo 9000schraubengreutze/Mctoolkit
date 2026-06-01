@@ -3295,35 +3295,52 @@ const BOLT_SERVER_RULES = {
 };
 
 
-function toggleBoltServerPanel(event) {
-  event?.stopPropagation?.();
-  const panel = document.getElementById('boltServerPanel');
-  if (!panel) return;
-  panel.classList.toggle('open');
+const BOLT_SERVERS_KEY = 'mctoolkit_bolt_servers_v1';
+const BOLT_DEFAULT_SERVERS = [
+  { id:'hypixel', name:'Hypixel', desc:'Mini-Games, BedWars, SkyWars', ruleKey:'hypixel', icon:'H' },
+  { id:'donutsmp', name:'DonutSMP', desc:'Survival SMP, PvP, Hardcore', ruleKey:'donutsmp', icon:'D' },
+  { id:'hugosmp', name:'HugoSMP', desc:'SMP, Creator, Survival', ruleKey:'hugosmp', icon:'H' },
+  { id:'minemen', name:'Minemen Club', desc:'Practice PvP, ranked, clean client', ruleKey:'minemen', icon:'M' },
+  { id:'pvplegacy', name:'PvP Legacy', desc:'Kit PvP, 1.9+ combat', ruleKey:'pvplegacy', icon:'P' },
+  { id:'mcpvp', name:'MCPvP Club', desc:'Practice and PvP', ruleKey:'mcpvp', icon:'M' },
+  { id:'crystal', name:'Crystal PvP', desc:'Anarchy, crystals, performance', ruleKey:'crystal', icon:'C' },
+  { id:'smp', name:'Privater SMP', desc:'Survival, QoL, relaxed rules', ruleKey:'smp', icon:'S' }
+];
+let boltServers = [];
+function cloneBoltDefaults() { return JSON.parse(JSON.stringify(BOLT_DEFAULT_SERVERS)); }
+function loadBoltServers() { try { const saved = JSON.parse(localStorage.getItem(BOLT_SERVERS_KEY) || 'null'); boltServers = Array.isArray(saved) && saved.length ? saved : cloneBoltDefaults(); } catch (_) { boltServers = cloneBoltDefaults(); } }
+function saveBoltServers() { localStorage.setItem(BOLT_SERVERS_KEY, JSON.stringify(boltServers)); }
+function getActiveBoltServerId() { return document.getElementById('boltServerSelect')?.value || boltServers[0]?.id || 'hypixel'; }
+function getBoltServerById(id) { return boltServers.find(s => s.id === id) || boltServers[0] || BOLT_DEFAULT_SERVERS[0]; }
+function getBoltServerRule(key) { const server = getBoltServerById(key); return BOLT_SERVER_RULES[server?.ruleKey || key] || BOLT_SERVER_RULES.smp; }
+function renderBoltServerList() {
+  if (!boltServers.length) loadBoltServers();
+  const list = document.getElementById('boltServerList');
+  if (!list) return;
+  const active = getActiveBoltServerId();
+  list.innerHTML = boltServers.map(server => {
+    const selected = server.id === active ? ' selected' : '';
+    const custom = server.custom ? '<span class="mc-server-custom">custom</span>' : '';
+    return '<button type="button" class="mc-server-row'+selected+'" onclick="selectBoltServer(\''+esc(server.id)+'\')" ondblclick="editBoltServer(\''+esc(server.id)+'\')">'
+      + '<span class="mc-server-icon">'+esc(server.icon || server.name.charAt(0) || '?')+'</span>'
+      + '<span class="mc-server-main"><b>'+esc(server.name)+'</b><small>'+esc(server.desc || '')+'</small></span>'
+      + custom + '<span class="mc-server-bars">|||</span></button>';
+  }).join('');
 }
-function closeBoltServerPanel() {
-  document.getElementById('boltServerPanel')?.classList.remove('open');
-}
-function selectBoltServer(key) {
-  const input = document.getElementById('boltServerSelect');
-  const label = document.getElementById('boltServerLabel');
-  const rules = BOLT_SERVER_RULES[key] || BOLT_SERVER_RULES.hypixel;
-  if (input) input.value = key;
-  if (label) label.textContent = rules.label;
-  document.querySelectorAll('.bolt-server-option').forEach(btn => btn.classList.toggle('active', btn.dataset.server === key));
-  closeBoltServerPanel();
-}
-document.addEventListener('click', e => {
-  const panel = document.getElementById('boltServerPanel');
-  const picker = document.querySelector('.bolt-server-picker');
-  if (panel && !panel.contains(e.target) && picker && !picker.contains(e.target)) closeBoltServerPanel();
-});
+function selectBoltServer(key) { if (!boltServers.length) loadBoltServers(); const server = getBoltServerById(key); const input = document.getElementById('boltServerSelect'); const label = document.getElementById('boltServerLabel'); if (input) input.value = server.id; if (label) label.textContent = server.name; renderBoltServerList(); }
+function addBoltCustomServer() { if (!boltServers.length) loadBoltServers(); const name = prompt('Server Name'); if (!name) return; const desc = prompt('Beschreibung / Spielmodus', 'Eigener Server') || 'Eigener Server'; const ruleKey = prompt('Regel-Typ: hypixel, donutsmp, hugosmp, minemen, crystal oder smp', 'smp') || 'smp'; const id = 'custom-' + Date.now().toString(36); boltServers.push({ id, name:name.trim(), desc:desc.trim(), ruleKey:BOLT_SERVER_RULES[ruleKey] ? ruleKey : 'smp', icon:name.trim().charAt(0).toUpperCase(), custom:true }); saveBoltServers(); selectBoltServer(id); }
+function editBoltServer(id) { const server = getBoltServerById(id); if (!server) return; const name = prompt('Server Name', server.name); if (!name) return; const desc = prompt('Beschreibung / Spielmodus', server.desc || '') || server.desc || ''; const ruleKey = prompt('Regel-Typ: hypixel, donutsmp, hugosmp, minemen, crystal oder smp', server.ruleKey || 'smp') || server.ruleKey || 'smp'; server.name = name.trim(); server.desc = desc.trim(); server.ruleKey = BOLT_SERVER_RULES[ruleKey] ? ruleKey : 'smp'; server.icon = server.name.charAt(0).toUpperCase(); server.custom = server.custom || !BOLT_DEFAULT_SERVERS.some(s => s.id === id); saveBoltServers(); selectBoltServer(id); }
+function moveBoltServer(dir) { const active = getActiveBoltServerId(); const idx = boltServers.findIndex(s => s.id === active); const next = idx + dir; if (idx < 0 || next < 0 || next >= boltServers.length) return; [boltServers[idx], boltServers[next]] = [boltServers[next], boltServers[idx]]; saveBoltServers(); renderBoltServerList(); }
+function deleteBoltServer() { const active = getActiveBoltServerId(); const server = getBoltServerById(active); if (!server || !confirm('Server "' + server.name + '" entfernen?')) return; boltServers = boltServers.filter(s => s.id !== active); if (!boltServers.length) boltServers = cloneBoltDefaults(); saveBoltServers(); selectBoltServer(boltServers[0].id); }
+function resetBoltServers() { if (!confirm('Serverliste auf Standard zuruecksetzen?')) return; boltServers = cloneBoltDefaults(); saveBoltServers(); selectBoltServer('hypixel'); }
 
 function initBoltMcSelect() {
   const src = document.getElementById('mcVersion');
   const tgt = document.getElementById('boltTargetMc');
   if (!src || !tgt) return;
   if (!tgt.options.length) {
+    loadBoltServers();
+    renderBoltServerList();
     [...src.options].forEach(o => {
       const opt = document.createElement('option');
       opt.value = o.value;
@@ -3436,7 +3453,7 @@ function boltLocalDuplicates() {
 }
 
 function boltLocalServerHits(serverKey) {
-  const rules = BOLT_SERVER_RULES[serverKey] || BOLT_SERVER_RULES.smp;
+  const rules = getBoltServerRule(serverKey);
   const slugs = MODS.map(m => m.slug);
   const forbidden = slugs.filter(s => rules.forbidden.some(f => s.includes(f) || f.includes(s)));
   const risky = slugs.filter(s => rules.risky.some(r => s.includes(r) || r.includes(s)) && !forbidden.includes(s));
@@ -3690,7 +3707,10 @@ async function boltServerCheck() {
     if (!ctx.count) return '⚠ Keine Mods im Pack.';
 
     const serverKey = document.getElementById('boltServerSelect')?.value || 'hypixel';
-    const { rules, forbidden, risky } = boltLocalServerHits(serverKey);
+    const activeServer = getBoltServerById(serverKey);
+    const hit = boltLocalServerHits(serverKey);
+    const rules = { ...hit.rules, label: activeServer?.name || hit.rules.label };
+    const { forbidden, risky } = hit;
 
     let html = '<b>🛡 Bolt – Server-Check: ' + esc(rules.label) + '</b><br>';
     html += '<span style="font-size:.75rem;color:var(--muted)">' + esc(rules.note) + '</span><br><br>';

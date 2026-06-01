@@ -602,18 +602,17 @@
             <span id="boltServerLabel">Hypixel</span>
             <span class="bolt-server-caret">aktiv</span>
           </button>
-          <div class="bolt-server-popout" id="boltServerPanel">
-            <div class="bolt-server-popout-title">Beliebte Server</div>
-            <button type="button" class="bolt-server-option active" data-server="hypixel" onclick="selectBoltServer('hypixel')"><b>Hypixel</b><span>Mini-Games, BedWars, SkyWars</span></button>
-            <button type="button" class="bolt-server-option" data-server="donutsmp" onclick="selectBoltServer('donutsmp')"><b>DonutSMP</b><span>Survival SMP, PvP, Hardcore</span></button>
-            <button type="button" class="bolt-server-option" data-server="hugosmp" onclick="selectBoltServer('hugosmp')"><b>HugoSMP</b><span>SMP, Creator, Survival</span></button>
-            <div class="bolt-server-popout-title">PvP / Practice</div>
-            <button type="button" class="bolt-server-option" data-server="minemen" onclick="selectBoltServer('minemen')"><b>Minemen Club</b><span>Practice PvP, ranked, clean client</span></button>
-            <button type="button" class="bolt-server-option" data-server="pvplegacy" onclick="selectBoltServer('pvplegacy')"><b>PvP Legacy</b><span>Kit PvP, 1.9+ combat</span></button>
-            <button type="button" class="bolt-server-option" data-server="mcpvp" onclick="selectBoltServer('mcpvp')"><b>MCPvP Club</b><span>Practice and PvP</span></button>
-            <button type="button" class="bolt-server-option" data-server="crystal" onclick="selectBoltServer('crystal')"><b>Crystal PvP</b><span>Anarchy, crystals, performance</span></button>
-            <div class="bolt-server-popout-title">Eigene Server</div>
-            <button type="button" class="bolt-server-option" data-server="smp" onclick="selectBoltServer('smp')"><b>Privater SMP</b><span>Survival, QoL, relaxed rules</span></button>
+          <div class="bolt-server-popout minecraft-server-panel" id="boltServerPanel">
+            <div class="mc-server-title">Multiplayer</div>
+            <div class="mc-server-list" id="boltServerList"></div>
+            <div class="mc-server-actions">
+              <button type="button" onclick="boltServerCheck()">Server-Check</button>
+              <button type="button" onclick="addBoltCustomServer()">Add Server</button>
+              <button type="button" onclick="moveBoltServer(-1)">Up</button>
+              <button type="button" onclick="moveBoltServer(1)">Down</button>
+              <button type="button" class="danger" onclick="deleteBoltServer()">Delete</button>
+              <button type="button" onclick="resetBoltServers()">Reset</button>
+            </div>
           </div>
           <select class="bolt-select" id="boltTargetMc" title="Ziel-MC-Version"></select>
           <button type="button" class="bolt-tool-btn bolt-tool-btn--wide" onclick="boltVersionUpdate()">

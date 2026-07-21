@@ -1628,7 +1628,7 @@ async function parseUpgPack(file) {
     document.getElementById('upgFromVer').textContent = mc;
 
     // Auto-select a sensible target (next version up)
-    const versions = ['1.20.1','1.20.4','1.21.1','1.21.4','1.21.11'];
+    const versions = ['1.20.1','1.20.4','1.21.1','1.21.4','1.21.11','1.26.1.2','1.26.2','26.1.2','26.2'];
     const currentIdx = versions.indexOf(mc);
     const sel = document.getElementById('upgTargetVer');
     if (currentIdx !== -1 && currentIdx < versions.length - 1) {
@@ -2664,12 +2664,23 @@ let convDirection = null; // 'mr-to-cf' | 'cf-to-mr'
 function selectConvertDir(dir) {
   convDirection = dir;
   document.querySelectorAll('.convert-dir-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById(dir === 'mr-to-cf' ? 'cdirMRtoCF' : 'cdirCFtoMR').classList.add('active');
+  const idMap = {
+    'mr-to-cf': 'cdirMRtoCF',
+    'cf-to-mr': 'cdirCFtoMR',
+    'lc-to-mr': 'cdirLCtoMR',
+    'lc-to-cf': 'cdirLCtoCF'
+  };
+  const activeId = idMap[dir];
+  if (activeId && document.getElementById(activeId)) {
+    document.getElementById(activeId).classList.add('active');
+  }
   const label = document.getElementById('convDZ-label');
   if (dir === 'mr-to-cf') {
     label.textContent = 'Modrinth .mrpack hier ablegen oder klicken';
-  } else {
+  } else if (dir === 'cf-to-mr') {
     label.textContent = 'CurseForge .zip hier ablegen oder klicken';
+  } else {
+    label.textContent = 'Lunar Client Profile .json oder Mods .zip hier ablegen';
   }
   if (convPackData) previewConvert();
   updateConvBtn();
@@ -2694,44 +2705,84 @@ function clearConvDZ(e) {
 async function parseConvPack(file) {
   document.getElementById('convStatus').textContent = 'Lese ' + file.name + '...';
   try {
-    const zip   = await JSZip.loadAsync(file);
-    const isMR  = !!zip.file('modrinth.index.json');
-    const isCF  = !!zip.file('manifest.json');
+    let index = null;
+    let packType = '';
+    let zip = null;
+    let modsList = [];
+    let mcVersion = '1.21.11';
 
-    if (!isMR && !isCF) throw new Error('Kein unterstütztes Modpack-Format gefunden');
-
-    let index, packType;
-    if (isMR) {
-      index    = JSON.parse(await zip.file('modrinth.index.json').async('string'));
-      packType = 'modrinth';
+    if (file.name.endsWith('.json')) {
+      const text = await file.text();
+      const rawJson = JSON.parse(text);
+      packType = 'lunar-json';
+      index = rawJson;
+      modsList = extractModsFromLunarJson(rawJson);
+      if (rawJson.version || rawJson.mcVersion) {
+        mcVersion = rawJson.version || rawJson.mcVersion;
+      }
     } else {
-      index    = JSON.parse(await zip.file('manifest.json').async('string'));
-      packType = 'curseforge';
+      zip = await JSZip.loadAsync(file);
+      const isMR  = !!zip.file('modrinth.index.json');
+      const isCF  = !!zip.file('manifest.json');
+
+      if (isMR) {
+        index    = JSON.parse(await zip.file('modrinth.index.json').async('string'));
+        packType = 'modrinth';
+      } else if (isCF) {
+        index    = JSON.parse(await zip.file('manifest.json').async('string'));
+        packType = 'curseforge';
+      } else {
+        const jarFiles = Object.keys(zip.files).filter(k => k.endsWith('.jar') && !zip.files[k].dir);
+        if (jarFiles.length > 0) {
+          packType = 'lunar-zip';
+          modsList = jarFiles.map(k => {
+            const parts = k.split('/');
+            return parts[parts.length - 1].replace(/\.jar$/, '');
+          });
+          index = { name: file.name.replace(/\.[^/.]+$/, ""), files: jarFiles };
+        } else {
+          throw new Error('Kein unterstütztes Modpack-Format (.mrpack, .zip, .json) gefunden.');
+        }
+      }
     }
 
-    convPackData = { index, fileName: file.name, packType, zip };
+    convPackData = { index, fileName: file.name, packType, zip, modsList, mcVersion };
 
-    // Auto-select direction
-    if (packType === 'modrinth' && convDirection !== 'mr-to-cf') {
+    if (packType === 'modrinth') {
       selectConvertDir('mr-to-cf');
-    } else if (packType === 'curseforge' && convDirection !== 'cf-to-mr') {
+    } else if (packType === 'curseforge') {
       selectConvertDir('cf-to-mr');
+    } else if (packType === 'lunar-json' || packType === 'lunar-zip') {
+      if (convDirection !== 'lc-to-mr' && convDirection !== 'lc-to-cf') {
+        selectConvertDir('lc-to-mr');
+      } else {
+        selectConvertDir(convDirection);
+      }
     }
 
-    const mc   = packType === 'modrinth'
+    const mc = packType === 'modrinth'
       ? (index.dependencies || {}).minecraft || '?'
-      : (index.minecraft?.version || '?');
-    const name = packType === 'modrinth' ? (index.name || file.name) : (index.name || file.name);
+      : packType === 'curseforge'
+        ? (index.minecraft?.version || '?')
+        : mcVersion;
+    const name = index.name || file.name;
     const mods = packType === 'modrinth'
       ? index.files?.filter(f => f.path.startsWith('mods/')).length || 0
-      : index.files?.length || 0;
+      : packType === 'curseforge'
+        ? index.files?.length || 0
+        : modsList.length;
+
+    let typeLabel = 'Modrinth .mrpack';
+    if (packType === 'curseforge') typeLabel = 'CurseForge .zip';
+    if (packType === 'lunar-json') typeLabel = 'Lunar Client Profile .json';
+    if (packType === 'lunar-zip') typeLabel = 'Lunar Client Mods .zip';
 
     document.getElementById('convDZ').classList.add('loaded');
     document.getElementById('convDZ-icon').textContent = '✅';
     document.getElementById('convDZ-label').textContent = '';
     document.getElementById('convDZ-name').textContent  = name;
     document.getElementById('convDZ-stats').textContent =
-      mods + ' Mods • MC ' + mc + ' • ' + (packType === 'modrinth' ? 'Modrinth .mrpack' : 'CurseForge .zip');
+      mods + ' Mods • MC ' + mc + ' • ' + typeLabel;
     document.getElementById('convDZ-clear').style.display = 'block';
     document.getElementById('convStatus').textContent = '';
     previewConvert();
@@ -2743,7 +2794,7 @@ async function parseConvPack(file) {
 
 function previewConvert() {
   if (!convPackData) return;
-  const { index, packType } = convPackData;
+  const { index, packType, modsList, mcVersion } = convPackData;
   const resultEl  = document.getElementById('convResult');
   const statsEl   = document.getElementById('convStats');
   const warnEl    = document.getElementById('convWarnings');
@@ -2761,7 +2812,7 @@ function previewConvert() {
       cstat('Fabric ' + fl, 'Loader',   'var(--muted)');
     warnEl.style.display = 'block';
     warnEl.innerHTML = '⚠ <b>Hinweis:</b> CurseForge benötigt eigene Mod-IDs. Da die Mods von Modrinth stammen, werden alle Download-Links in eine <code>modlist.html</code> im ZIP exportiert. Die Mods müssen einmalig manuell in den <code>mods/</code> Ordner gelegt werden.';
-  } else {
+  } else if (packType === 'curseforge') {
     const mods = index.files?.length || 0;
     const mc   = index.minecraft?.version || '?';
     const ml   = index.minecraft?.modLoaders?.[0]?.id || '?';
@@ -2771,6 +2822,18 @@ function previewConvert() {
       cstat(ml, 'Loader',           'var(--muted)');
     warnEl.style.display = 'block';
     warnEl.innerHTML = '⚠ <b>Hinweis:</b> CurseForge Mod-IDs werden über die Modrinth API nach passenden Mods gesucht. Nicht alle Mods sind auf Modrinth verfügbar. Nicht gefundene Mods werden übersprungen.';
+  } else {
+    const modsCount = modsList ? modsList.length : 0;
+    statsEl.innerHTML =
+      cstat(modsCount, 'Lunar Mods', 'var(--blue)') +
+      cstat('MC ' + mcVersion, 'Version', 'var(--blue)') +
+      cstat('Fabric', 'Loader', 'var(--muted)');
+    warnEl.style.display = 'block';
+    if (convDirection === 'lc-to-mr') {
+      warnEl.innerHTML = '💡 <b>Lunar Client zu Modrinth:</b> Wir suchen deine Lunar Client Mods über die Modrinth-Datenbank und erstellen eine fertige <code>.mrpack</code> Modpack-Datei für dich.';
+    } else {
+      warnEl.innerHTML = '💡 <b>Lunar Client zu CurseForge:</b> Wir suchen deine Lunar Client Mods und exportieren alle Download-Links in eine <code>modlist.html</code> in einem CurseForge-kompatiblen ZIP.';
+    }
   }
 }
 
@@ -2795,8 +2858,12 @@ async function runConvert() {
 
   if (convDirection === 'mr-to-cf') {
     await convertMRtoCF(btn, st, pb);
-  } else {
+  } else if (convDirection === 'cf-to-mr') {
     await convertCFtoMR(btn, st, pb);
+  } else if (convDirection === 'lc-to-mr') {
+    await convertLCToMR(btn, st, pb);
+  } else if (convDirection === 'lc-to-cf') {
+    await convertLCToCF(btn, st, pb);
   }
 }
 
@@ -4354,4 +4421,246 @@ document.addEventListener('DOMContentLoaded', () => { if (new URLSearchParams(lo
 function copyModrinthProfilesPath() {
   const path = '%appdata%\\ModrinthApp\\profiles';
   navigator.clipboard?.writeText(path).then(() => showToast('Pfad kopiert')).catch(() => setModrinthMessage(path));
+}
+
+
+/* ══ LUNAR CLIENT CONVERTERS ═════════════════════════════════════ */
+
+function cleanLunarModName(name) {
+  if (!name) return '';
+  name = name.replace(/\.jar$/i, '');
+  // Match things like "-fabric", "-forge", "-v1.0", etc. and take the first parts
+  name = name.split('-')[0];
+  name = name.split('_')[0];
+  return name.trim();
+}
+
+function extractModsFromLunarJson(json) {
+  let mods = [];
+  if (json.customMods && Array.isArray(json.customMods)) {
+    json.customMods.forEach(m => {
+      if (typeof m === 'string') mods.push(m);
+      else if (m && typeof m === 'object') {
+        if (m.name) mods.push(m.name);
+        else if (m.id) mods.push(m.id);
+        else if (m.fileName) mods.push(m.fileName);
+      }
+    });
+  }
+  if (mods.length === 0) {
+    const keysToCheck = ['mods', 'modules', 'enabledMods', 'custom_mods', 'plugins'];
+    for (const key of keysToCheck) {
+      if (json[key] && Array.isArray(json[key])) {
+        json[key].forEach(m => {
+          if (typeof m === 'string') mods.push(m);
+          else if (m && typeof m === 'object') {
+            if (m.name) mods.push(m.name);
+            else if (m.id) mods.push(m.id);
+            if (m.title) mods.push(m.title);
+          }
+        });
+      }
+    }
+  }
+  if (mods.length === 0) {
+    function recurse(obj) {
+      if (!obj) return;
+      if (Array.isArray(obj)) {
+        obj.forEach(recurse);
+      } else if (typeof obj === 'object') {
+        for (let k in obj) {
+          if (k === 'name' || k === 'id' || k === 'title') {
+            if (typeof obj[k] === 'string' && (obj[k].toLowerCase().includes('mod') || obj.enabled || obj.enabled === undefined)) {
+              mods.push(obj[k]);
+            }
+          } else {
+            recurse(obj[k]);
+          }
+        }
+      }
+    }
+    recurse(json);
+  }
+  mods = [...new Set(mods)].map(m => m.replace(/\.jar$/, '')).filter(m => {
+    return m.length > 2 && !['true', 'false', 'default', 'profile', 'custom'].includes(m.toLowerCase());
+  });
+  return mods;
+}
+
+async function convertLCToMR(btn, st, pb) {
+  const { index, fileName, modsList, mcVersion } = convPackData;
+  const mc  = mcVersion || '1.21.11';
+  const fl  = '0.18.3';
+  const name = (index && index.name) || fileName.replace(/\.[^/.]+$/, "") || 'Lunar Pack';
+
+  const files     = modsList || [];
+  const resolved  = [];
+  const notFound  = [];
+
+  for (let i = 0; i < files.length; i++) {
+    const rawName = files[i];
+    const cleaned = cleanLunarModName(rawName);
+    pb.style.width = Math.round((i / files.length) * 85) + '%';
+    st.textContent = '(' + (i+1) + '/' + files.length + ') Suche ' + cleaned + '...';
+
+    const proj = await detectAndResolve(cleaned);
+    let vf = null;
+
+    if (proj) {
+      const ver = await fetchVersion(proj.slug, mc, proj.type === 'resourcepack');
+      vf = ver?.files?.find(x => x.primary) || ver?.files?.[0];
+      if (vf) {
+        resolved.push({
+          path: (proj.type === 'resourcepack' ? 'resourcepacks/' : 'mods/') + vf.filename,
+          hashes: vf.hashes,
+          env: { client: 'required', server: 'unsupported' },
+          downloads: [vf.url],
+          fileSize: vf.size,
+          name: proj.name,
+          version: ver.version_number
+        });
+      }
+    }
+
+    if (!vf) {
+      notFound.push(rawName);
+    }
+    await sleep(150);
+  }
+
+  pb.style.width = '100%';
+  st.textContent = 'Erstelle Modrinth .mrpack...';
+
+  if (resolved.length === 0) {
+    st.textContent = '⚠ Keine kompatiblen Mods auf Modrinth gefunden.';
+    btn.disabled = false;
+    return;
+  }
+
+  const idx = {
+    formatVersion: 1,
+    game: 'minecraft',
+    versionId: '1.0.0',
+    name: name,
+    summary: 'Konvertiert von Lunar Client mit MC Toolkit',
+    files: resolved.map(r => ({
+      path: r.path,
+      hashes: r.hashes,
+      env: r.env,
+      downloads: r.downloads,
+      fileSize: r.fileSize
+    })),
+    dependencies: {
+      minecraft: mc,
+      'fabric-loader': fl
+    }
+  };
+
+  const zip = new JSZip();
+  zip.file('modrinth.index.json', JSON.stringify(idx, null, 2));
+  zip.folder('overrides');
+
+  const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+  const fn   = name.replace(/\s+/g, '_') + '-modrinth.mrpack';
+  const blobUrl = URL.createObjectURL(blob);
+  
+  const a = document.createElement('a');
+  a.href = blobUrl;
+  a.download = fn;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+
+  st.textContent = '✅ ' + resolved.length + ' Mods konvertiert' + (notFound.length ? ' · ' + notFound.length + ' nicht gefunden' : ' · Alle OK!') + ' → ' + fn;
+  btn.disabled = false;
+  launchConfetti();
+  showOpenInApp(fn, 'modrinth', blobUrl);
+}
+
+async function convertLCToCF(btn, st, pb) {
+  const { index, fileName, modsList, mcVersion } = convPackData;
+  const mc  = mcVersion || '1.21.11';
+  const fl  = '0.18.3';
+  const name = (index && index.name) || fileName.replace(/\.[^/.]+$/, "") || 'Lunar Pack';
+
+  const files     = modsList || [];
+  const resolved  = [];
+  const notFound  = [];
+
+  for (let i = 0; i < files.length; i++) {
+    const rawName = files[i];
+    const cleaned = cleanLunarModName(rawName);
+    pb.style.width = Math.round((i / files.length) * 85) + '%';
+    st.textContent = '(' + (i+1) + '/' + files.length + ') Suche ' + cleaned + '...';
+
+    const proj = await detectAndResolve(cleaned);
+    let vf = null;
+
+    if (proj) {
+      const ver = await fetchVersion(proj.slug, mc, proj.type === 'resourcepack');
+      vf = ver?.files?.find(x => x.primary) || ver?.files?.[0];
+      if (vf) {
+        resolved.push({
+          name: proj.name,
+          filename: vf.filename,
+          url: vf.url,
+          version: ver.version_number,
+          isRP: proj.type === 'resourcepack',
+          found: true
+        });
+      }
+    }
+
+    if (!vf) {
+      notFound.push(rawName);
+    }
+    await sleep(150);
+  }
+
+  pb.style.width = '100%';
+  st.textContent = 'Erstelle CurseForge .zip...';
+
+  const manifest = {
+    minecraft: { version: mc, modLoaders: [{ id: 'fabric-' + fl, primary: true }] },
+    manifestType: 'minecraftModpack',
+    manifestVersion: 1,
+    name: name,
+    version: '1.0.0',
+    author: 'MC Toolkit',
+    files: [],
+    overrides: 'overrides'
+  };
+
+  const modRows = resolved.filter(m => !m.isRP).map(m =>
+    '<li><a href="' + m.url + '">' + esc(m.name) + (m.version !== '?' ? ' (' + m.version + ')' : '') + '</a></li>'
+  ).join('\n');
+  const rpRows = resolved.filter(m => m.isRP).map(m =>
+    '<li><a href="' + m.url + '">' + esc(m.name) + '</a></li>'
+  ).join('\n');
+
+  const modlistHtml = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + esc(name) + '</title></head><body style="font-family:sans-serif;max-width:800px;margin:2rem auto;background:#1a1a2e;color:#f0f6fc"><h1 style="color:#4ade80">📦 ' + esc(name) + '</h1><p>MC ' + mc + ' · Fabric ' + fl + ' · ' + resolved.length + ' Dateien</p><h2>Mods</h2><ul>' + modRows + '</ul>' + (rpRows ? '<h2>Texture Packs</h2><ul>' + rpRows + '</ul>' : '') + '<hr><p style="color:#666">Konvertiert mit MC Toolkit</p></body></html>';
+  const readme = name + '\nMC ' + mc + ' · Fabric ' + fl + '\nKonvertiert von Lunar Client → CurseForge mit MC Toolkit\n\nMods manuell aus modlist.html herunterladen und in den mods/ Ordner legen.';
+
+  const zip = new JSZip();
+  zip.file('manifest.json', JSON.stringify(manifest, null, 2));
+  zip.file('modlist.html', modlistHtml);
+  zip.file('README.txt', readme);
+  zip.folder('overrides').folder('mods');
+  zip.folder('overrides').folder('resourcepacks');
+
+  const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+  const fn   = name.replace(/\s+/g, '_') + '-curseforge.zip';
+  const blobUrl = URL.createObjectURL(blob);
+  
+  const a = document.createElement('a');
+  a.href = blobUrl;
+  a.download = fn;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+
+  st.textContent = '✅ ' + resolved.length + ' Mods konvertiert' + (notFound.length ? ' · ' + notFound.length + ' nicht gefunden' : ' · Alle OK!') + ' → ' + fn;
+  btn.disabled = false;
+  launchConfetti();
+  showOpenInApp(fn, 'curseforge', blobUrl);
 }

@@ -1918,6 +1918,10 @@ body.light .hero::before {
   border-color: #f16436; background: rgba(241,100,54,.08); }
 .convert-dir-btn.cf-to-mr:hover, .convert-dir-btn.cf-to-mr.active {
   border-color: #1bd96a; background: rgba(27,217,106,.08); }
+.convert-dir-btn.lc-to-mr:hover, .convert-dir-btn.lc-to-mr.active {
+  border-color: #38bdf8; background: rgba(56,189,248,.08); }
+.convert-dir-btn.lc-to-cf:hover, .convert-dir-btn.lc-to-cf.active {
+  border-color: #3b82f6; background: rgba(59,130,246,.08); }
 .convert-dir-btn .cdb-icons { font-size: 1.4rem; margin-bottom: .4rem; }
 .convert-dir-btn .cdb-label { font-size: .78rem; font-weight: 800; color: var(--text); }
 .convert-dir-btn .cdb-sub   { font-size: .68rem; color: var(--muted); margin-top: 2px; }

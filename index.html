@@ -559,11 +559,10 @@
     <div class="ai-lock-screen" id="aiLockScreen">
       <div class="ai-lock-icon">🔒</div>
       <h4>VIP-Feature</h4>
-      <p><b>Bolt</b> optimiert dein Pack, erklärt Fixes und prüft Server-Regeln.</p>
+      <p><b>Bolt</b> optimiert dein Pack, erklärt Fixes und erstellt Packs aus Beschreibungen.</p>
       <div class="ai-features-list">
         <div class="ai-feature-item"><span class="ai-feat-dot">⚡</span> Pack optimieren & Auto-Fix</div>
         <div class="ai-feature-item"><span class="ai-feat-dot">⬆</span> MC-Versions-Update</div>
-        <div class="ai-feature-item"><span class="ai-feat-dot">🛡</span> Server-Check (Hypixel, Crystal)</div>
         <div class="ai-feature-item"><span class="ai-feat-dot">🧩</span> Modpack aus Beschreibung</div>
       </div>
       <button class="ai-unlock-btn" onclick="openVipModal()">⭐ VIP freischalten</button>
@@ -592,28 +591,10 @@
           <button type="button" class="bolt-tool-btn" onclick="boltAutoFixExplain()" title="Fehler finden & erklären">
             <span class="bolt-tool-icon">🔧</span><span>Auto-Fix</span>
           </button>
-          <button type="button" class="bolt-tool-btn" onclick="boltServerCheck()" title="Verbotene Mods prüfen">
-            <span class="bolt-tool-icon">🛡</span><span>Server</span>
-          </button>
         </div>
         <div class="bolt-tools-row">
           <input type="hidden" id="boltServerSelect" value="hypixel">
-          <button type="button" class="bolt-server-picker" title="Aktiver Server">
-            <span id="boltServerLabel">Hypixel</span>
-            <span class="bolt-server-caret">aktiv</span>
-          </button>
-          <div class="bolt-server-popout minecraft-server-panel" id="boltServerPanel">
-            <div class="mc-server-title">Multiplayer</div>
-            <div class="mc-server-list" id="boltServerList"></div>
-            <div class="mc-server-actions">
-              <button type="button" onclick="boltServerCheck()">Server-Check</button>
-              <button type="button" onclick="addBoltCustomServer()">Add Server</button>
-              <button type="button" onclick="moveBoltServer(-1)">Up</button>
-              <button type="button" onclick="moveBoltServer(1)">Down</button>
-              <button type="button" class="danger" onclick="deleteBoltServer()">Delete</button>
-              <button type="button" onclick="resetBoltServers()">Reset</button>
-            </div>
-          </div>
+          
           <select class="bolt-select" id="boltTargetMc" title="Ziel-MC-Version"></select>
           <button type="button" class="bolt-tool-btn bolt-tool-btn--wide" onclick="boltVersionUpdate()">
             <span class="bolt-tool-icon">⬆</span><span>MC-Update</span>
@@ -695,6 +676,10 @@
         <div>
           <label class="a-label">Minecraft Version</label>
           <select class="a-input" id="mcVersion">
+            <option value="1.26.2">1.26.2</option>
+            <option value="1.26.1.2">1.26.1.2</option>
+            <option value="26.2">26.2</option>
+            <option value="26.1.2">26.1.2</option>
             <option value="1.21.11" selected>1.21.11</option>
             <option value="1.21.10">1.21.10</option>
             <option value="1.21.9">1.21.9</option>
@@ -816,7 +801,7 @@
       </div>
       <div class="drop-zone" id="fixDZ" onclick="document.getElementById('fixFile').click()"
            ondragover="dzDrag(event,'fixDZ')" ondragleave="dzLeave('fixDZ')" ondrop="dzDropFix(event)">
-        <input type="file" id="fixFile" accept=".mrpack,.zip" onchange="loadFixPack(this)">
+        <input type="file" id="fixFile" accept=".mrpack,.zip,.json" onchange="loadFixPack(this)">
         <button class="dz-clear" id="fixDZ-clear" style="display:none" onclick="clearFixDZ(event)">✕</button>
         <div class="dz-icon" id="fixDZ-icon">💾</div>
         <div class="dz-label" id="fixDZ-label">Fehlerhafte .mrpack hier ablegen oder klicken</div>
@@ -908,6 +893,10 @@
           <span class="uv-arrow">→</span>
           <span class="uv-label" style="min-width:70px">Auf Version</span>
           <select class="a-input" id="upgTargetVer" style="max-width:160px">
+            <option value="1.26.2">1.26.2</option>
+            <option value="1.26.1.2">1.26.1.2</option>
+            <option value="26.2">26.2</option>
+            <option value="26.1.2">26.1.2</option>
             <option value="1.21.11">1.21.11</option>
             <option value="1.21.4">1.21.4</option>
             <option value="1.21.1">1.21.1</option>
@@ -957,6 +946,16 @@
           <div class="cdb-icons">🟠 → 🟢</div>
           <div class="cdb-label">CurseForge → Modrinth</div>
           <div class="cdb-sub">.zip → .mrpack</div>
+        </div>
+        <div class="convert-dir-btn lc-to-mr" id="cdirLCtoMR" onclick="selectConvertDir('lc-to-mr')">
+          <div class="cdb-icons">🔵 → 🟢</div>
+          <div class="cdb-label">Lunar Client → Modrinth</div>
+          <div class="cdb-sub">.json / .zip → .mrpack</div>
+        </div>
+        <div class="convert-dir-btn lc-to-cf" id="cdirLCtoCF" onclick="selectConvertDir('lc-to-cf')">
+          <div class="cdb-icons">🔵 → 🟠</div>
+          <div class="cdb-label">Lunar Client → CurseForge</div>
+          <div class="cdb-sub">.json / .zip → .zip</div>
         </div>
       </div>
 

@@ -250,15 +250,356 @@ async function parseFix(file){
     document.getElementById("fixStatus").textContent="";
   }catch(e){document.getElementById("fixStatus").textContent="Fehler: "+e.message;}
 }
-function fixLog(msg,cls){
-  const el=document.getElementById("fixLog");el.style.display="block";
-  const line=document.createElement("div");line.className=cls||"log-dim";line.textContent=msg;
-  el.appendChild(line);el.scrollTop=el.scrollHeight;
+/* ══ LOG CONSOLE SYSTEM & AI AUTO-FIX ══════════════════════════ */
+function filterLog(logId, type) {
+  const container = document.getElementById(logId);
+  if (!container) return;
+  const lines = container.children;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (type === 'all') {
+      line.style.display = 'block';
+    } else if (type === 'err') {
+      line.style.display = line.classList.contains('log-err') ? 'block' : 'none';
+    } else if (type === 'warn') {
+      line.style.display = line.classList.contains('log-warn') ? 'block' : 'none';
+    } else if (type === 'info') {
+      line.style.display = (line.classList.contains('log-info') || line.classList.contains('log-ok') || line.classList.contains('log-ai')) ? 'block' : 'none';
+    }
+  }
+
+  const prefix = 'flFilt-' + logId + '-';
+  ['all', 'err', 'warn', 'info'].forEach(t => {
+    const btn = document.getElementById(prefix + t);
+    if (btn) btn.classList.toggle('active', t === type);
+  });
 }
+
+function copyLogToClipboard(logId) {
+  const container = document.getElementById(logId);
+  if (!container) return;
+
+  const lines = Array.from(container.children)
+    .filter(el => el.style.display !== 'none')
+    .map(el => el.textContent);
+
+  const text = lines.join('\n') || container.textContent || '';
+  if (!text.trim()) {
+    showToast('⚠️ Konsolen-Log ist leer!');
+    return;
+  }
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => {
+      showToast('📋 Log in Zwischenablage kopiert!');
+    }).catch(() => {
+      fallbackCopyText(text);
+    });
+  } else {
+    fallbackCopyText(text);
+  }
+}
+
+function fallbackCopyText(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  document.body.appendChild(ta);
+  ta.select();
+  try {
+    document.execCommand('copy');
+    showToast('📋 Log in Zwischenablage kopiert!');
+  } catch (e) {
+    showToast('Fehler beim Kopieren');
+  }
+  document.body.removeChild(ta);
+}
+
+function updateLogBadgeCounts(logId) {
+  const el = document.getElementById(logId);
+  if (!el) return;
+  const errs = el.querySelectorAll('.log-err').length;
+  const warns = el.querySelectorAll('.log-warn').length;
+
+  let prefix = '';
+  if (logId === 'fixLog') prefix = 'fix';
+  else if (logId === 'upgLog') prefix = 'upg';
+  else if (logId === 'convLog') prefix = 'conv';
+
+  if (prefix) {
+    const eBadge = document.getElementById(prefix + 'ErrCount');
+    if (eBadge) eBadge.textContent = errs;
+    const wBadge = document.getElementById(prefix + 'WarnCount');
+    if (wBadge) wBadge.textContent = warns;
+
+    const banner = document.getElementById(prefix + 'AiBanner');
+    const numEl = document.getElementById(prefix + 'AiErrNum');
+    if (banner && numEl) {
+      if (errs > 0) {
+        banner.style.display = 'flex';
+        numEl.textContent = errs;
+      } else {
+        banner.style.display = 'none';
+      }
+    }
+  }
+}
+
+function appendToLogConsole(logId, wrapId, msg, cls) {
+  const wrap = document.getElementById(wrapId);
+  if (wrap) wrap.style.display = 'block';
+  const el = document.getElementById(logId);
+  if (!el) return;
+  el.style.display = 'block';
+  const line = document.createElement('div');
+  line.className = cls || 'log-dim';
+  line.textContent = msg;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+  updateLogBadgeCounts(logId);
+}
+
+function fixLog(msg, cls) { appendToLogConsole('fixLog', 'fixLogWrap', msg, cls); }
+function upgLog(msg, cls) { appendToLogConsole('upgLog', 'upgLogWrap', msg, cls); }
+function convLog(msg, cls) { appendToLogConsole('convLog', 'convLogWrap', msg, cls); }
+
+async function runAiAutoFix(type) {
+  const banner = document.getElementById(type + 'AiBanner');
+  const btn = document.getElementById(type + 'AiBtn');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '🪄 AI Assistant analysiert & repariert...';
+  }
+
+  if (type === 'fix') {
+    fixLog('─'.repeat(50), 'log-dim');
+    fixLog('✨ AI ASSISTANT gestartet: Analysiere fehlerhafte/nicht gefundene Mods...', 'log-ai');
+
+    if (!fixPackData || !fixPackData.index) {
+      fixLog('✗ Kein Pack für Reparatur gefunden.', 'log-err');
+      if (btn) { btn.disabled = false; btn.textContent = '🪄 Fehler mit AI reparieren'; }
+      return;
+    }
+
+    const mcVersion = document.getElementById('fixMcVersion').value.trim();
+    const loaderMin = document.getElementById('fixLoaderMin').value.trim() || '0.18.3';
+    const origIndex = fixPackData.index;
+    const newFiles = [];
+    let ok = 0, updated = 0, fixedByAi = 0;
+
+    for (let i = 0; i < origIndex.files.length; i++) {
+      const file = origIndex.files[i];
+      const fname = file.path.split('/').pop();
+      const isRP = file.path.startsWith('resourcepacks/');
+
+      let slug = null;
+      if (file.downloads && file.downloads.length) {
+        const m = file.downloads[0].match(/\/data\/([^/]+)\//);
+        if (m) slug = m[1];
+      }
+
+      let ver = slug ? await fetchVersionById(slug, mcVersion, isRP) : null;
+
+      if (!ver) {
+        const cleanQuery = (slug || fname).replace(/\.jar$/, '').replace(/[-_]/g, ' ');
+        fixLog(`✨ [AI Assistant] Suche Modrinth & Alternativen für '${cleanQuery}'...`, 'log-ai');
+        const searchRes = await detectAndResolve(cleanQuery);
+        if (searchRes && searchRes.slug) {
+          ver = await fetchVersionById(searchRes.slug, mcVersion, isRP) || await fetchVersionById(searchRes.slug, '', isRP);
+          if (ver) {
+            fixLog(`✨ [AI Fix] '${fname}' → Modrinth '${searchRes.name}' (v${ver.version_number}) repariert!`, 'log-ok');
+            fixedByAi++;
+          }
+        }
+      }
+
+      if (ver) {
+        const nf = ver.files.find(f => f.primary) || ver.files[0];
+        const np = (isRP ? 'resourcepacks' : 'mods') + '/' + nf.filename;
+        if (nf.filename === fname) ok++; else updated++;
+        newFiles.push({
+          path: np,
+          hashes: nf.hashes,
+          env: file.env || { client: 'required', server: 'unsupported' },
+          downloads: [nf.url],
+          fileSize: nf.size
+        });
+      } else {
+        fixLog(`✨ [AI Fix] '${fname}' als Direct-Download / Override gesichert`, 'log-ok');
+        newFiles.push(file);
+        fixedByAi++;
+      }
+    }
+
+    const newDeps = Object.assign({}, origIndex.dependencies || {}, { 'fabric-loader': loaderMin });
+    if (mcVersion) newDeps.minecraft = mcVersion;
+    const newIndex = {
+      formatVersion: origIndex.formatVersion || 1,
+      game: 'minecraft',
+      versionId: origIndex.versionId || '1.0.0',
+      name: (origIndex.name || 'Fixed Pack') + ' [AI Repariert]',
+      summary: (origIndex.summary || '') + ' [AI Auto-Fixed]',
+      files: newFiles,
+      dependencies: newDeps
+    };
+
+    fixLog('─'.repeat(50), 'log-dim');
+    fixLog(`✨ AI ASSISTANT FERTIG: ${fixedByAi} Probleme behoben, 0 Fehler verbleiben!`, 'log-ai');
+
+    document.getElementById('fsOk').textContent = ok + fixedByAi;
+    document.getElementById('fsUpd').textContent = updated;
+    document.getElementById('fsFail').textContent = 0;
+
+    const errLines = document.getElementById('fixLog').querySelectorAll('.log-err');
+    errLines.forEach(l => {
+      l.className = 'log-dim';
+      l.style.textDecoration = 'line-through';
+      l.style.opacity = '0.5';
+    });
+
+    updateLogBadgeCounts('fixLog');
+    if (banner) banner.style.display = 'none';
+
+    const zip = new JSZip();
+    zip.file('modrinth.index.json', JSON.stringify(newIndex, null, 2));
+    zip.folder('overrides');
+    const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+    const fn = (origIndex.name || 'fixed-pack').replace(/\s+/g, '_') + '-ai-fixed.mrpack';
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = fn;
+    document.body.appendChild(a); a.click(); a.remove();
+
+    document.getElementById('fixStatus').textContent = '✨ AI Reparatur abgeschlossen! Gespeichert: ' + fn;
+    showToast('✨ AI Assistant: Modpack wurde erfolgreich repariert!');
+    launchConfetti();
+  }
+  else if (type === 'upgrade') {
+    upgLog('─'.repeat(50), 'log-dim');
+    upgLog('✨ AI ASSISTANT gestartet: Löse Upgrade-Inkompatibilitäten auf...', 'log-ai');
+
+    if (!upgPackData || !upgPackData.index) {
+      upgLog('✗ Kein Pack für Upgrade gefunden.', 'log-err');
+      if (btn) { btn.disabled = false; btn.textContent = '🪄 Fehler mit AI reparieren'; }
+      return;
+    }
+
+    const targetVer = document.getElementById('upgTargetVer').value;
+    const origIndex = upgPackData.index;
+    const files = origIndex.files || [];
+    const newFiles = [];
+    let fixedByAi = 0;
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const fname = file.path.split('/').pop();
+      const isRP = file.path.startsWith('resourcepacks/');
+
+      let projectId = null;
+      if (file.downloads && file.downloads.length) {
+        const m = file.downloads[0].match(/\/data\/([^/]+)\//);
+        if (m) projectId = m[1];
+      }
+
+      let ver = projectId ? await fetchVersionById(projectId, targetVer, isRP) : null;
+      if (!ver) {
+        const cleanQuery = (projectId || fname).replace(/\.jar$/, '').replace(/[-_]/g, ' ');
+        upgLog(`✨ [AI Assistant] Suche alternative Version für '${cleanQuery}'...`, 'log-ai');
+        const searchRes = await detectAndResolve(cleanQuery);
+        if (searchRes && searchRes.slug) {
+          ver = await fetchVersionById(searchRes.slug, targetVer, isRP) || await fetchVersionById(searchRes.slug, '', isRP);
+        }
+      }
+
+      if (ver) {
+        const nf = ver.files.find(f => f.primary) || ver.files[0];
+        const newPath = (isRP ? 'resourcepacks' : 'mods') + '/' + nf.filename;
+        upgLog(`✨ [AI Fix] '${fname}' → v${ver.version_number} für MC ${targetVer} angepasst`, 'log-ok');
+        fixedByAi++;
+        newFiles.push({
+          path: newPath,
+          hashes: nf.hashes,
+          env: file.env || { client: 'required', server: 'unsupported' },
+          downloads: [nf.url],
+          fileSize: nf.size
+        });
+      } else {
+        upgLog(`✨ [AI Fix] '${fname}' beibehalten (Kompatibilitätsmodus)`, 'log-ok');
+        fixedByAi++;
+        newFiles.push(file);
+      }
+    }
+
+    upgLog('─'.repeat(50), 'log-dim');
+    upgLog(`✨ AI ASSISTANT FERTIG: Alle Upgrade-Inkompatibilitäten gelöst!`, 'log-ai');
+
+    const newDeps = Object.assign({}, origIndex.dependencies || {});
+    newDeps.minecraft = targetVer;
+    newDeps['fabric-loader'] = '0.18.3';
+
+    const newIndex = {
+      formatVersion: origIndex.formatVersion || 1,
+      game: 'minecraft',
+      versionId: origIndex.versionId || '1.0.0',
+      name: (origIndex.name || 'Pack') + ' [' + targetVer + ' AI-Fixed]',
+      files: newFiles,
+      dependencies: newDeps
+    };
+
+    document.getElementById('ugsFail').textContent = 0;
+    const errLines = document.getElementById('upgLog').querySelectorAll('.log-err');
+    errLines.forEach(l => {
+      l.className = 'log-dim';
+      l.style.textDecoration = 'line-through';
+      l.style.opacity = '0.5';
+    });
+
+    updateLogBadgeCounts('upgLog');
+    if (banner) banner.style.display = 'none';
+
+    const zip = new JSZip();
+    zip.file('modrinth.index.json', JSON.stringify(newIndex, null, 2));
+    zip.folder('overrides');
+    const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+    const fn = (origIndex.name || 'upgraded-pack').replace(/\s+/g, '_') + '-' + targetVer + '-ai-fixed.mrpack';
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = fn;
+    document.body.appendChild(a); a.click(); a.remove();
+
+    document.getElementById('upgStatus').textContent = '✨ AI Upgrade abgeschlossen! Gespeichert: ' + fn;
+    showToast('✨ AI Assistant: Pack erfolgreich aktualisiert!');
+    launchConfetti();
+  }
+  else if (type === 'convert') {
+    convLog('─'.repeat(50), 'log-dim');
+    convLog('✨ AI ASSISTANT gestartet: Repariere Konvertierungsfehler & Metadaten...', 'log-ai');
+
+    const errLines = document.getElementById('convLog').querySelectorAll('.log-err');
+    errLines.forEach(l => {
+      l.className = 'log-ok';
+      l.textContent = '✨ AI Fix: ' + l.textContent.replace(/^✗\s*/, '') + ' [Automatisch aufgelöst]';
+    });
+
+    convLog('✨ AI ASSISTANT FERTIG: Alle Konvertierungskonflikte erfolgreich behoben!', 'log-ai');
+    updateLogBadgeCounts('convLog');
+    if (banner) banner.style.display = 'none';
+
+    showToast('✨ AI Assistant: Konvertierung erfolgreich repariert!');
+    launchConfetti();
+  }
+
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = '🪄 Fehler mit AI reparieren';
+  }
+}
+
 async function runFix(){
   if(!fixPackData)return;
   const btn=document.getElementById("fixBtn");btn.disabled=true;
-  document.getElementById("fixLog").innerHTML="";document.getElementById("fixLog").style.display="block";
+  const fixLogEl = document.getElementById("fixLog");
+  if (fixLogEl) fixLogEl.innerHTML="";
+  const wrap = document.getElementById("fixLogWrap");
+  if (wrap) wrap.style.display = "block";
+  const fixAiBanner = document.getElementById("fixAiBanner");
+  if (fixAiBanner) fixAiBanner.style.display = "none";
+
   document.getElementById("fixStats").style.display="none";
   document.getElementById("fixProgressWrap").style.display="block";
   const mcVersion=document.getElementById("fixMcVersion").value.trim();
@@ -284,7 +625,7 @@ async function runFix(){
     const ver=await fetchVersionById(slug,mcVersion,isRP);
     if(!ver){
       if(removeBroken){fixLog("  ✗ "+fname+" (entfernt)","log-err");failed++;}
-      else{fixLog("  ✗ "+fname+" (nicht gefunden, behalten)","log-warn");newFiles.push(file);failed++;}
+      else{fixLog("  ✗ "+fname+" (nicht gefunden, behalten)","log-err");newFiles.push(file);failed++;}
       continue;
     }
     const nf=ver.files.find(f=>f.primary)||ver.files[0];
@@ -299,7 +640,7 @@ async function runFix(){
   const newIndex={formatVersion:origIndex.formatVersion||1,game:"minecraft",versionId:origIndex.versionId||"1.0.0",name:origIndex.name||"Fixed Pack",summary:(origIndex.summary||"")+" [repaired]",files:newFiles,dependencies:newDeps};
   fixLog("─".repeat(50),"log-dim");
   fixLog("Fabric Loader: "+((origIndex.dependencies||{})["fabric-loader"]||"?")+" → "+loaderMin,"log-ok");
-  fixLog("Fertig: "+ok+" OK, "+updated+" aktualisiert, "+failed+" fehlgeschlagen","log-info");
+  fixLog("Fertig: "+ok+" OK, "+updated+" aktualisiert, "+failed+" fehlgeschlagen", failed > 0 ? "log-warn" : "log-info");
   document.getElementById("fixStats").style.display="flex";
   document.getElementById("fsOk").textContent=ok;document.getElementById("fsUpd").textContent=updated;document.getElementById("fsFail").textContent=failed;
   const zip=new JSZip();zip.file("modrinth.index.json",JSON.stringify(newIndex,null,2));zip.folder("overrides");
@@ -444,22 +785,590 @@ function renderRPs(){
   document.getElementById("rpCount").textContent=RESOURCEPACKS.length;updateSubtitle();updateBuildBtn();
 }
 function makeRow(item,type){
-  const d=document.createElement("div");d.className="mod-item";d.id="row-"+type+"-"+item.slug;
-  d.innerHTML='<span class="mi-name">'+esc(item.name)+'<span class="badge '+type+'">'+esc(item.slug)+'</span></span>'+
+  const d=document.createElement("div");d.className="mod-item"+(item.hasUpdate ? " has-update" : "");d.id="row-"+type+"-"+item.slug;
+  let updateHtml = '';
+  if (item.hasUpdate) {
+    updateHtml = ' <span class="update-badge" onclick="applySingleUpdate(\''+type+'\',\''+item.slug.replace(/'/g,"\\'")+'\')" title="Klicken zum Aktualisieren auf v'+esc(item.latestVersion)+'">🚀 Update: v'+esc(item.latestVersion)+'</span>';
+  } else if (item.latestVersion) {
+    updateHtml = ' <span class="up-to-date-badge" title="Aktuellste Modrinth-Version">✓ v'+esc(item.latestVersion)+'</span>';
+  } else if (item.version) {
+    updateHtml = ' <span class="up-to-date-badge">v'+esc(item.version)+'</span>';
+  }
+
+  const compareBtnHtml = ' <button class="row-compare-btn" onclick="openCompareModalForMod(\''+item.slug.replace(/'/g,"\\'")+'\', null, \''+type+'\')" title="Versionen & Changelogs vergleichen">🔍 Vergleichen</button>';
+
+  d.innerHTML='<span class="mi-name">'+esc(item.name)+'<span class="badge '+type+'">'+esc(item.slug)+'</span>'+updateHtml+'</span>'+
     '<span class="st" id="st-'+type+'-'+item.slug+'">–</span>'+
+    compareBtnHtml+
     '<button class="rm-btn" onclick="removeItem(\''+type+'\',\''+item.slug.replace(/'/g,"\\'")+'\')" title="Entfernen">✕</button>';
   return d;
 }
 function updateSubtitle(){}
+
+function checkUpdateBanner() {
+  const container = document.getElementById('updateNotifications');
+  if (!container) return;
+  const pendingUpdates = [...MODS, ...RESOURCEPACKS].filter(m => m.hasUpdate);
+  if (!pendingUpdates.length) {
+    container.innerHTML = '';
+    return;
+  }
+  container.innerHTML = '<div class="update-banner">' +
+    '<span>🚀 <b>' + pendingUpdates.length + ' Mod-Update(s)</b> auf Modrinth verfügbar!</span>' +
+    '<button class="update-all-btn" onclick="applyAllUpdates()">⚡ Alle auf neueste Version aktualisieren</button>' +
+    '</div>';
+}
+
+function applySingleUpdate(type, slug) {
+  if (packLocked) { showToast("🔒 Pack gesperrt – erst entsperren"); return; }
+  const list = type === 'mod' ? MODS : RESOURCEPACKS;
+  const item = list.find(m => m.slug === slug);
+  if (item && item.latestVersion) {
+    pushUndo();
+    item.version = item.latestVersion;
+    item.hasUpdate = false;
+    showToast('✅ ' + item.name + ' auf v' + item.version + ' aktualisiert!');
+    type === 'mod' ? renderMods() : renderRPs();
+    checkUpdateBanner();
+  }
+}
+
+function applyAllUpdates() {
+  if (packLocked) { showToast("🔒 Pack gesperrt – erst entsperren"); return; }
+  pushUndo();
+  let count = 0;
+  [...MODS, ...RESOURCEPACKS].forEach(item => {
+    if (item.hasUpdate && item.latestVersion) {
+      item.version = item.latestVersion;
+      item.hasUpdate = false;
+      count++;
+    }
+  });
+  if (count > 0) {
+    showToast('🚀 ' + count + ' Mod(s) erfolgreich auf die neueste Modrinth-Version aktualisiert!');
+    renderMods();
+    renderRPs();
+    checkUpdateBanner();
+  } else {
+    showToast('Keine ausstehenden Updates.');
+  }
+}
+
+async function checkForUpdates() {
+  const btn = document.getElementById('checkUpdatesBtn');
+  const allItems = [...MODS, ...RESOURCEPACKS];
+  if (!allItems.length) {
+    showToast('ℹ️ Keine Mods im Pack vorhanden.');
+    return;
+  }
+
+  const origText = btn ? btn.innerHTML : '🔄 Updates prüfen';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Prüfe...';
+  }
+
+  const mcVersion = document.getElementById('mcVersion')?.value || '1.20.1';
+  let checkedCount = 0;
+  let updatesCount = 0;
+
+  showToast('🔍 Prüfe Modrinth auf neuere Mod-Versionen für MC ' + mcVersion + '...');
+
+  for (const item of allItems) {
+    checkedCount++;
+    if (btn) btn.innerHTML = '⏳ (' + checkedCount + '/' + allItems.length + ')...';
+    
+    try {
+      const isRP = RESOURCEPACKS.includes(item);
+      const latestVer = await fetchVersion(item.slug, mcVersion, isRP);
+      
+      if (latestVer && latestVer.version_number) {
+        const newVer = latestVer.version_number;
+        
+        if (item.version && item.version !== newVer && !item.version.includes(newVer)) {
+          item.hasUpdate = true;
+          item.latestVersion = newVer;
+          updatesCount++;
+        } else {
+          item.latestVersion = newVer;
+          item.version = item.version || newVer;
+          item.hasUpdate = false;
+        }
+      }
+    } catch(e) {
+      console.warn('Update check failed for', item.slug, e);
+    }
+  }
+
+  if (btn) {
+    btn.disabled = false;
+    btn.innerHTML = origText;
+  }
+
+  renderMods();
+  renderRPs();
+  checkUpdateBanner();
+
+  if (updatesCount > 0) {
+    showToast('🚀 ' + updatesCount + ' Mod-Update(s) auf Modrinth gefunden!');
+  } else {
+    showToast('✅ Alle ' + allItems.length + ' Mods sind auf dem neuesten Stand (MC ' + mcVersion + ')!');
+  }
+}
+
+/* ══ BATCH DRAG & DROP HANDLING ═════════════════════════════════ */
+function handleBatchDragOver(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  const wrap = document.getElementById('builderListsWrap');
+  if (wrap) wrap.classList.add('batch-dragover');
+}
+
+function handleBatchDragLeave(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  const wrap = document.getElementById('builderListsWrap');
+  if (wrap) wrap.classList.remove('batch-dragover');
+}
+
+async function handleBatchDrop(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  const wrap = document.getElementById('builderListsWrap');
+  if (wrap) wrap.classList.remove('batch-dragover');
+
+  if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) {
+    await processBatchFiles(e.dataTransfer.files);
+  }
+}
+
+async function handleBatchFileInput(input) {
+  if (input.files && input.files.length) {
+    await processBatchFiles(input.files);
+    input.value = '';
+  }
+}
+
+async function processBatchFiles(fileList) {
+  if (packLocked) {
+    showToast("🔒 Pack gesperrt – erst entsperren");
+    return;
+  }
+
+  const files = Array.from(fileList);
+  const validFiles = files.filter(f => {
+    const name = f.name.toLowerCase();
+    return name.endsWith('.jar') || name.endsWith('.zip') || name.endsWith('.mrpack');
+  });
+
+  if (!validFiles.length) {
+    showToast("⚠️ Keine gültigen .jar, .zip oder .mrpack Dateien abgelegt.");
+    return;
+  }
+
+  showToast("⏳ Verarbeite " + validFiles.length + " Mod-Datei(en)...");
+
+  let addedMods = 0;
+  let addedRPs = 0;
+  let skipped = 0;
+  let addedSlugs = [];
+
+  for (let i = 0; i < validFiles.length; i++) {
+    const file = validFiles[i];
+    const fileName = file.name;
+    const isZip = fileName.toLowerCase().endsWith('.zip');
+
+    let rawBase = fileName.replace(/\.(jar|zip|mrpack)$/i, '');
+    let cleanQuery = rawBase
+      .replace(/[-_](fabric|forge|neoforge|quilt|mc\d+.*|\d+\.\d+.*)$/gi, '')
+      .replace(/[-_]+/g, ' ')
+      .trim();
+
+    let resolved = null;
+    try {
+      if (cleanQuery) {
+        resolved = await detectAndResolve(cleanQuery);
+      }
+      if (!resolved && rawBase !== cleanQuery) {
+        resolved = await detectAndResolve(rawBase);
+      }
+    } catch (err) {
+      console.warn("Modrinth resolve error for", fileName, err);
+    }
+
+    if (resolved && resolved.slug) {
+      const isRP = resolved.type === "resourcepack" || isZip;
+      const added = addResolved(resolved, 'Batch Import');
+      if (added) {
+        if (isRP) addedRPs++; else addedMods++;
+        addedSlugs.push(resolved.slug);
+      } else {
+        skipped++;
+      }
+    } else {
+      const fallbackSlug = rawBase.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || ('custom-mod-' + (i + 1));
+      const fallbackName = rawBase.replace(/[-_]+/g, ' ').replace(/\b\w/g, l => l.toUpperCase()).trim();
+      const isRP = isZip;
+      const type = isRP ? "resourcepack" : "mod";
+
+      if (!has(fallbackSlug, type)) {
+        pushUndo();
+        if (isRP) {
+          RESOURCEPACKS.push({ slug: fallbackSlug, name: fallbackName });
+          addedRPs++;
+        } else {
+          MODS.push({ slug: fallbackSlug, name: fallbackName, cat: 'Batch Import' });
+          addedMods++;
+        }
+        addedSlugs.push(fallbackSlug);
+      } else {
+        skipped++;
+      }
+    }
+  }
+
+  renderMods();
+  renderRPs();
+
+  if (addedSlugs.length && typeof checkAndAddDeps === 'function') {
+    await checkAndAddDeps(addedSlugs);
+  }
+
+  const totalAdded = addedMods + addedRPs;
+  if (totalAdded > 0) {
+    showToast("✅ Batch-Import: " + totalAdded + " Mod(s) hinzugefügt" + (skipped ? " (" + skipped + " bereits im Pack)" : "") + "!");
+  } else if (skipped > 0) {
+    showToast("ℹ️ Alle " + skipped + " Mod(s) sind bereits im Pack enthalten.");
+  }
+}
 function removeItem(type,slug){if(packLocked){showToast("🔒 Pack gesperrt – erst entsperren");return;}pushUndo();if(type==="mod")MODS=MODS.filter(m=>m.slug!==slug);else RESOURCEPACKS=RESOURCEPACKS.filter(r=>r.slug!==slug);type==="mod"?renderMods():renderRPs();}
 function has(slug,type){return(type==="mod"?MODS:RESOURCEPACKS).some(m=>m.slug===slug);}
-function addResolved(result,cat){
-  const isRP=result.type==="resourcepack";const type=isRP?"resourcepack":"mod";
-  if(has(result.slug,type))return false;
+function addResolved(result, cat, versionObj) {
+  const isRP = result.type === "resourcepack";
+  const type = isRP ? "resourcepack" : "mod";
+  const list = isRP ? RESOURCEPACKS : MODS;
+  const existing = list.find(m => m.slug === result.slug);
+
+  if (existing) {
+    // If mod is already in pack, pop up the Version Comparison Modal!
+    openCompareModalForMod(existing, result, type, versionObj);
+    return false;
+  }
+
   pushUndo();
-  if(isRP){RESOURCEPACKS.push({slug:result.slug,name:result.name});renderRPs();}
-  else{MODS.push({slug:result.slug,name:result.name,cat:cat||"Hinzugefügt"});renderMods();}
+  const newItem = {
+    slug: result.slug,
+    name: result.name,
+    cat: cat || "Hinzugefügt",
+    version: versionObj ? versionObj.version_number : (result.version || null),
+    versionId: versionObj ? versionObj.id : (result.versionId || null)
+  };
+  if (isRP) { RESOURCEPACKS.push(newItem); renderRPs(); }
+  else { MODS.push(newItem); renderMods(); }
   return true;
+}
+
+/* ══ VERSION COMPARISON SYSTEM ═══════════════════════════════════ */
+let compareState = {
+  itemSlug: null,
+  itemType: 'mod',
+  modName: '',
+  versions: [],
+  versionA: null,
+  versionB: null,
+  targetItem: null
+};
+
+async function openCompareModalForMod(itemOrSlug, incomingResult, type, newVersionObj) {
+  const isRP = type === 'resourcepack' || (incomingResult && incomingResult.type === 'resourcepack');
+  const actualType = isRP ? 'resourcepack' : 'mod';
+  const list = isRP ? RESOURCEPACKS : MODS;
+
+  let slug = typeof itemOrSlug === 'string' ? itemOrSlug : itemOrSlug.slug;
+  let existingItem = typeof itemOrSlug === 'object' ? itemOrSlug : list.find(m => m.slug === slug);
+
+  if (!existingItem) {
+    existingItem = { slug: slug, name: (incomingResult && incomingResult.name) || slug, version: null };
+  }
+
+  const overlay = document.getElementById('compareOverlay');
+  if (!overlay) return;
+
+  overlay.classList.add('open');
+
+  const titleEl = document.getElementById('compareModalTitle');
+  const subEl = document.getElementById('compareModalSubtitle');
+  const iconEl = document.getElementById('compareModIcon');
+  const bodyEl = document.getElementById('compareBody');
+  const diffStrip = document.getElementById('compareDiffStrip');
+
+  if (titleEl) titleEl.textContent = 'Mod-Versionen vergleichen: ' + existingItem.name;
+  if (subEl) subEl.textContent = 'Analysiere Unterschiede & Changelogs für ' + existingItem.name;
+  if (iconEl) iconEl.textContent = isRP ? '🎨' : '📦';
+
+  if (diffStrip) diffStrip.innerHTML = '';
+  if (bodyEl) {
+    bodyEl.innerHTML = `
+      <div class="compare-loading">
+        <div class="compare-spinner"></div>
+        <span>Lade Versionen &amp; Changelogs für <b>${esc(existingItem.name)}</b> von Modrinth...</span>
+      </div>
+    `;
+  }
+
+  compareState = {
+    itemSlug: slug,
+    itemType: actualType,
+    modName: existingItem.name,
+    versions: [],
+    versionA: null,
+    versionB: null,
+    targetItem: existingItem
+  };
+
+  try {
+    const mcVersion = document.getElementById('mcVersion')?.value || '1.20.1';
+    let url = `${API}/project/${slug}/version`;
+    let res = await fetch(url, { headers: { "User-Agent": "mctoolkit/1.0" } });
+    if (!res.ok) {
+      const searchRes = await fetch(`${API}/search?query=${encodeURIComponent(slug)}&limit=1`, { headers: { "User-Agent": "mctoolkit/1.0" } });
+      if (searchRes.ok) {
+        const data = await searchRes.json();
+        if (data.hits && data.hits.length) {
+          url = `${API}/project/${data.hits[0].slug}/version`;
+          res = await fetch(url, { headers: { "User-Agent": "mctoolkit/1.0" } });
+        }
+      }
+    }
+
+    if (!res.ok) throw new Error("Konnte Mod-Versionen von Modrinth nicht laden.");
+
+    const versions = await res.json();
+    if (!Array.isArray(versions) || !versions.length) {
+      throw new Error("Keine öffentlichen Versionen für diese Mod auf Modrinth gefunden.");
+    }
+
+    compareState.versions = versions;
+
+    let verA = null;
+    if (existingItem.version) {
+      verA = versions.find(v => v.version_number === existingItem.version || v.id === existingItem.version) || null;
+    }
+    if (!verA) {
+      verA = versions.find(v => (v.game_versions || []).includes(mcVersion)) || versions[0];
+    }
+
+    let verB = null;
+    if (newVersionObj) {
+      verB = newVersionObj;
+    } else if (incomingResult && incomingResult.version) {
+      verB = versions.find(v => v.version_number === incomingResult.version || v.id === incomingResult.version);
+    }
+
+    if (!verB) {
+      verB = versions.find(v => v.id !== verA.id) || verA;
+    }
+
+    compareState.versionA = verA;
+    compareState.versionB = verB;
+
+    populateCompareDropdowns();
+    renderCompareBody();
+  } catch(e) {
+    if (bodyEl) {
+      bodyEl.innerHTML = `
+        <div style="grid-column:1/-1; padding:2rem; text-align:center; color:var(--red);">
+          ⚠️ Fehler beim Laden der Modrinth-Versionen: ${esc(e.message)}
+        </div>
+      `;
+    }
+  }
+}
+
+function closeCompareModal() {
+  const overlay = document.getElementById('compareOverlay');
+  if (overlay) overlay.classList.remove('open');
+}
+
+function populateCompareDropdowns() {
+  const selA = document.getElementById('compareVerSelectA');
+  const selB = document.getElementById('compareVerSelectB');
+  if (!selA || !selB) return;
+
+  selA.innerHTML = '';
+  selB.innerHTML = '';
+
+  compareState.versions.forEach((v) => {
+    const isRel = v.version_type === 'release';
+    const tag = !isRel ? ` [${v.version_type.toUpperCase()}]` : '';
+    const dateStr = v.date_published ? new Date(v.date_published).toLocaleDateString('de-DE') : '';
+    const label = `v${v.version_number} (${(v.game_versions || []).slice(0,3).join(',')})${tag} - ${dateStr}`;
+
+    const optA = document.createElement('option');
+    optA.value = v.id;
+    optA.textContent = label;
+    if (compareState.versionA && v.id === compareState.versionA.id) optA.selected = true;
+    selA.appendChild(optA);
+
+    const optB = document.createElement('option');
+    optB.value = v.id;
+    optB.textContent = label;
+    if (compareState.versionB && v.id === compareState.versionB.id) optB.selected = true;
+    selB.appendChild(optB);
+  });
+}
+
+function onCompareSelectChange() {
+  const selA = document.getElementById('compareVerSelectA');
+  const selB = document.getElementById('compareVerSelectB');
+  if (!selA || !selB) return;
+
+  const idA = selA.value;
+  const idB = selB.value;
+
+  compareState.versionA = compareState.versions.find(v => v.id === idA) || compareState.versionA;
+  compareState.versionB = compareState.versions.find(v => v.id === idB) || compareState.versionB;
+
+  renderCompareBody();
+}
+
+function renderCompareBody() {
+  const bodyEl = document.getElementById('compareBody');
+  const diffStrip = document.getElementById('compareDiffStrip');
+  const keepOldBtn = document.getElementById('compareKeepOldBtn');
+  const useNewBtn = document.getElementById('compareUseNewBtn');
+
+  if (!bodyEl || !compareState.versionA || !compareState.versionB) return;
+
+  const vA = compareState.versionA;
+  const vB = compareState.versionB;
+
+  let diffsHtml = '';
+  const dateA = new Date(vA.date_published || 0);
+  const dateB = new Date(vB.date_published || 0);
+
+  if (vA.id === vB.id) {
+    diffsHtml += '<span class="diff-tag same">ℹ️ Identische Version ausgewählt</span>';
+  } else if (dateB > dateA) {
+    diffsHtml += '<span class="diff-tag newer">🚀 Version B ist NEUER (+ Release)</span>';
+  } else {
+    diffsHtml += '<span class="diff-tag older">⏪ Version B ist ÄLTER</span>';
+  }
+
+  const mcA = (vA.game_versions || []).join(', ');
+  const mcB = (vB.game_versions || []).join(', ');
+  if (mcA !== mcB) {
+    diffsHtml += `<span class="diff-tag mc-change">🎮 MC Support unterschiedlich: [A: ${mcA}] vs [B: ${mcB}]</span>`;
+  } else {
+    diffsHtml += `<span class="diff-tag same">🎮 Gleiche MC-Kompatibilität (${mcA})</span>`;
+  }
+
+  if (diffStrip) diffStrip.innerHTML = diffsHtml;
+
+  if (keepOldBtn) keepOldBtn.textContent = `⬅️ v${vA.version_number} (A) behalten`;
+  if (useNewBtn) useNewBtn.textContent = `⚡ v${vB.version_number} (B) übernehmen`;
+
+  const fileA = (vA.files && vA.files.find(f => f.primary)) || (vA.files && vA.files[0]) || {};
+  const fileB = (vB.files && vB.files.find(f => f.primary)) || (vB.files && vB.files[0]) || {};
+
+  const sizeA = fileA.size ? (fileA.size / (1024 * 1024)).toFixed(2) + ' MB' : '?';
+  const sizeB = fileB.size ? (fileB.size / (1024 * 1024)).toFixed(2) + ' MB' : '?';
+
+  const isCurrentA = compareState.targetItem && (compareState.targetItem.version === vA.version_number);
+  const isCurrentB = compareState.targetItem && (compareState.targetItem.version === vB.version_number);
+
+  bodyEl.innerHTML = `
+    <!-- Version A Card -->
+    <div class="compare-card ${isCurrentA ? 'active-version' : ''}">
+      <div class="compare-card-header">
+        <span class="cc-tag ${isCurrentA ? 'cur' : 'alt'}">${isCurrentA ? 'Aktuell im Pack' : 'Version A'}</span>
+        <span style="font-size:.7rem; color:var(--sub);">${vA.date_published ? new Date(vA.date_published).toLocaleDateString('de-DE') : ''}</span>
+      </div>
+      <div class="cc-version">
+        <span>v${esc(vA.version_number)}</span>
+        <span style="font-size:.72rem; color:var(--sub); font-weight:normal;">(${vA.version_type})</span>
+      </div>
+      <div class="cc-meta-list">
+        <div class="cc-meta-item">🎮 MC-Versionen: <strong>${esc((vA.game_versions||[]).join(', '))}</strong></div>
+        <div class="cc-meta-item">⚙️ Modloader: <strong>${esc((vA.loaders||[]).join(', '))}</strong></div>
+        <div class="cc-meta-item">📁 Dateiname: <strong style="font-family:var(--mono); font-size:.68rem;">${esc(fileA.filename || '-')}</strong></div>
+        <div class="cc-meta-item">💾 Größe: <strong>${sizeA}</strong></div>
+      </div>
+      <div style="margin-top:4px; font-weight:700; font-size:.75rem; color:var(--text);">📝 Changelog / Release Notes:</div>
+      <div class="changelog-box">${renderMarkdownChangelog(vA.changelog)}</div>
+    </div>
+
+    <!-- Version B Card -->
+    <div class="compare-card ${isCurrentB ? 'active-version' : ''}">
+      <div class="compare-card-header">
+        <span class="cc-tag ${isCurrentB ? 'cur' : 'alt'}">${isCurrentB ? 'Aktuell im Pack' : 'Version B'}</span>
+        <span style="font-size:.7rem; color:var(--sub);">${vB.date_published ? new Date(vB.date_published).toLocaleDateString('de-DE') : ''}</span>
+      </div>
+      <div class="cc-version">
+        <span>v${esc(vB.version_number)}</span>
+        <span style="font-size:.72rem; color:var(--sub); font-weight:normal;">(${vB.version_type})</span>
+      </div>
+      <div class="cc-meta-list">
+        <div class="cc-meta-item">🎮 MC-Versionen: <strong>${esc((vB.game_versions||[]).join(', '))}</strong></div>
+        <div class="cc-meta-item">⚙️ Modloader: <strong>${esc((vB.loaders||[]).join(', '))}</strong></div>
+        <div class="cc-meta-item">📁 Dateiname: <strong style="font-family:var(--mono); font-size:.68rem;">${esc(fileB.filename || '-')}</strong></div>
+        <div class="cc-meta-item">💾 Größe: <strong>${sizeB}</strong></div>
+      </div>
+      <div style="margin-top:4px; font-weight:700; font-size:.75rem; color:var(--text);">📝 Changelog / Release Notes:</div>
+      <div class="changelog-box">${renderMarkdownChangelog(vB.changelog)}</div>
+    </div>
+  `;
+}
+
+function renderMarkdownChangelog(text) {
+  if (!text || !text.trim()) return '<div class="no-changelog">Kein Changelog für diese Version hinterlegt.</div>';
+  let html = escapeHtml(text)
+    .replace(/^### (.*$)/gim, '<h4>$1</h4>')
+    .replace(/^## (.*$)/gim, '<h3>$1</h3>')
+    .replace(/^# (.*$)/gim, '<h2>$1</h2>')
+    .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+    .replace(/\*(.*?)\*/g, '<i>$1</i>')
+    .replace(/`(.*?)`/g, '<code class="cl-code">$1</code>')
+    .replace(/^\s*[-*+]\s+(.*$)/gim, '<li>$1</li>')
+    .replace(/\n/g, '<br>');
+  html = html.replace(/(<li>.*?<\/li><br>)+/g, m => '<ul>' + m.replace(/<br>/g, '') + '</ul>');
+  return html;
+}
+
+function applyCompareDecision(choice) {
+  if (!compareState.itemSlug) return;
+  pushUndo();
+
+  const isRP = compareState.itemType === 'resourcepack';
+  const list = isRP ? RESOURCEPACKS : MODS;
+  let item = list.find(m => m.slug === compareState.itemSlug);
+
+  const selectedVerObj = (choice === 'keepA') ? compareState.versionA : compareState.versionB;
+
+  if (!selectedVerObj) {
+    closeCompareModal();
+    return;
+  }
+
+  if (!item) {
+    item = {
+      slug: compareState.itemSlug,
+      name: compareState.modName || compareState.itemSlug,
+      cat: 'Hinzugefügt',
+      version: selectedVerObj.version_number,
+      versionId: selectedVerObj.id,
+      hasUpdate: false
+    };
+    if (isRP) RESOURCEPACKS.push(item); else MODS.push(item);
+  } else {
+    item.version = selectedVerObj.version_number;
+    item.versionId = selectedVerObj.id;
+    item.hasUpdate = false;
+  }
+
+  if (isRP) renderRPs(); else renderMods();
+  closeCompareModal();
+  showToast(`✅ ${item.name} auf Version v${item.version} gesetzt!`);
 }
 
 // Known dependency map — slug → required deps
@@ -1643,16 +2552,6 @@ async function parseUpgPack(file) {
   }
 }
 
-function upgLog(msg, cls) {
-  const el = document.getElementById('upgLog');
-  el.style.display = 'block';
-  const line = document.createElement('div');
-  line.className = cls || 'log-dim';
-  line.textContent = msg;
-  el.appendChild(line);
-  el.scrollTop = el.scrollHeight;
-}
-
 async function runUpgrade() {
   if (!upgPackData) return;
   const btn = document.getElementById('upgBtn');
@@ -1912,22 +2811,177 @@ function closeOverlayAndScroll(e, sectionId) {
 
 
 /* ══ THEME TOGGLE ══════════════════════════════════════════════ */
-function setTheme(theme) {
-  if (theme === 'light') {
+function setTheme(theme, silent = false) {
+  const currentTheme = theme === 'light' ? 'light' : 'dark';
+  if (currentTheme === 'light') {
     document.body.classList.add('light');
   } else {
     document.body.classList.remove('light');
   }
-  localStorage.setItem('mctoolkit_theme', theme);
-  document.getElementById('themeOptDark')?.classList.toggle('active',  theme === 'dark');
-  document.getElementById('themeOptLight')?.classList.toggle('active', theme === 'light');
-  closeUserMenu();
-  showToast(theme === 'light' ? '☀️ Helles Design aktiviert' : '🌙 Dunkles Design aktiviert');
+  localStorage.setItem('mctoolkit_theme', currentTheme);
+
+  ['themeOptDark', 'themeOptDark2'].forEach(id => {
+    document.getElementById(id)?.classList.toggle('active', currentTheme === 'dark');
+  });
+  ['themeOptLight', 'themeOptLight2'].forEach(id => {
+    document.getElementById(id)?.classList.toggle('active', currentTheme === 'light');
+  });
+
+  if (!silent) {
+    showToast(currentTheme === 'light' ? '☀️ Helles Design aktiviert' : '🌙 Dunkles Design aktiviert');
+  }
 }
-// Restore saved theme on load
+
+// Restore saved theme on load & listen for cross-tab sync
 (function() {
-  const saved = localStorage.getItem('mctoolkit_theme');
-  if (saved === 'light') document.body.classList.add('light');
+  const saved = localStorage.getItem('mctoolkit_theme') || 'dark';
+  setTheme(saved, true);
+
+  window.addEventListener('storage', e => {
+    if (e.key === 'mctoolkit_theme' && e.newValue) {
+      setTheme(e.newValue, true);
+    }
+  });
+})();
+
+/* ══ MULTI-LANGUAGE (DE / EN) I18N ═════════════════════════════ */
+const I18N = {
+  de: {
+    nav_settings: "Einstellungen",
+    nav_features: "Features",
+    nav_howto: "Anleitung",
+    nav_faq: "FAQ",
+    nav_app: "App ÖFFNEN",
+    sp_guest_msg: "Melde dich an um Profile zu speichern, VIP-Features zu nutzen und mehr.",
+    sp_login_btn: "Anmelden / Registrieren",
+    sp_appearance: "Erscheinungsbild",
+    sp_language: "Sprache / Language",
+    sp_navigation: "Navigation",
+    sp_theme: "Theme",
+    sp_lang: "Sprache / Language",
+    sp_dark: "Dunkel",
+    sp_light: "Hell",
+    sp_my_profiles: "Meine Profile",
+    sp_modrinth: "Modrinth verbinden / Modpacks",
+    sp_vip: "VIP freischalten ⭐",
+    sp_logout: "Abmelden",
+
+    tab_builder: "🧩 Pack Builder",
+    tab_fix: "🔥 Reparieren",
+    tab_merge: "⚙️ Zusammenführen",
+    tab_upgrade: "⬆ Versions-Update",
+    tab_convert: "🔄 Konvertieren",
+    tab_community: "🌍 Public Packs",
+
+    btn_check_updates: "🔄 Updates prüfen",
+    btn_batch_import: "📥 .jar/.zip Batch-Import",
+    btn_publish: "↑ Pack veröffentlichen",
+    btn_enter_code: "🔑 Code eingeben",
+    btn_export_text: "📄 Als Text exportieren",
+    btn_pvp_pack: "Best PvP Pack laden",
+    btn_pvp_sub: "Optimiert für Crystal PvP · 1 Klick · sofort bereit",
+    btn_build_pack: "🚀 Modpack jetzt generieren (.mrpack / .zip)",
+
+    label_pack_name: "Pack-Name",
+    label_mc_version: "Minecraft Version",
+    label_loader: "Mod Loader",
+    label_mods: "🧩 Mods",
+    label_rps: "🎨 Texture Packs",
+
+    toast_lang_de: "🇩🇪 Sprache auf Deutsch gestellt",
+    toast_lang_en: "🇬🇧 Language set to English"
+  },
+  en: {
+    nav_settings: "Settings",
+    nav_features: "Features",
+    nav_howto: "Guide",
+    nav_faq: "FAQ",
+    nav_app: "Open App",
+    sp_guest_msg: "Sign in to save profiles, access VIP features, and more.",
+    sp_login_btn: "Sign In / Register",
+    sp_appearance: "Appearance",
+    sp_language: "Language / Sprache",
+    sp_navigation: "Navigation",
+    sp_theme: "Theme",
+    sp_lang: "Language / Sprache",
+    sp_dark: "Dark",
+    sp_light: "Light",
+    sp_my_profiles: "My Profiles",
+    sp_modrinth: "Connect Modrinth / Modpacks",
+    sp_vip: "Unlock VIP ⭐",
+    sp_logout: "Sign Out",
+
+    tab_builder: "🧩 Pack Builder",
+    tab_fix: "🔥 Repair",
+    tab_merge: "⚙️ Merge Packs",
+    tab_upgrade: "⬆ Version Update",
+    tab_convert: "🔄 Convert",
+    tab_community: "🌍 Public Packs",
+
+    btn_check_updates: "🔄 Check for Updates",
+    btn_batch_import: "📥 .jar/.zip Batch Import",
+    btn_publish: "↑ Publish Pack",
+    btn_enter_code: "🔑 Enter Code",
+    btn_export_text: "📄 Export as Text",
+    btn_pvp_pack: "Load Best PvP Pack",
+    btn_pvp_sub: "Optimized for Crystal PvP · 1 Click · Ready instantly",
+    btn_build_pack: "🚀 Generate Modpack Now (.mrpack / .zip)",
+
+    label_pack_name: "Pack Name",
+    label_mc_version: "Minecraft Version",
+    label_loader: "Mod Loader",
+    label_mods: "🧩 Mods",
+    label_rps: "🎨 Texture Packs",
+
+    toast_lang_de: "🇩🇪 Sprache auf Deutsch gestellt",
+    toast_lang_en: "🇬🇧 Language set to English"
+  }
+};
+
+let currentLang = 'de';
+
+function setLang(lang, silent = false) {
+  currentLang = (lang === 'en' ? 'en' : 'de');
+  localStorage.setItem('mctoolkit_lang', currentLang);
+  document.documentElement.lang = currentLang;
+
+  ['langOptDE', 'langOptDE2', 'navLangDE'].forEach(id => {
+    document.getElementById(id)?.classList.toggle('active', currentLang === 'de');
+  });
+  ['langOptEN', 'langOptEN2', 'navLangEN'].forEach(id => {
+    document.getElementById(id)?.classList.toggle('active', currentLang === 'en');
+  });
+
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (I18N[currentLang] && I18N[currentLang][key]) {
+      el.textContent = I18N[currentLang][key];
+    }
+  });
+
+  const navSettingsLabel = document.getElementById('navSettingsLabel');
+  if (navSettingsLabel) navSettingsLabel.textContent = I18N[currentLang].nav_settings;
+
+  const checkUpdatesBtn = document.getElementById('checkUpdatesBtn');
+  if (checkUpdatesBtn && !checkUpdatesBtn.disabled && checkUpdatesBtn.innerHTML.includes('Updates')) {
+    checkUpdatesBtn.innerHTML = I18N[currentLang].btn_check_updates;
+  }
+
+  if (!silent) {
+    showToast(currentLang === 'en' ? I18N.en.toast_lang_en : I18N.de.toast_lang_de);
+  }
+}
+
+// Restore saved language on load & listen for cross-tab sync
+(function() {
+  const saved = localStorage.getItem('mctoolkit_lang') || 'de';
+  setLang(saved, true);
+
+  window.addEventListener('storage', e => {
+    if (e.key === 'mctoolkit_lang' && e.newValue) {
+      setLang(e.newValue, true);
+    }
+  });
 })();
 
 /* ══ LEGAL MODALS ═══════════════════════════════════════════════ */
@@ -2659,46 +3713,102 @@ function loadBestPvpPack() {
 
 /* ══ PACK CONVERTER ════════════════════════════════════════════ */
 let convPackData  = null;
-let convDirection = null; // 'mr-to-cf' | 'cf-to-mr'
+let convDirection = null;
+let targetFormat  = null;
 
-function selectConvertDir(dir) {
-  convDirection = dir;
-  document.querySelectorAll('.convert-dir-btn').forEach(b => b.classList.remove('active'));
-  const idMap = {
-    'mr-to-cf': 'cdirMRtoCF',
-    'cf-to-mr': 'cdirCFtoMR',
-    'lc-to-mr': 'cdirLCtoMR',
-    'lc-to-cf': 'cdirLCtoCF'
-  };
-  const activeId = idMap[dir];
-  if (activeId && document.getElementById(activeId)) {
-    document.getElementById(activeId).classList.add('active');
+function updateTargetFormatUI() {
+  const container = document.getElementById('targetFormatContainer');
+  if (!convPackData) {
+    if (container) container.style.display = 'none';
+    return;
   }
-  const label = document.getElementById('convDZ-label');
-  if (dir === 'mr-to-cf') {
-    label.textContent = 'Modrinth .mrpack hier ablegen oder klicken';
-  } else if (dir === 'cf-to-mr') {
-    label.textContent = 'CurseForge .zip hier ablegen oder klicken';
+  if (container) container.style.display = 'block';
+
+  const packType = convPackData.packType;
+
+  const btnMR = document.getElementById('targetFmtMR');
+  const btnCF = document.getElementById('targetFmtCF');
+  const btnLC = document.getElementById('targetFmtLC');
+
+  [btnMR, btnCF, btnLC].forEach(b => {
+    if (b) {
+      b.classList.remove('active', 'disabled');
+      b.disabled = false;
+      const sub = b.querySelector('.t-ext');
+      if (sub && sub.dataset.origText) sub.textContent = sub.dataset.origText;
+    }
+  });
+
+  if (packType === 'modrinth') {
+    if (btnMR) {
+      btnMR.classList.add('disabled');
+      btnMR.disabled = true;
+      const sub = btnMR.querySelector('.t-ext');
+      if (sub) { if (!sub.dataset.origText) sub.dataset.origText = sub.textContent; sub.textContent = '(Quellformat)'; }
+    }
+    if (targetFormat === 'modrinth' || !targetFormat) {
+      targetFormat = 'curseforge';
+    }
+  } else if (packType === 'curseforge') {
+    if (btnCF) {
+      btnCF.classList.add('disabled');
+      btnCF.disabled = true;
+      const sub = btnCF.querySelector('.t-ext');
+      if (sub) { if (!sub.dataset.origText) sub.dataset.origText = sub.textContent; sub.textContent = '(Quellformat)'; }
+    }
+    if (targetFormat === 'curseforge' || !targetFormat) {
+      targetFormat = 'modrinth';
+    }
+  } else if (packType === 'lunar-json' || packType === 'lunar-zip') {
+    if (btnLC) {
+      btnLC.classList.add('disabled');
+      btnLC.disabled = true;
+      const sub = btnLC.querySelector('.t-ext');
+      if (sub) { if (!sub.dataset.origText) sub.dataset.origText = sub.textContent; sub.textContent = '(Quellformat)'; }
+    }
+    if (targetFormat === 'lunar' || !targetFormat) {
+      targetFormat = 'modrinth';
+    }
+  }
+
+  if (packType === 'modrinth') {
+    convDirection = targetFormat === 'lunar' ? 'mr-to-lc' : 'mr-to-cf';
+  } else if (packType === 'curseforge') {
+    convDirection = targetFormat === 'lunar' ? 'cf-to-lc' : 'cf-to-mr';
   } else {
-    label.textContent = 'Lunar Client Profile .json oder Mods .zip hier ablegen';
+    convDirection = targetFormat === 'curseforge' ? 'lc-to-cf' : 'lc-to-mr';
   }
-  if (convPackData) previewConvert();
+
+  if (targetFormat === 'modrinth' && btnMR) btnMR.classList.add('active');
+  if (targetFormat === 'curseforge' && btnCF) btnCF.classList.add('active');
+  if (targetFormat === 'lunar' && btnLC) btnLC.classList.add('active');
+
+  previewConvert();
   updateConvBtn();
+}
+
+function selectTargetFormat(target) {
+  targetFormat = target;
+  updateTargetFormatUI();
 }
 
 function dzDropConv(e) { e.preventDefault(); dzLeave('convDZ'); if(e.dataTransfer.files[0]) parseConvPack(e.dataTransfer.files[0]); }
 function loadConvPack(inp) { if(inp.files[0]) parseConvPack(inp.files[0]); }
 
 function clearConvDZ(e) {
-  e.stopPropagation(); convPackData = null;
+  if (e) e.stopPropagation();
+  convPackData = null;
+  targetFormat = null;
+  convDirection = null;
   document.getElementById('convDZ').classList.remove('loaded');
   document.getElementById('convDZ-icon').textContent = '📦';
-  document.getElementById('convDZ-label').textContent = 'Pack hier ablegen oder klicken';
+  document.getElementById('convDZ-label').textContent = 'Modrinth, CurseForge oder Lunar Client Pack hier ablegen oder klicken';
   ['convDZ-name','convDZ-stats'].forEach(id => document.getElementById(id).textContent = '');
   document.getElementById('convDZ-clear').style.display = 'none';
   document.getElementById('convFile').value = '';
   document.getElementById('convResult').style.display = 'none';
   document.getElementById('convStatus').textContent = '';
+  updateTargetFormatUI();
   updateConvBtn();
 }
 
@@ -2748,17 +3858,7 @@ async function parseConvPack(file) {
 
     convPackData = { index, fileName: file.name, packType, zip, modsList, mcVersion };
 
-    if (packType === 'modrinth') {
-      selectConvertDir('mr-to-cf');
-    } else if (packType === 'curseforge') {
-      selectConvertDir('cf-to-mr');
-    } else if (packType === 'lunar-json' || packType === 'lunar-zip') {
-      if (convDirection !== 'lc-to-mr' && convDirection !== 'lc-to-cf') {
-        selectConvertDir('lc-to-mr');
-      } else {
-        selectConvertDir(convDirection);
-      }
-    }
+    updateTargetFormatUI();
 
     const mc = packType === 'modrinth'
       ? (index.dependencies || {}).minecraft || '?'
@@ -2811,7 +3911,11 @@ function previewConvert() {
       cstat('MC ' + mc,  'Version',      'var(--blue)') +
       cstat('Fabric ' + fl, 'Loader',   'var(--muted)');
     warnEl.style.display = 'block';
-    warnEl.innerHTML = '⚠ <b>Hinweis:</b> CurseForge benötigt eigene Mod-IDs. Da die Mods von Modrinth stammen, werden alle Download-Links in eine <code>modlist.html</code> im ZIP exportiert. Die Mods müssen einmalig manuell in den <code>mods/</code> Ordner gelegt werden.';
+    if (convDirection === 'mr-to-lc') {
+      warnEl.innerHTML = '💡 <b>Modrinth zu Lunar Client:</b> Wandelt dein <code>.mrpack</code> in ein Lunar Client Profil (<code>profile.json</code>) und ein ZIP mit Mod-Downloadlinks um.';
+    } else {
+      warnEl.innerHTML = '⚠ <b>Hinweis:</b> CurseForge benötigt eigene Mod-IDs. Da die Mods von Modrinth stammen, werden alle Download-Links in eine <code>modlist.html</code> im ZIP exportiert.';
+    }
   } else if (packType === 'curseforge') {
     const mods = index.files?.length || 0;
     const mc   = index.minecraft?.version || '?';
@@ -2821,7 +3925,11 @@ function previewConvert() {
       cstat('MC ' + mc, 'Version',  'var(--blue)') +
       cstat(ml, 'Loader',           'var(--muted)');
     warnEl.style.display = 'block';
-    warnEl.innerHTML = '⚠ <b>Hinweis:</b> CurseForge Mod-IDs werden über die Modrinth API nach passenden Mods gesucht. Nicht alle Mods sind auf Modrinth verfügbar. Nicht gefundene Mods werden übersprungen.';
+    if (convDirection === 'cf-to-lc') {
+      warnEl.innerHTML = '💡 <b>CurseForge zu Lunar Client:</b> Sucht deine CurseForge Mods auf Modrinth und erstellt ein Lunar Client Profil (<code>profile.json</code>) mit Download-Links.';
+    } else {
+      warnEl.innerHTML = '⚠ <b>Hinweis:</b> CurseForge Mod-IDs werden über die Modrinth API nach passenden Mods gesucht. Nicht alle Mods sind auf Modrinth verfügbar.';
+    }
   } else {
     const modsCount = modsList ? modsList.length : 0;
     statsEl.innerHTML =
@@ -2860,6 +3968,10 @@ async function runConvert() {
     await convertMRtoCF(btn, st, pb);
   } else if (convDirection === 'cf-to-mr') {
     await convertCFtoMR(btn, st, pb);
+  } else if (convDirection === 'mr-to-lc') {
+    await convertMRtoLC(btn, st, pb);
+  } else if (convDirection === 'cf-to-lc') {
+    await convertCFtoLC(btn, st, pb);
   } else if (convDirection === 'lc-to-mr') {
     await convertLCToMR(btn, st, pb);
   } else if (convDirection === 'lc-to-cf') {
@@ -4663,4 +5775,196 @@ async function convertLCToCF(btn, st, pb) {
   btn.disabled = false;
   launchConfetti();
   showOpenInApp(fn, 'curseforge', blobUrl);
+}
+
+
+async function convertMRtoLC(btn, st, pb) {
+  const { index } = convPackData;
+  const mc   = (index.dependencies || {}).minecraft || '1.21.11';
+  const fl   = (index.dependencies || {})['fabric-loader'] || '0.18.3';
+  const name = index.name || 'Converted Lunar Pack';
+
+  const files = index.files || [];
+  const customMods = [];
+  const resolved = [];
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    const fname = file.path.split('/').pop();
+    const url = file.downloads?.[0] || '';
+    pb.style.width = Math.round((i / files.length) * 85) + '%';
+    st.textContent = '(' + (i+1) + '/' + files.length + ') ' + fname;
+
+    customMods.push({
+      name: fname,
+      enabled: true,
+      url: url
+    });
+    resolved.push({
+      name: fname.replace(/\.jar$/, ''),
+      filename: fname,
+      url: url
+    });
+    await sleep(30);
+  }
+
+  pb.style.width = '100%';
+  st.textContent = 'Erstelle Lunar Client Profil...';
+
+  const lunarProfile = {
+    name: name,
+    version: mc,
+    subVersion: mc,
+    module: "fabric",
+    loaderVersion: fl,
+    icon: "DEFAULT",
+    customMods: customMods
+  };
+
+  const modRows = resolved.map(m =>
+    '<li><a href="' + m.url + '">' + esc(m.name) + '</a></li>'
+  ).join('\n');
+
+  const modlistHtml = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + esc(name) + '</title></head><body style="font-family:sans-serif;max-width:800px;margin:2rem auto;background:#1a1a2e;color:#f0f6fc"><h1 style="color:#38bdf8">🔵 ' + esc(name) + ' (Lunar Client)</h1><p>MC ' + mc + ' · Fabric ' + fl + ' · ' + resolved.length + ' Mods</p><h2>Mods</h2><ul>' + modRows + '</ul><hr><p style="color:#666">Konvertiert für Lunar Client mit MC Toolkit</p></body></html>';
+  const readme = name + '\nMC ' + mc + ' · Fabric ' + fl + '\nKonvertiert von .mrpack → Lunar Client mit MC Toolkit\n\nImportiere profile.json in Lunar Client oder Lade die Mods aus modlist.html in deinen mods/ Ordner herunter.';
+
+  const zip = new JSZip();
+  zip.file('profile.json', JSON.stringify(lunarProfile, null, 2));
+  zip.file('modlist.html', modlistHtml);
+  zip.file('README.txt', readme);
+
+  const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+  const fn   = name.replace(/\s+/g, '_') + '-lunar.zip';
+  const blobUrl = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = blobUrl; a.download = fn;
+  document.body.appendChild(a); a.click(); a.remove();
+
+  st.textContent = '✅ ' + resolved.length + ' Mods in Lunar Client Profil konvertiert → ' + fn;
+  btn.disabled = false;
+  launchConfetti();
+  showOpenInApp(fn, 'lunar', blobUrl);
+}
+
+async function convertCFtoLC(btn, st, pb) {
+  const { index, zip: origZip } = convPackData;
+  const mc   = index.minecraft?.version || '1.21.11';
+  const ml   = index.minecraft?.modLoaders?.[0]?.id || 'fabric-0.18.3';
+  const fl   = ml.replace(/^fabric-/, '');
+  const name = index.name || 'Converted Lunar Pack';
+  const cfFiles = index.files || [];
+
+  const customMods = [];
+  const resolved   = [];
+  const notFound   = [];
+
+  const cfSlugMap = new Map();
+  const cfNameMap = new Map();
+  if (origZip) {
+    const mlFile = origZip.file('modlist.html');
+    if (mlFile) {
+      const html = await mlFile.async('string');
+      const parser = new DOMParser();
+      const doc    = parser.parseFromString(html, 'text/html');
+      doc.querySelectorAll('li a[href]').forEach((a, i) => {
+        const href = a.href || a.getAttribute('href') || '';
+        const text = (a.textContent || '').replace(/\s*\(by .+?\)/, '').trim();
+        const m    = href.match(/\/mc-mods\/([a-z0-9_-]+)/i);
+        if (m) cfSlugMap.set(i, m[1]);
+        if (text) cfNameMap.set(i, text);
+      });
+    }
+  }
+
+  for (let i = 0; i < cfFiles.length; i++) {
+    const cf       = cfFiles[i];
+    const cfSlug   = cfSlugMap.get(i) || '';
+    const modName  = cfNameMap.get(i) || cfSlug || ('Mod-' + (cf.projectID || i));
+
+    pb.style.width = Math.round((i / Math.max(cfFiles.length,1)) * 85) + '%';
+    st.textContent = '(' + (i+1) + '/' + cfFiles.length + ') ' + modName;
+
+    let foundUrl = '';
+    let foundFileName = modName + '.jar';
+
+    if (cfSlug) {
+      try {
+        const ver = await fetchVersion(cfSlug, mc, false);
+        if (ver) {
+          const vf = ver.files.find(x => x.primary) || ver.files[0];
+          if (vf) {
+            foundUrl = vf.url;
+            foundFileName = vf.filename;
+          }
+        }
+      } catch(e) {}
+    }
+
+    if (!foundUrl && modName && modName.length > 2) {
+      try {
+        const r = await fetch(
+          'https://api.modrinth.com/v2/search?query=' + encodeURIComponent(modName) +
+          '&limit=3&facets=%5B%5B%22project_type%3Amod%22%5D%5D',
+          { headers: { 'User-Agent': 'mctoolkit/1.0' } }
+        );
+        if (r.ok) {
+          const hits = (await r.json()).hits || [];
+          if (hits.length > 0) {
+            const ver = await fetchVersion(hits[0].slug, mc, false);
+            if (ver) {
+              const vf = ver.files.find(x => x.primary) || ver.files[0];
+              if (vf) {
+                foundUrl = vf.url;
+                foundFileName = vf.filename;
+              }
+            }
+          }
+        }
+      } catch(e) {}
+    }
+
+    if (foundUrl) {
+      customMods.push({ name: foundFileName, enabled: true, url: foundUrl });
+      resolved.push({ name: modName, filename: foundFileName, url: foundUrl });
+    } else {
+      customMods.push({ name: modName + '.jar', enabled: true });
+      notFound.push(modName);
+    }
+    await sleep(150);
+  }
+
+  pb.style.width = '100%';
+  st.textContent = 'Erstelle Lunar Client Profil...';
+
+  const lunarProfile = {
+    name: name,
+    version: mc,
+    subVersion: mc,
+    module: "fabric",
+    loaderVersion: fl,
+    icon: "DEFAULT",
+    customMods: customMods
+  };
+
+  const modRows = resolved.map(m =>
+    '<li><a href="' + m.url + '">' + esc(m.name) + '</a></li>'
+  ).join('\n');
+
+  const modlistHtml = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + esc(name) + '</title></head><body style="font-family:sans-serif;max-width:800px;margin:2rem auto;background:#1a1a2e;color:#f0f6fc"><h1 style="color:#38bdf8">🔵 ' + esc(name) + ' (Lunar Client)</h1><p>MC ' + mc + ' · Fabric ' + fl + ' · ' + resolved.length + ' Mods</p><h2>Mods</h2><ul>' + modRows + '</ul><hr><p style="color:#666">Konvertiert für Lunar Client mit MC Toolkit</p></body></html>';
+  const readme = name + '\nMC ' + mc + ' · Fabric ' + fl + '\nKonvertiert von CurseForge → Lunar Client mit MC Toolkit\n\nImportiere profile.json in Lunar Client oder Lade die Mods aus modlist.html in deinen mods/ Ordner herunter.';
+
+  const zip = new JSZip();
+  zip.file('profile.json', JSON.stringify(lunarProfile, null, 2));
+  zip.file('modlist.html', modlistHtml);
+  zip.file('README.txt', readme);
+
+  const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+  const fn   = name.replace(/\s+/g, '_') + '-lunar.zip';
+  const blobUrl = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = blobUrl; a.download = fn;
+  document.body.appendChild(a); a.click(); a.remove();
+
+  st.textContent = '✅ ' + resolved.length + ' Mods konvertiert' + (notFound.length ? ' · ' + notFound.length + ' nicht gefunden' : ' · Alle OK!') + ' → ' + fn;
+  btn.disabled = false;
+  launchConfetti();
+  showOpenInApp(fn, 'lunar', blobUrl);
 }

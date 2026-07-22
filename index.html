@@ -25,11 +25,16 @@
     <span class="nav-logo-text">MC <span>Toolkit</span></span>
   </a>
 
-  <!-- Settings Button top-right -->
-  <div style="position:relative;margin-left:auto">
+  <!-- Settings & Language Buttons top-right -->
+  <div style="position:relative;margin-left:auto;display:flex;align-items:center;gap:8px">
+    <div class="lang-nav-btns" title="Sprache wechseln / Switch Language">
+      <button onclick="setLang('de')" id="navLangDE" class="lang-nav-btn active" title="Deutsch">🇩🇪 DE</button>
+      <button onclick="setLang('en')" id="navLangEN" class="lang-nav-btn" title="English">🇬🇧 EN</button>
+    </div>
+
     <button class="nav-settings-btn" id="navSettingsBtn" onclick="toggleSettingsPanel()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-      <span class="ns-username" id="navSettingsLabel">Einstellungen</span>
+      <span class="ns-username" id="navSettingsLabel" data-i18n="nav_settings">Einstellungen</span>
     </button>
 
     <!-- Settings Dropdown Panel -->
@@ -38,24 +43,31 @@
       <!-- GUEST VIEW -->
       <div id="spGuest">
         <div class="sp-guest">
-          <p>Melde dich an um Profile zu speichern, VIP-Features zu nutzen und mehr.</p>
-          <button class="sp-login-btn" onclick="closeSettingsPanel();openAuth()">Anmelden / Registrieren</button>
+          <p data-i18n="sp_guest_msg">Melde dich an um Profile zu speichern, VIP-Features zu nutzen und mehr.</p>
+          <button class="sp-login-btn" onclick="closeSettingsPanel();openAuth()" data-i18n="sp_login_btn">Anmelden / Registrieren</button>
         </div>
         <div class="sp-section">
-          <div class="sp-label">Erscheinungsbild</div>
+          <div class="sp-label" data-i18n="sp_appearance">Erscheinungsbild</div>
           <div class="sp-theme-row">
-            <span>Theme</span>
+            <span data-i18n="sp_theme">Theme</span>
             <div class="sp-theme-btns">
               <button onclick="setTheme('dark')"  id="themeOptDark"  class="ud-theme-opt active" title="Dunkel">🌙</button>
               <button onclick="setTheme('light')" id="themeOptLight" class="ud-theme-opt"        title="Hell">☀️</button>
             </div>
           </div>
+          <div class="sp-theme-row" style="margin-top:6px">
+            <span data-i18n="sp_lang">Sprache / Language</span>
+            <div class="sp-theme-btns">
+              <button onclick="setLang('de')" id="langOptDE" class="ud-theme-opt active" title="Deutsch">🇩🇪</button>
+              <button onclick="setLang('en')" id="langOptEN" class="ud-theme-opt" title="English">🇬🇧</button>
+            </div>
+          </div>
         </div>
         <div class="sp-section">
-          <div class="sp-label">Navigation</div>
-          <button class="sp-item" onclick="closeSettingsPanel();closeOverlayAndScroll(event,'features')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>Features</button>
-          <button class="sp-item" onclick="closeSettingsPanel();closeOverlayAndScroll(event,'howto')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Anleitung</button>
-          <button class="sp-item" onclick="closeSettingsPanel();closeOverlayAndScroll(event,'faq')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>FAQ</button>
+          <div class="sp-label" data-i18n="sp_navigation">Navigation</div>
+          <button class="sp-item" onclick="closeSettingsPanel();closeOverlayAndScroll(event,'features')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span data-i18n="nav_features">Features</span></button>
+          <button class="sp-item" onclick="closeSettingsPanel();closeOverlayAndScroll(event,'howto')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span data-i18n="nav_howto">Anleitung</span></button>
+          <button class="sp-item" onclick="closeSettingsPanel();closeOverlayAndScroll(event,'faq')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span data-i18n="nav_faq">FAQ</span></button>
         </div>
       </div>
 
@@ -71,37 +83,44 @@
         <div class="sp-section">
           <button class="sp-item" onclick="openProfiles();closeSettingsPanel()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-            Meine Profile
+            <span data-i18n="sp_my_profiles">Meine Profile</span>
           </button>
           <button class="sp-item" onclick="openModrinthPanel();closeSettingsPanel()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h16"/><path d="M12 4v16"/><circle cx="12" cy="12" r="9"/></svg>
-            Modrinth verbinden / Modpacks
+            <span data-i18n="sp_modrinth">Modrinth verbinden / Modpacks</span>
           </button>
           <button class="sp-item" onclick="openVipModal();closeSettingsPanel()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            <span id="spVipLabel">VIP freischalten ⭐</span>
+            <span id="spVipLabel" data-i18n="sp_vip">VIP freischalten ⭐</span>
           </button>
         </div>
         <div class="sp-section">
-          <div class="sp-label">Navigation</div>
-          <button class="sp-item" onclick="closeSettingsPanel();closeOverlayAndScroll(event,'features')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>Features</button>
-          <button class="sp-item" onclick="closeSettingsPanel();closeOverlayAndScroll(event,'howto')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Anleitung</button>
-          <button class="sp-item" onclick="closeSettingsPanel();closeOverlayAndScroll(event,'faq')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>FAQ</button>
+          <div class="sp-label" data-i18n="sp_navigation">Navigation</div>
+          <button class="sp-item" onclick="closeSettingsPanel();closeOverlayAndScroll(event,'features')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span data-i18n="nav_features">Features</span></button>
+          <button class="sp-item" onclick="closeSettingsPanel();closeOverlayAndScroll(event,'howto')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span data-i18n="nav_howto">Anleitung</span></button>
+          <button class="sp-item" onclick="closeSettingsPanel();closeOverlayAndScroll(event,'faq')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span data-i18n="nav_faq">FAQ</span></button>
         </div>
         <div class="sp-section">
-          <div class="sp-label">Erscheinungsbild</div>
+          <div class="sp-label" data-i18n="sp_appearance">Erscheinungsbild</div>
           <div class="sp-theme-row">
-            <span>Theme</span>
+            <span data-i18n="sp_theme">Theme</span>
             <div class="sp-theme-btns">
               <button onclick="setTheme('dark')"  id="themeOptDark2"  class="ud-theme-opt active" title="Dunkel">🌙</button>
               <button onclick="setTheme('light')" id="themeOptLight2" class="ud-theme-opt"        title="Hell">☀️</button>
+            </div>
+          </div>
+          <div class="sp-theme-row" style="margin-top:6px">
+            <span data-i18n="sp_lang">Sprache / Language</span>
+            <div class="sp-theme-btns">
+              <button onclick="setLang('de')" id="langOptDE2" class="ud-theme-opt active" title="Deutsch">🇩🇪</button>
+              <button onclick="setLang('en')" id="langOptEN2" class="ud-theme-opt" title="English">🇬🇧</button>
             </div>
           </div>
         </div>
         <div class="sp-section">
           <button class="sp-item danger" onclick="signOut();closeSettingsPanel()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-            Abmelden
+            <span data-i18n="sp_logout">Abmelden</span>
           </button>
         </div>
       </div>
@@ -649,12 +668,12 @@
     </div>
 
     <div class="page-tabs">
-      <div class="page-tab active"  id="tab-builder" onclick="showPage('builder')">🧩 Pack Builder</div>
-      <div class="page-tab"         id="tab-fix"     onclick="showPage('fix')">🔥 Reparieren</div>
-      <div class="page-tab"         id="tab-merge"   onclick="showPage('merge')">⚙️ Zusammenführen</div>
-      <div class="page-tab"         id="tab-upgrade" onclick="showPage('upgrade')">⬆ Versions-Update</div>
-      <div class="page-tab"         id="tab-convert" onclick="showPage('convert')">🔄 Konvertieren</div>
-      <div class="page-tab"         id="tab-community" onclick="showPage('community')">🌍 Public Packs</div>
+      <div class="page-tab active"  id="tab-builder" onclick="showPage('builder')" data-i18n="tab_builder">🧩 Pack Builder</div>
+      <div class="page-tab"         id="tab-fix"     onclick="showPage('fix')" data-i18n="tab_fix">🔥 Reparieren</div>
+      <div class="page-tab"         id="tab-merge"   onclick="showPage('merge')" data-i18n="tab_merge">⚙️ Zusammenführen</div>
+      <div class="page-tab"         id="tab-upgrade" onclick="showPage('upgrade')" data-i18n="tab_upgrade">⬆ Versions-Update</div>
+      <div class="page-tab"         id="tab-convert" onclick="showPage('convert')" data-i18n="tab_convert">🔄 Konvertieren</div>
+      <div class="page-tab"         id="tab-community" onclick="showPage('community')" data-i18n="tab_community">🌍 Public Packs</div>
     </div>
 
     <!-- ── BUILDER ── -->
@@ -665,16 +684,16 @@
       <button class="pvp-pack-btn" onclick="loadBestPvpPack()">
         <span class="pvp-icon">💎</span>
         <span class="pvp-label">
-          <span class="pvp-title">Best PvP Pack laden</span>
-          <span class="pvp-sub">Optimiert für Crystal PvP · 1 Klick · sofort bereit</span>
+          <span class="pvp-title" data-i18n="btn_pvp_pack">Best PvP Pack laden</span>
+          <span class="pvp-sub" data-i18n="btn_pvp_sub">Optimiert für Crystal PvP · 1 Klick · sofort bereit</span>
         </span>
         <span class="pvp-badge">⚡ 1 Klick</span>
       </button>
 
       <div class="a-meta">
-        <div><label class="a-label">Pack-Name</label><input class="a-input" id="packName" value="Mein Modpack"></div>
+        <div><label class="a-label" data-i18n="label_pack_name">Pack-Name</label><input class="a-input" id="packName" value="Mein Modpack"></div>
         <div>
-          <label class="a-label">Minecraft Version</label>
+          <label class="a-label" data-i18n="label_mc_version">Minecraft Version</label>
           <select class="a-input" id="mcVersion">
             <option value="1.26.2">1.26.2</option>
             <option value="1.26.1.2">1.26.1.2</option>
@@ -755,13 +774,20 @@
 
       <!-- Extra actions -->
       <div class="extra-actions">
+        <button class="extra-btn" id="checkUpdatesBtn" style="border-color:rgba(250,204,21,.5);color:#facc15" onclick="checkForUpdates()">🔄 Updates prüfen</button>
+        <button class="extra-btn" style="border-color:rgba(168,85,247,.5);color:#c084fc" onclick="document.getElementById('batchFileInput').click()">📥 .jar/.zip Batch-Import</button>
+        <input type="file" id="batchFileInput" multiple accept=".jar,.zip,.mrpack" style="display:none" onchange="handleBatchFileInput(this)">
         <button class="extra-btn share"  onclick="openShareModal()">↑ Pack veröffentlichen</button>
         <button class="extra-btn" style="border-color:rgba(96,165,250,.4);color:#60a5fa" onclick="document.getElementById('loadCodeOverlay').classList.add('open');document.getElementById('packCodeInput').focus()">🔑 Code eingeben</button>
         <button class="extra-btn export" onclick="exportTextList()">📄 Als Text exportieren</button>
         <button class="extra-btn"        onclick="openShortcuts()">⌨ Shortcuts</button>
       </div>
 
-      <div class="lists-wrap">
+      <div class="lists-wrap" id="builderListsWrap" ondragover="handleBatchDragOver(event)" ondragleave="handleBatchDragLeave(event)" ondrop="handleBatchDrop(event)">
+        <div class="batch-drop-overlay">
+          <span style="font-size:2rem">📥</span>
+          <span>Mehrere .jar (Mods) oder .zip (Resourcepacks) ablegen</span>
+        </div>
         <div class="list-block">
           <div class="list-header" onclick="toggleBlock('mod')">
             <span class="lh-title mods">🧩 Mods</span>
@@ -780,6 +806,7 @@
 
       <!-- Dependency / Error notifications -->
       <div id="depNotifications"></div>
+      <div id="updateNotifications"></div>
 
       <!-- Fix My Mod List signature button -->
       <button class="fix-btn" id="fixMyListBtn" onclick="fixMyModList()" disabled>
@@ -816,7 +843,29 @@
         <label class="fix-check"><input type="checkbox" id="fixUpdateAll" checked> Alle Mods auf neueste kompatible Version aktualisieren</label>
         <label class="fix-check"><input type="checkbox" id="fixRemoveBroken"> Nicht gefundene Mods entfernen</label>
       </div>
-      <div class="fix-log" id="fixLog"></div>
+      <div class="log-console-wrap" id="fixLogWrap" style="display:none">
+        <div class="log-console-header">
+          <div class="log-console-title">📋 Reparatur-Log Console</div>
+          <div class="log-filter-btns">
+            <button class="log-filter-btn active" id="flFilt-fixLog-all" onclick="filterLog('fixLog','all')">Alle</button>
+            <button class="log-filter-btn err" id="flFilt-fixLog-err" onclick="filterLog('fixLog','err')">✗ Fehler <span id="fixErrCount" class="log-cnt-badge">0</span></button>
+            <button class="log-filter-btn warn" id="flFilt-fixLog-warn" onclick="filterLog('fixLog','warn')">⚠️ Warnungen <span id="fixWarnCount" class="log-cnt-badge">0</span></button>
+            <button class="log-filter-btn info" id="flFilt-fixLog-info" onclick="filterLog('fixLog','info')">ℹ️ Info</button>
+          </div>
+          <button class="log-copy-btn" onclick="copyLogToClipboard('fixLog')">📋 Kopieren</button>
+        </div>
+        <div class="fix-log" id="fixLog"></div>
+        <div class="ai-fix-banner" id="fixAiBanner" style="display:none">
+          <div class="ai-fix-info">
+            <span class="ai-fix-icon">🤖</span>
+            <div>
+              <div class="ai-fix-title">AI Assistant: <span id="fixAiErrNum">0</span> Fehler/Inkompatibilitäten erkannt!</div>
+              <div class="ai-fix-desc">Der AI Assistant kann fehlerhafte Mods automatisch analysieren, Alternativen suchen und reparieren.</div>
+            </div>
+          </div>
+          <button class="ai-fix-btn" id="fixAiBtn" onclick="runAiAutoFix('fix')">🪄 Fehler mit AI reparieren</button>
+        </div>
+      </div>
       <div class="fix-stats" id="fixStats">
         <div class="fs-box"><span class="fs-num green" id="fsOk">0</span><span class="fs-label">Erfolgreich</span></div>
         <div class="fs-box"><span class="fs-num orange" id="fsUpd">0</span><span class="fs-label">Aktualisiert</span></div>
@@ -835,7 +884,7 @@
       <div class="merge-grid">
         <div class="drop-zone" id="mdz1" onclick="document.getElementById('mf1').click()"
              ondragover="dzDrag(event,'mdz1')" ondragleave="dzLeave('mdz1')" ondrop="dzDropM(event,'mdz1',1)">
-          <input type="file" id="mf1" accept=".mrpack,.zip" onchange="loadMpack(this,1)">
+          <input type="file" id="mf1" accept=".mrpack,.zip,.json" onchange="loadMpack(this,1)">
           <button class="dz-clear" id="mdz1-clear" style="display:none" onclick="clearMDZ(event,1)">✕</button>
           <div class="dz-icon">💾</div>
           <div class="dz-label">Modpack 1<br><span style="font-size:.7rem">Klicken oder hierher ziehen</span></div>
@@ -913,7 +962,29 @@
       </div>
 
       <!-- Log -->
-      <div class="upgrade-log" id="upgLog"></div>
+      <div class="log-console-wrap" id="upgLogWrap" style="display:none">
+        <div class="log-console-header">
+          <div class="log-console-title">📋 Upgrade-Log Console</div>
+          <div class="log-filter-btns">
+            <button class="log-filter-btn active" id="flFilt-upgLog-all" onclick="filterLog('upgLog','all')">Alle</button>
+            <button class="log-filter-btn err" id="flFilt-upgLog-err" onclick="filterLog('upgLog','err')">✗ Fehler <span id="upgErrCount" class="log-cnt-badge">0</span></button>
+            <button class="log-filter-btn warn" id="flFilt-upgLog-warn" onclick="filterLog('upgLog','warn')">⚠️ Warnungen <span id="upgWarnCount" class="log-cnt-badge">0</span></button>
+            <button class="log-filter-btn info" id="flFilt-upgLog-info" onclick="filterLog('upgLog','info')">ℹ️ Info</button>
+          </div>
+          <button class="log-copy-btn" onclick="copyLogToClipboard('upgLog')">📋 Kopieren</button>
+        </div>
+        <div class="upgrade-log" id="upgLog"></div>
+        <div class="ai-fix-banner" id="upgAiBanner" style="display:none">
+          <div class="ai-fix-info">
+            <span class="ai-fix-icon">🤖</span>
+            <div>
+              <div class="ai-fix-title">AI Assistant: <span id="upgAiErrNum">0</span> Mod-Inkompatibilitäten erkannt!</div>
+              <div class="ai-fix-desc">Der AI Assistant sucht automatisch nach passenden Versionen oder Alternativen für dein Ziel-MC.</div>
+            </div>
+          </div>
+          <button class="ai-fix-btn" id="upgAiBtn" onclick="runAiAutoFix('upgrade')">🪄 Fehler mit AI reparieren</button>
+        </div>
+      </div>
 
       <!-- Stats -->
       <div class="upgrade-stats" id="upgStats">
@@ -931,43 +1002,40 @@
     <!-- ── CONVERT ── -->
     <div class="page" id="page-convert">
       <div class="convert-intro">
-        <b>🔄 Pack konvertieren</b> – Lade ein bestehendes Modpack hoch und konvertiere es
-        automatisch zwischen den beiden Formaten. Mods werden über die Modrinth API aufgelöst.
-      </div>
-
-      <!-- Direction selector -->
-      <div class="convert-dir-btns">
-        <div class="convert-dir-btn mr-to-cf" id="cdirMRtoCF" onclick="selectConvertDir('mr-to-cf')">
-          <div class="cdb-icons">🟢 → 🟠</div>
-          <div class="cdb-label">Modrinth → CurseForge</div>
-          <div class="cdb-sub">.mrpack → .zip</div>
-        </div>
-        <div class="convert-dir-btn cf-to-mr" id="cdirCFtoMR" onclick="selectConvertDir('cf-to-mr')">
-          <div class="cdb-icons">🟠 → 🟢</div>
-          <div class="cdb-label">CurseForge → Modrinth</div>
-          <div class="cdb-sub">.zip → .mrpack</div>
-        </div>
-        <div class="convert-dir-btn lc-to-mr" id="cdirLCtoMR" onclick="selectConvertDir('lc-to-mr')">
-          <div class="cdb-icons">🔵 → 🟢</div>
-          <div class="cdb-label">Lunar Client → Modrinth</div>
-          <div class="cdb-sub">.json / .zip → .mrpack</div>
-        </div>
-        <div class="convert-dir-btn lc-to-cf" id="cdirLCtoCF" onclick="selectConvertDir('lc-to-cf')">
-          <div class="cdb-icons">🔵 → 🟠</div>
-          <div class="cdb-label">Lunar Client → CurseForge</div>
-          <div class="cdb-sub">.json / .zip → .zip</div>
-        </div>
+        <b>🔄 Modpack Konverter</b> – Lade dein Modpack (Modrinth <code>.mrpack</code>, CurseForge <code>.zip</code> oder Lunar Client <code>.json</code> / <code>.zip</code>) in die Drop-Zone hoch und wähle anschließend dein gewünschtes Zielformat.
       </div>
 
       <!-- Drop zone -->
       <div class="drop-zone" id="convDZ" onclick="document.getElementById('convFile').click()"
            ondragover="dzDrag(event,'convDZ')" ondragleave="dzLeave('convDZ')" ondrop="dzDropConv(event)">
-        <input type="file" id="convFile" accept=".mrpack,.zip" onchange="loadConvPack(this)">
+        <input type="file" id="convFile" accept=".mrpack,.zip,.json" onchange="loadConvPack(this)">
         <button class="dz-clear" id="convDZ-clear" style="display:none" onclick="clearConvDZ(event)">✕</button>
         <div class="dz-icon" id="convDZ-icon">📦</div>
-        <div class="dz-label" id="convDZ-label">Pack hier ablegen oder klicken</div>
+        <div class="dz-label" id="convDZ-label">Modrinth, CurseForge oder Lunar Client Pack hier ablegen oder klicken</div>
         <div class="dz-name" id="convDZ-name"></div>
         <div class="dz-stats" id="convDZ-stats"></div>
+      </div>
+
+      <!-- Target Format Selector -->
+      <div class="target-format-container" id="targetFormatContainer" style="display:none">
+        <div class="target-format-title">🎯 Gewünschtes Zielformat (Target Format) wählen:</div>
+        <div class="target-format-options">
+          <button class="target-fmt-btn" id="targetFmtMR" onclick="selectTargetFormat('modrinth')">
+            <span class="t-icon">🟢</span>
+            <span class="t-name">Modrinth</span>
+            <span class="t-ext">.mrpack</span>
+          </button>
+          <button class="target-fmt-btn" id="targetFmtCF" onclick="selectTargetFormat('curseforge')">
+            <span class="t-icon">🟠</span>
+            <span class="t-name">CurseForge</span>
+            <span class="t-ext">.zip</span>
+          </button>
+          <button class="target-fmt-btn" id="targetFmtLC" onclick="selectTargetFormat('lunar')">
+            <span class="t-icon">🔵</span>
+            <span class="t-name">Lunar Client</span>
+            <span class="t-ext">profile.json / .zip</span>
+          </button>
+        </div>
       </div>
 
       <!-- Result preview -->
@@ -975,6 +1043,30 @@
         <h3>📋 Konvertierungs-Vorschau</h3>
         <div class="convert-stat-row" id="convStats"></div>
         <div class="convert-warnings" id="convWarnings" style="display:none"></div>
+      </div>
+
+      <div class="log-console-wrap" id="convLogWrap" style="display:none;margin-top:1rem;">
+        <div class="log-console-header">
+          <div class="log-console-title">📋 Konvertierungs-Log Console</div>
+          <div class="log-filter-btns">
+            <button class="log-filter-btn active" id="flFilt-convLog-all" onclick="filterLog('convLog','all')">Alle</button>
+            <button class="log-filter-btn err" id="flFilt-convLog-err" onclick="filterLog('convLog','err')">✗ Fehler <span id="convErrCount" class="log-cnt-badge">0</span></button>
+            <button class="log-filter-btn warn" id="flFilt-convLog-warn" onclick="filterLog('convLog','warn')">⚠️ Warnungen <span id="convWarnCount" class="log-cnt-badge">0</span></button>
+            <button class="log-filter-btn info" id="flFilt-convLog-info" onclick="filterLog('convLog','info')">ℹ️ Info</button>
+          </div>
+          <button class="log-copy-btn" onclick="copyLogToClipboard('convLog')">📋 Kopieren</button>
+        </div>
+        <div class="upgrade-log" id="convLog"></div>
+        <div class="ai-fix-banner" id="convAiBanner" style="display:none">
+          <div class="ai-fix-info">
+            <span class="ai-fix-icon">🤖</span>
+            <div>
+              <div class="ai-fix-title">AI Assistant: <span id="convAiErrNum">0</span> Konvertierungsfehler erkannt!</div>
+              <div class="ai-fix-desc">Der AI Assistant löst unvollständige Modrinth/CurseForge Manifest-Einträge automatisch auf.</div>
+            </div>
+          </div>
+          <button class="ai-fix-btn" id="convAiBtn" onclick="runAiAutoFix('convert')">🪄 Fehler mit AI reparieren</button>
+        </div>
       </div>
 
       <button class="convert-btn" id="convBtn" onclick="runConvert()" disabled>
@@ -1458,6 +1550,53 @@
         <p>Es gilt das Recht der Bundesrepublik Deutschland. Gerichtsstand ist Deutschland.</p>
 
         <p style="margin-top:1rem;color:var(--muted);font-size:.75rem">Stand: März 2025</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Version Comparison Overlay -->
+  <div class="profiles-overlay" id="compareOverlay" style="z-index:850">
+    <div class="profiles-modal compare-modal">
+      <div class="pm-header">
+        <div class="compare-header-info">
+          <div class="compare-icon-badge" id="compareModIcon">🔍</div>
+          <div>
+            <h2 id="compareModalTitle">Mod-Versionen vergleichen</h2>
+            <div id="compareModalSubtitle" class="compare-sub">Einfluss &amp; Changelogs vor dem Wechsel analysieren</div>
+          </div>
+        </div>
+        <button class="pm-close" onclick="closeCompareModal()">✕</button>
+      </div>
+
+      <!-- Quick Version Picker Header -->
+      <div class="compare-picker-bar">
+        <div class="cp-select-group">
+          <label>Version A (Pack / Aktuell):</label>
+          <select id="compareVerSelectA" class="compare-select" onchange="onCompareSelectChange()"></select>
+        </div>
+        <div class="cp-vs-badge">VS</div>
+        <div class="cp-select-group">
+          <label>Version B (Vergleich / Neu):</label>
+          <select id="compareVerSelectB" class="compare-select" onchange="onCompareSelectChange()"></select>
+        </div>
+      </div>
+
+      <!-- Diff / Impact Highlights -->
+      <div id="compareDiffStrip" class="compare-diff-strip"></div>
+
+      <!-- Main Columns: Side-by-side Cards -->
+      <div id="compareBody" class="compare-body-grid">
+        <div class="compare-loading">
+          <div class="compare-spinner"></div>
+          <span>Lade Versionen &amp; Changelogs von Modrinth...</span>
+        </div>
+      </div>
+
+      <!-- Action Footer -->
+      <div class="compare-footer" id="compareFooter">
+        <button class="compare-btn cancel" onclick="closeCompareModal()">Abbrechen</button>
+        <button class="compare-btn keep-old" id="compareKeepOldBtn" onclick="applyCompareDecision('keepA')">⬅️ Version A behalten</button>
+        <button class="compare-btn use-new" id="compareUseNewBtn" onclick="applyCompareDecision('useB')">⚡ Version B übernehmen</button>
       </div>
     </div>
   </div>

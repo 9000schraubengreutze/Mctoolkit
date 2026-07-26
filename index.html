@@ -25,12 +25,9 @@
     <span class="nav-logo-text">MC <span>Toolkit</span></span>
   </a>
 
-  <!-- Settings & Language Buttons top-right -->
+  <!-- Settings Button top-right -->
   <div style="position:relative;margin-left:auto;display:flex;align-items:center;gap:8px">
-    <div class="lang-nav-btns" title="Sprache wechseln / Switch Language">
-      <button onclick="setLang('de')" id="navLangDE" class="lang-nav-btn active" title="Deutsch">🇩🇪 DE</button>
-      <button onclick="setLang('en')" id="navLangEN" class="lang-nav-btn" title="English">🇬🇧 EN</button>
-    </div>
+
 
     <button class="nav-settings-btn" id="navSettingsBtn" onclick="toggleSettingsPanel()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -53,13 +50,6 @@
             <div class="sp-theme-btns">
               <button onclick="setTheme('dark')"  id="themeOptDark"  class="ud-theme-opt active" title="Dunkel">🌙</button>
               <button onclick="setTheme('light')" id="themeOptLight" class="ud-theme-opt"        title="Hell">☀️</button>
-            </div>
-          </div>
-          <div class="sp-theme-row" style="margin-top:6px">
-            <span data-i18n="sp_lang">Sprache / Language</span>
-            <div class="sp-theme-btns">
-              <button onclick="setLang('de')" id="langOptDE" class="ud-theme-opt active" title="Deutsch">🇩🇪</button>
-              <button onclick="setLang('en')" id="langOptEN" class="ud-theme-opt" title="English">🇬🇧</button>
             </div>
           </div>
         </div>
@@ -107,13 +97,6 @@
             <div class="sp-theme-btns">
               <button onclick="setTheme('dark')"  id="themeOptDark2"  class="ud-theme-opt active" title="Dunkel">🌙</button>
               <button onclick="setTheme('light')" id="themeOptLight2" class="ud-theme-opt"        title="Hell">☀️</button>
-            </div>
-          </div>
-          <div class="sp-theme-row" style="margin-top:6px">
-            <span data-i18n="sp_lang">Sprache / Language</span>
-            <div class="sp-theme-btns">
-              <button onclick="setLang('de')" id="langOptDE2" class="ud-theme-opt active" title="Deutsch">🇩🇪</button>
-              <button onclick="setLang('en')" id="langOptEN2" class="ud-theme-opt" title="English">🇬🇧</button>
             </div>
           </div>
         </div>
@@ -630,6 +613,29 @@
           <button class="ai-suggestion-chip" onclick="aiLoadPreset('crystalpvp')"><span class="chip-emoji">💎</span><span>Crystal PvP</span></button>
         </div>
       </div>
+
+      <!-- Bolt Multi-Chat Manager Bar -->
+      <div class="bolt-chat-bar">
+        <div class="bolt-chat-select-wrap">
+          <span class="bolt-chat-icon">💬</span>
+          <select id="boltChatSelect" onchange="switchBoltChat(this.value)" class="bolt-chat-select" title="Chat wechseln"></select>
+        </div>
+        <div class="bolt-chat-actions">
+          <button type="button" class="bolt-chat-btn" onclick="createBoltChat()" title="Neuen Chat erstellen">
+            <span>+ Neu</span>
+          </button>
+          <button type="button" class="bolt-chat-btn" onclick="renameCurrentBoltChat()" title="Diesen Chat umbenennen">
+            <span>✏️</span>
+          </button>
+          <button type="button" class="bolt-chat-btn bolt-chat-btn--clear" onclick="clearBoltChat()" title="Diesen Chat leeren">
+            <span>🧹 Leeren</span>
+          </button>
+          <button type="button" class="bolt-chat-btn bolt-chat-btn--delete" id="deleteBoltChatBtn" onclick="deleteCurrentBoltChat()" title="Diesen Chat löschen" style="display:none">
+            <span>🗑</span>
+          </button>
+        </div>
+      </div>
+
       <!-- Messages -->
       <div class="ai-messages" id="aiMessages">
         <div class="ai-msg bot">
@@ -779,7 +785,6 @@
         <input type="file" id="batchFileInput" multiple accept=".jar,.zip,.mrpack" style="display:none" onchange="handleBatchFileInput(this)">
         <button class="extra-btn share"  onclick="openShareModal()">↑ Pack veröffentlichen</button>
         <button class="extra-btn" style="border-color:rgba(96,165,250,.4);color:#60a5fa" onclick="document.getElementById('loadCodeOverlay').classList.add('open');document.getElementById('packCodeInput').focus()">🔑 Code eingeben</button>
-        <button class="extra-btn export" onclick="exportTextList()">📄 Als Text exportieren</button>
         <button class="extra-btn"        onclick="openShortcuts()">⌨ Shortcuts</button>
       </div>
 
@@ -804,7 +809,8 @@
         </div>
       </div>
 
-      <!-- Dependency / Error notifications -->
+      <!-- Conflict, Dependency & Error notifications -->
+      <div id="conflictNotifications"></div>
       <div id="depNotifications"></div>
       <div id="updateNotifications"></div>
 
@@ -813,7 +819,7 @@
         🔧 Fix my mod list — Fehler beheben & Dependencies ergänzen
       </button>
 
-      <button class="build-btn" id="buildBtn" onclick="buildPack()" disabled>⬇ Pack generieren &amp; downloaden</button>
+      <button class="build-btn" id="buildBtn" onclick="openExportModal()" disabled>⬇ Modpack herunterladen / exportieren</button>
       <div class="prog-wrap" id="progressWrap"><div class="prog-bar green" id="progressBar"></div></div>
       <div class="app-status" id="statusText">Bereit.</div>
 
@@ -1001,10 +1007,6 @@
 
     <!-- ── CONVERT ── -->
     <div class="page" id="page-convert">
-      <div class="convert-intro">
-        <b>🔄 Modpack Konverter</b> – Lade dein Modpack (Modrinth <code>.mrpack</code>, CurseForge <code>.zip</code> oder Lunar Client <code>.json</code> / <code>.zip</code>) in die Drop-Zone hoch und wähle anschließend dein gewünschtes Zielformat.
-      </div>
-
       <!-- Drop zone -->
       <div class="drop-zone" id="convDZ" onclick="document.getElementById('convFile').click()"
            ondragover="dzDrag(event,'convDZ')" ondragleave="dzLeave('convDZ')" ondrop="dzDropConv(event)">
@@ -1405,9 +1407,94 @@
       <div class="sc-row"><span>Mod-Suche fokussieren</span><span class="sc-key">Strg + F</span></div>
       <div class="sc-row"><span>Letzten Mod entfernen (Rückgängig)</span><span class="sc-key">Strg + Z</span></div>
       <div class="sc-row"><span>Pack teilen</span><span class="sc-key">Strg + Shift + C</span></div>
-      <div class="sc-row"><span>Als Text exportieren</span><span class="sc-key">Strg + E</span></div>
+      <div class="sc-row"><span>Export-Optionen (.zip / .mrpack / .txt)</span><span class="sc-key">Strg + E</span></div>
       <div class="sc-row"><span>Shortcuts schließen</span><span class="sc-key">Esc</span></div>
       <button class="shortcuts-close" onclick="closeShortcuts()">Schließen</button>
+    </div>
+  </div>
+
+  <!-- Export Options Modal -->
+  <div class="profiles-overlay" id="exportModal" style="z-index:600">
+    <div class="profiles-modal export-modal">
+      <div class="pm-header" style="margin-bottom:0.6rem">
+        <div>
+          <h2 style="font-size:1.2rem; font-weight:800; color:var(--text); font-family:var(--font)">📦 Modpack herunterladen</h2>
+          <p class="export-modal-sub">Wähle dein bevorzugtes Format für Modrinth, CurseForge oder Lunar Client:</p>
+        </div>
+        <button class="pm-close" onclick="closeExportModal()">✕</button>
+      </div>
+
+      <div class="export-modal-body">
+        
+        <!-- Option 1: Modrinth .mrpack -->
+        <div class="export-card export-card--modrinth" onclick="exportMrpack()">
+          <div class="export-card-header">
+            <div class="export-card-title-wrap">
+              <span class="export-card-icon">🟢</span>
+              <span class="export-card-title">Modrinth .mrpack</span>
+            </div>
+            <span class="export-card-badge badge--modrinth" data-tooltip="🟢 Modrinth App &amp; Prism Launcher Format: .mrpack Archiv mit Hash-Verifizierung">Modrinth App / Prism</span>
+          </div>
+          <p class="export-card-desc">
+            Offizielles Modpack-Archiv (<code>.mrpack</code>) mit Hash-Verifizierung und integrierter <code>modlist.html</code> für schnellen Import.
+          </p>
+          <div class="export-card-btn btn--modrinth">
+            🟢 als Modrinth .mrpack herunterladen
+          </div>
+        </div>
+
+        <!-- Option 2: CurseForge .zip -->
+        <div class="export-card export-card--curseforge" onclick="exportCurseForgeZip()">
+          <div class="export-card-header">
+            <div class="export-card-title-wrap">
+              <span class="export-card-icon">📦</span>
+              <span class="export-card-title">CurseForge .zip</span>
+            </div>
+            <span class="export-card-badge badge--curseforge" data-tooltip="🟠 CurseForge, Prism &amp; MultiMC Format: Standardisiertes manifest.json ZIP-Archiv">CurseForge / Prism / MultiMC</span>
+          </div>
+          <p class="export-card-desc">
+            Standard-Archiv (<code>.zip</code>) mit <code>manifest.json</code>, Ordnerstruktur für <code>mods/</code> &amp; <code>resourcepacks/</code> und <code>modlist.html</code>.
+          </p>
+          <div class="export-card-btn btn--curseforge">
+            📦 als CurseForge .zip herunterladen
+          </div>
+        </div>
+
+        <!-- Option 3: Lunar Client Archiv -->
+        <div class="export-card export-card--lunar" onclick="exportLunarClient()">
+          <div class="export-card-header">
+            <div class="export-card-title-wrap">
+              <span class="export-card-icon">🔵</span>
+              <span class="export-card-title">Lunar Client Archiv</span>
+            </div>
+            <span class="export-card-badge badge--lunar">Lunar Client</span>
+          </div>
+          <p class="export-card-desc">
+            Lunar Client Profil (<code>profile.json</code>) mit Custom-Mods-URLs und <code>modlist.html</code> für direkten Import und Download.
+          </p>
+          <div class="export-card-btn btn--lunar">
+            🔵 als Lunar Client Archiv (.zip) herunterladen
+          </div>
+        </div>
+
+        <!-- Option 4: Textliste -->
+        <div class="export-card export-card--text" onclick="exportTextList();closeExportModal()">
+          <div class="export-card-header">
+            <div class="export-card-title-wrap">
+              <span class="export-card-icon">📄</span>
+              <span class="export-card-title">Modliste als Text</span>
+            </div>
+            <span class="export-card-badge badge--text">Textdatei (.txt)</span>
+          </div>
+          <p class="export-card-desc">
+            Einfache Textdatei mit allen nach Kategorien geordneten Mods und Texture Packs.
+          </p>
+          <div class="export-card-btn btn--text">
+            📄 als Textliste (.txt) speichern
+          </div>
+        </div>
+
+      </div>
     </div>
   </div>
 
@@ -1571,12 +1658,24 @@
       <!-- Quick Version Picker Header -->
       <div class="compare-picker-bar">
         <div class="cp-select-group">
-          <label>Version A (Pack / Aktuell):</label>
+          <div class="cp-label-row">
+            <label>Version A (Pack / Aktuell):</label>
+            <div class="cp-info-wrapper">
+              <button type="button" class="cp-info-btn" id="cpInfoBtnA" aria-label="Status Info A">ℹ️</button>
+              <div class="cp-info-tooltip" id="cpInfoTooltipA"></div>
+            </div>
+          </div>
           <select id="compareVerSelectA" class="compare-select" onchange="onCompareSelectChange()"></select>
         </div>
         <div class="cp-vs-badge">VS</div>
         <div class="cp-select-group">
-          <label>Version B (Vergleich / Neu):</label>
+          <div class="cp-label-row">
+            <label>Version B (Vergleich / Neu):</label>
+            <div class="cp-info-wrapper">
+              <button type="button" class="cp-info-btn" id="cpInfoBtnB" aria-label="Status Info B">ℹ️</button>
+              <div class="cp-info-tooltip" id="cpInfoTooltipB"></div>
+            </div>
+          </div>
           <select id="compareVerSelectB" class="compare-select" onchange="onCompareSelectChange()"></select>
         </div>
       </div>
@@ -1593,15 +1692,20 @@
       </div>
 
       <!-- Action Footer -->
+      <div id="smartUpdateWarningContainer" style="display:none; margin-bottom:12px;"></div>
       <div class="compare-footer" id="compareFooter">
         <button class="compare-btn cancel" onclick="closeCompareModal()">Abbrechen</button>
-        <button class="compare-btn keep-old" id="compareKeepOldBtn" onclick="applyCompareDecision('keepA')">⬅️ Version A behalten</button>
-        <button class="compare-btn use-new" id="compareUseNewBtn" onclick="applyCompareDecision('useB')">⚡ Version B übernehmen</button>
+        <button class="compare-btn keep-old" id="compareKeepOldBtn" onclick="applyCompareDecision('keepA')" title="Version A direkt im aktuell geöffneten Modpack einfügen">📥 Version A in Pack Builder einfügen</button>
+        <button class="compare-btn use-new" id="compareUseNewBtn" onclick="applyCompareDecision('useB')" title="Version B direkt übernehmen">⚡ Version B in Pack Builder einfügen</button>
+        <button class="compare-btn smart-update" id="compareSmartUpdateBtn" onclick="runSmartUpdateForCompare()" title="Prüft automatisch vor dem Übernehmen von Version B auf MC-Inkompatibilitäten &amp; Mod-Konflikte mit allen installierten Mods">
+          🛡️ Smart Update (Version B prüfend übernehmen)
+        </button>
       </div>
     </div>
   </div>
 
 </section>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="app.js"></script>
 </body>

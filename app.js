@@ -76,14 +76,25 @@ function applyPublicPackData(data) {
     const ind = document.getElementById('platformIndicator');
     if (ind) {
       ind.style.display = 'flex';
-      document.getElementById('piDot').className = 'pi-dot ' + data.platform;
-      document.getElementById('piName').className = 'pi-name ' + data.platform;
-      document.getElementById('piName').textContent = data.platform === 'modrinth' ? 'Modrinth' : 'CurseForge';
-      document.getElementById('piFormat').textContent = data.platform === 'modrinth' ? '.mrpack' : '.zip';
+      const isMr = data.platform === 'modrinth';
+      const piDot = document.getElementById('piDot');
+      if (piDot) {
+        piDot.className = 'pi-dot ' + data.platform;
+        piDot.setAttribute('data-tooltip', isMr ? '🟢 Modrinth Platform: Hash-Verifizierung & .mrpack Export' : '🟠 CurseForge Platform: Manifest.json & .zip Export');
+      }
+      const piName = document.getElementById('piName');
+      if (piName) {
+        piName.className = 'pi-name ' + data.platform;
+        piName.textContent = isMr ? 'Modrinth' : 'CurseForge';
+        piName.setAttribute('data-tooltip', isMr ? '🟢 Aktive Modpack-Plattform: Modrinth API & Katalog' : '🟠 Aktive Modpack-Plattform: CurseForge API & Katalog');
+      }
+      const piFmt = document.getElementById('piFormat');
+      if (piFmt) {
+        piFmt.textContent = isMr ? '.mrpack' : '.zip';
+        piFmt.setAttribute('data-tooltip', isMr ? '📦 Modpack-Format: .mrpack (Modrinth App & Prism Launcher)' : '📦 Modpack-Format: .zip (CurseForge App & MultiMC)');
+      }
       const btn = document.getElementById('buildBtn');
-      if (btn) btn.textContent = data.platform === 'modrinth'
-        ? '⬇ .mrpack generieren & downloaden'
-        : '⬇ CurseForge .zip generieren & downloaden';
+      if (btn) btn.textContent = '⬇ Modpack herunterladen / exportieren';
     }
   }
   renderMods();
@@ -324,6 +335,7 @@ function updateLogBadgeCounts(logId) {
   if (logId === 'fixLog') prefix = 'fix';
   else if (logId === 'upgLog') prefix = 'upg';
   else if (logId === 'convLog') prefix = 'conv';
+  else if (logId === 'suLog') prefix = 'su';
 
   if (prefix) {
     const eBadge = document.getElementById(prefix + 'ErrCount');
@@ -761,7 +773,235 @@ function updateBuildBtn() {
   if (fixMyBtn) fixMyBtn.disabled = empty;
 }
 
+/* ══ MOD-ID & NAMESPACE CONFLICT CHECKER ═════════════════════════ */
+const NAMESPACE_MAP = {
+  'sodium': 'sodium',
+  'embeddium': 'sodium',
+  'rubidium': 'sodium',
+  'sodium-mac-patch': 'sodium',
+  'sodium-fabric': 'sodium',
+
+  'iris': 'iris',
+  'oculus': 'iris',
+
+  'roughly-enough-items': 'item-viewer',
+  'just-enough-items': 'item-viewer',
+  'jei': 'item-viewer',
+  'rei': 'item-viewer',
+  'emi': 'item-viewer',
+  'hadenoughitems': 'item-viewer',
+
+  'xaeros-minimap': 'xaeros-minimap',
+  'xaeros-minimap-fair-play': 'xaeros-minimap',
+
+  'xaeros-world-map': 'xaeros-world-map',
+  'xaeros-world-map-fair-play': 'xaeros-world-map',
+
+  'journeymap': 'journeymap',
+  'journeymap-fairplay': 'journeymap',
+
+  'optifine': 'optifine',
+  'optifabric': 'optifine',
+
+  'appleskin': 'appleskin',
+  'appleskin-fabric': 'appleskin',
+
+  'zoomify': 'zoom-engine',
+  'ok-zoomer': 'zoom-engine',
+  'wiizoom': 'zoom-engine',
+
+  'no-hurt-cam': 'hurt-cam',
+  'hurt-cam-slider': 'hurt-cam'
+};
+
+const INCOMPATIBLE_PAIRS = [
+  {
+    mods: ['optifine', 'sodium'],
+    reason: 'OptiFine und Sodium sind inkompatible Grafik-Engines (verursachen Crashes beim Start).'
+  },
+  {
+    mods: ['opti-fabric', 'sodium'],
+    reason: 'OptiFabric und Sodium können nicht gleichzeitig geladen werden.'
+  },
+  {
+    mods: ['optifine', 'iris'],
+    reason: 'OptiFine und Iris nutzen inkompatible Shader-Pipelines.'
+  },
+  {
+    mods: ['optifine', 'lithium'],
+    reason: 'OptiFine beißt sich mit Lithium Mixin-Optimierungen.'
+  },
+  {
+    mods: ['canvas', 'sodium'],
+    reason: 'Canvas und Sodium verändern Rendering-Prozesse inkompatibel.'
+  },
+  {
+    mods: ['canvas', 'indium'],
+    reason: 'Canvas ist inkompatibel mit Indium.'
+  },
+  {
+    mods: ['fast-chest', 'enhanced-block-entities'],
+    reason: 'Fast Chest und Enhanced Block Entities überschreiben dieselben Truhen-Renderer.'
+  },
+  {
+    mods: ['vulkanmod', 'sodium'],
+    reason: 'VulkanMod ersetzt die komplette OpenGL-Pipeline und ist inkompatibel mit Sodium.'
+  }
+];
+
+function checkPackConflicts() {
+  const conflicts = [];
+  if (!MODS || !MODS.length) return conflicts;
+
+  const slugCounts = {};
+  MODS.forEach(m => {
+    const s = m.slug.toLowerCase();
+    slugCounts[s] = (slugCounts[s] || 0) + 1;
+  });
+
+  // 1. Exact Duplicate Slugs
+  Object.keys(slugCounts).forEach(s => {
+    if (slugCounts[s] > 1) {
+      const matches = MODS.filter(m => m.slug.toLowerCase() === s);
+      conflicts.push({
+        type: 'duplicate',
+        title: `Doppelte Mod-ID (${s})`,
+        desc: `Die Mod <b>${esc(matches[0].name)}</b> (<code>${esc(s)}</code>) ist ${matches.length}x im Modpack vorhanden!`,
+        mods: matches,
+        keepSlug: matches[0].slug,
+        removeSlugs: matches.slice(1).map(m => m.slug)
+      });
+    }
+  });
+
+  // 2. Shared Mod-ID / Namespace
+  const namespaceGroups = {};
+  MODS.forEach(m => {
+    const s = m.slug.toLowerCase();
+    const ns = NAMESPACE_MAP[s] || s.replace(/-(fabric|forge|quilt|mc[0-9.]+|mod)$/g, '');
+    if (!namespaceGroups[ns]) namespaceGroups[ns] = [];
+    namespaceGroups[ns].push(m);
+  });
+
+  Object.keys(namespaceGroups).forEach(ns => {
+    const group = namespaceGroups[ns];
+    if (group.length > 1) {
+      const uniqueSlugs = new Set(group.map(m => m.slug.toLowerCase()));
+      if (uniqueSlugs.size > 1) {
+        conflicts.push({
+          type: 'namespace',
+          title: `Gleicher Mod-ID Namespace ('${ns}')`,
+          desc: `Die Mods ${group.map(m => '<b>' + esc(m.name) + '</b> (<code>' + esc(m.slug) + '</code>)').join(' & ')} teilen sich denselben Mod-Namespace (<code>${esc(ns)}</code>).`,
+          mods: group,
+          keepSlug: group[0].slug,
+          removeSlugs: group.slice(1).map(m => m.slug)
+        });
+      }
+    }
+  });
+
+  // 3. Mutually Exclusive Incompatible Pairs
+  INCOMPATIBLE_PAIRS.forEach(pair => {
+    const m1 = MODS.find(m => m.slug.toLowerCase() === pair.mods[0] || (NAMESPACE_MAP[m.slug.toLowerCase()] === pair.mods[0]));
+    const m2 = MODS.find(m => m.slug.toLowerCase() === pair.mods[1] || (NAMESPACE_MAP[m.slug.toLowerCase()] === pair.mods[1]));
+    if (m1 && m2 && m1.slug.toLowerCase() !== m2.slug.toLowerCase()) {
+      conflicts.push({
+        type: 'incompatible',
+        title: `Inkompatible Mods`,
+        desc: `${pair.reason} (Gefunden: <b>${esc(m1.name)}</b> & <b>${esc(m2.name)}</b>)`,
+        mods: [m1, m2],
+        keepSlug: m1.slug,
+        removeSlugs: [m2.slug]
+      });
+    }
+  });
+
+  return conflicts;
+}
+
+function renderConflictBanner(conflicts) {
+  const container = document.getElementById('conflictNotifications');
+  if (!container) return;
+
+  if (!conflicts || !conflicts.length) {
+    container.innerHTML = '';
+    return;
+  }
+
+  let html = `
+    <div class="conflict-alert-card">
+      <div class="conflict-banner-header">
+        <div class="conflict-title-wrap">
+          <span class="conflict-pulse-icon">🚨</span>
+          <span class="conflict-banner-title">Mod-ID &amp; Inkompatibilitäts-Prüfung: ${conflicts.length} Konflikt(e) aufgeleuchtet!</span>
+        </div>
+        <button type="button" class="conflict-auto-fix-btn" onclick="autoFixAllConflicts()">
+          ⚡ Alle Konflikte automatisch beheben
+        </button>
+      </div>
+      <div class="conflict-card-list">
+  `;
+
+  conflicts.forEach(c => {
+    const badgeText = c.type === 'duplicate' ? 'Mod-ID Duplikat' : c.type === 'namespace' ? 'Gemeinsamer Namespace' : 'Inkompatibel';
+    const removeBtnText = c.type === 'duplicate' ? '✂ Duplikat entfernen' : '✂ Konflikt lösen';
+    const removeSlugsJson = JSON.stringify(c.removeSlugs).replace(/"/g, '&quot;');
+    html += `
+      <div class="conflict-card-item">
+        <div class="cci-info">
+          <span class="cci-badge type-${c.type}">${badgeText}</span>
+          <span class="cci-desc">${c.desc}</span>
+        </div>
+        <button type="button" class="cci-solve-btn" onclick="resolveConflictGroup('${esc(c.keepSlug)}', ${removeSlugsJson})">
+          ${removeBtnText}
+        </button>
+      </div>
+    `;
+  });
+
+  html += `
+      </div>
+    </div>
+  `;
+
+  container.innerHTML = html;
+}
+
+function resolveConflictGroup(keepSlug, removeSlugs) {
+  pushUndo();
+  if (Array.isArray(removeSlugs) && removeSlugs.length) {
+    const remSet = new Set(removeSlugs.map(s => s.toLowerCase()));
+    MODS = MODS.filter(m => !remSet.has(m.slug.toLowerCase()));
+    renderMods();
+    showToast(`✂ Konflikt gelöst (${removeSlugs.join(', ')} entfernt)`);
+  }
+}
+
+function autoFixAllConflicts() {
+  const conflicts = checkPackConflicts();
+  if (!conflicts.length) return;
+  pushUndo();
+  const toRemove = new Set();
+  conflicts.forEach(c => {
+    if (Array.isArray(c.removeSlugs)) {
+      c.removeSlugs.forEach(s => toRemove.add(s.toLowerCase()));
+    }
+  });
+
+  if (toRemove.size > 0) {
+    MODS = MODS.filter(m => !toRemove.has(m.slug.toLowerCase()));
+    renderMods();
+    showToast(`⚡ ${toRemove.size} inkompatible/doppelte Mods entfernt!`);
+  }
+}
+
 function renderMods(){
+  const conflicts = checkPackConflicts();
+  const conflictingSlugs = new Set();
+  conflicts.forEach(c => {
+    c.mods.forEach(m => conflictingSlugs.add(m.slug.toLowerCase()));
+  });
+
   const el=document.getElementById("modList");el.innerHTML="";
   const filtered = (typeof activeCatFilter !== 'undefined' && activeCatFilter !== 'all')
     ? MODS.filter(m => m.cat === activeCatFilter)
@@ -774,9 +1014,12 @@ function renderMods(){
   let lc="";
   filtered.forEach(m=>{
     if(m.cat!==lc){if(lc){const hr=document.createElement("div");hr.style.cssText="border-top:1px solid var(--border);margin:3px 0 0";el.appendChild(hr);}const s=document.createElement("div");s.className="sect-lbl";s.textContent=m.cat;el.appendChild(s);lc=m.cat;}
-    el.appendChild(makeRow(m,"mod"));
+    el.appendChild(makeRow(m, "mod", conflictingSlugs.has(m.slug.toLowerCase())));
   });
-  document.getElementById("modCount").textContent=MODS.length;updateSubtitle();updateBuildBtn();
+  document.getElementById("modCount").textContent=MODS.length;
+  updateSubtitle();
+  updateBuildBtn();
+  renderConflictBanner(conflicts);
 }
 function renderRPs(){
   const el=document.getElementById("rpList");el.innerHTML="";
@@ -784,23 +1027,42 @@ function renderRPs(){
   RESOURCEPACKS.forEach(r=>el.appendChild(makeRow(r,"rp")));
   document.getElementById("rpCount").textContent=RESOURCEPACKS.length;updateSubtitle();updateBuildBtn();
 }
-function makeRow(item,type){
-  const d=document.createElement("div");d.className="mod-item"+(item.hasUpdate ? " has-update" : "");d.id="row-"+type+"-"+item.slug;
+function makeRow(item, type, isConflict = false){
+  const conflictClass = (type === 'mod' && isConflict) ? ' mod-item--conflict' : '';
+  const d=document.createElement("div");d.className="mod-item"+(item.hasUpdate ? " has-update" : "")+conflictClass;d.id="row-"+type+"-"+item.slug;
+
+  const itemPlat = item.platform || (selectedPlatform === 'curseforge' ? 'curseforge' : 'modrinth');
+  const isModrinth = itemPlat === 'modrinth';
+  const platBadgeText = isModrinth ? '🟢 Modrinth' : '🟠 CurseForge';
+  const platTooltipText = isModrinth
+    ? '🟢 Modrinth Repository: Mod wird direkt über die Modrinth API verifiziert (.mrpack Standard).'
+    : '🟠 CurseForge Repository: Mod stammt aus dem CurseForge Katalog (.zip Manifest Standard).';
+
   let updateHtml = '';
+  if (type === 'mod' && isConflict) {
+    updateHtml += ' <span class="conflict-badge-inline" data-tooltip="⚠️ ID-Konflikt: Identische Mod-ID oder Namespace mit anderer Mod im Pack." title="Identische Mod-ID / Inkompatibel">⚠️ ID-Konflikt</span>';
+  }
   if (item.hasUpdate) {
-    updateHtml = ' <span class="update-badge" onclick="applySingleUpdate(\''+type+'\',\''+item.slug.replace(/'/g,"\\'")+'\')" title="Klicken zum Aktualisieren auf v'+esc(item.latestVersion)+'">🚀 Update: v'+esc(item.latestVersion)+'</span>';
+    updateHtml += ' <span class="update-badge" onclick="applySingleUpdate(\''+type+'\',\''+item.slug.replace(/'/g,"\\'")+'\')" data-tooltip="🚀 Update verfügbar: Auf Modrinth liegt v'+esc(item.latestVersion)+' bereit. Klicken zum Aktualisieren!" title="Klicken zum Aktualisieren auf v'+esc(item.latestVersion)+'">🚀 Update: v'+esc(item.latestVersion)+'</span>';
   } else if (item.latestVersion) {
-    updateHtml = ' <span class="up-to-date-badge" title="Aktuellste Modrinth-Version">✓ v'+esc(item.latestVersion)+'</span>';
+    updateHtml += ' <span class="up-to-date-badge" data-tooltip="✓ Auf neuestem Stand: Entspricht Version v'+esc(item.latestVersion)+' auf Modrinth." title="Aktuellste Modrinth-Version">✓ v'+esc(item.latestVersion)+'</span>';
   } else if (item.version) {
-    updateHtml = ' <span class="up-to-date-badge">v'+esc(item.version)+'</span>';
+    updateHtml += ' <span class="up-to-date-badge" data-tooltip="✓ Installierte Version v'+esc(item.version)+'" title="Installierte Version">v'+esc(item.version)+'</span>';
   }
 
-  const compareBtnHtml = ' <button class="row-compare-btn" onclick="openCompareModalForMod(\''+item.slug.replace(/'/g,"\\'")+'\', null, \''+type+'\')" title="Versionen & Changelogs vergleichen">🔍 Vergleichen</button>';
+  const slugTooltip = type === 'mod'
+    ? '🧩 Mod-Slug (ID): Unique Identifier \'' + esc(item.slug) + '\' im Pack Builder.'
+    : '🎨 Resourcepack-Slug: Unique Identifier \'' + esc(item.slug) + '\' im Pack Builder.';
 
-  d.innerHTML='<span class="mi-name">'+esc(item.name)+'<span class="badge '+type+'">'+esc(item.slug)+'</span>'+updateHtml+'</span>'+
+  const platBadgeHtml = ' <span class="plat-badge '+itemPlat+'" data-tooltip="'+platTooltipText+'" title="'+platBadgeText+'">'+platBadgeText+'</span>';
+  const slugBadgeHtml = ' <span class="badge '+type+'" data-tooltip="'+slugTooltip+'" title="'+esc(item.slug)+'">'+esc(item.slug)+'</span>';
+
+  const compareBtnHtml = ' <button class="row-compare-btn" onclick="openCompareModalForMod(\''+item.slug.replace(/'/g,"\\'")+'\', null, \''+type+'\')" data-tooltip="🔍 Versionen & Changelogs vergleichen" title="Versionen & Changelogs vergleichen">🔍 Vergleichen</button>';
+
+  d.innerHTML='<span class="mi-name">'+esc(item.name)+slugBadgeHtml+platBadgeHtml+updateHtml+'</span>'+
     '<span class="st" id="st-'+type+'-'+item.slug+'">–</span>'+
     compareBtnHtml+
-    '<button class="rm-btn" onclick="removeItem(\''+type+'\',\''+item.slug.replace(/'/g,"\\'")+'\')" title="Entfernen">✕</button>';
+    '<button class="rm-btn" onclick="removeItem(\''+type+'\',\''+item.slug.replace(/'/g,"\\'")+'\')" data-tooltip="✕ Mod aus Pack Builder entfernen" title="Entfernen">✕</button>';
   return d;
 }
 function updateSubtitle(){}
@@ -1094,6 +1356,9 @@ async function openCompareModalForMod(itemOrSlug, incomingResult, type, newVersi
   const overlay = document.getElementById('compareOverlay');
   if (!overlay) return;
 
+  const warningContainer = document.getElementById('smartUpdateWarningContainer');
+  if (warningContainer) warningContainer.style.display = 'none';
+
   overlay.classList.add('open');
 
   const titleEl = document.getElementById('compareModalTitle');
@@ -1173,6 +1438,7 @@ async function openCompareModalForMod(itemOrSlug, incomingResult, type, newVersi
     compareState.versionB = verB;
 
     populateCompareDropdowns();
+    await resolveDependencyProjects(verA, verB);
     renderCompareBody();
   } catch(e) {
     if (bodyEl) {
@@ -1218,7 +1484,10 @@ function populateCompareDropdowns() {
   });
 }
 
-function onCompareSelectChange() {
+async function onCompareSelectChange() {
+  const warningContainer = document.getElementById('smartUpdateWarningContainer');
+  if (warningContainer) warningContainer.style.display = 'none';
+
   const selA = document.getElementById('compareVerSelectA');
   const selB = document.getElementById('compareVerSelectB');
   if (!selA || !selB) return;
@@ -1229,7 +1498,163 @@ function onCompareSelectChange() {
   compareState.versionA = compareState.versions.find(v => v.id === idA) || compareState.versionA;
   compareState.versionB = compareState.versions.find(v => v.id === idB) || compareState.versionB;
 
+  await resolveDependencyProjects(compareState.versionA, compareState.versionB);
   renderCompareBody();
+}
+
+async function resolveDependencyProjects(vA, vB) {
+  if (!compareState.projectCache) compareState.projectCache = {};
+
+  const idsToFetch = new Set();
+  [vA, vB].forEach(v => {
+    if (v && Array.isArray(v.dependencies)) {
+      v.dependencies.forEach(d => {
+        const id = d.project_id;
+        if (id && !compareState.projectCache[id]) {
+          idsToFetch.add(id);
+        }
+      });
+    }
+  });
+
+  if (idsToFetch.size === 0) return;
+
+  try {
+    const arr = Array.from(idsToFetch);
+    const res = await fetch(`${API}/projects?ids=${encodeURIComponent(JSON.stringify(arr))}`, {
+      headers: { "User-Agent": "mctoolkit/1.0" }
+    });
+    if (res.ok) {
+      const projects = await res.json();
+      if (Array.isArray(projects)) {
+        projects.forEach(p => {
+          if (p.id) compareState.projectCache[p.id] = { id: p.id, slug: p.slug, title: p.title };
+          if (p.slug) compareState.projectCache[p.slug] = { id: p.id, slug: p.slug, title: p.title };
+        });
+      }
+    }
+  } catch (e) {
+    console.warn("Could not resolve dependency projects", e);
+  }
+}
+
+function renderDependenciesList(versionObj) {
+  const deps = (versionObj && Array.isArray(versionObj.dependencies)) ? versionObj.dependencies : [];
+  if (!deps.length) {
+    return `<div class="cc-deps-box"><span class="no-changelog" style="padding:2px 0;">Keine bekannten Abhängigkeiten für diese Version.</span></div>`;
+  }
+
+  const itemsHtml = deps.map(dep => {
+    const projId = dep.project_id || dep.version_id || 'unbekannt';
+    const proj = (compareState.projectCache && compareState.projectCache[projId]) || { id: projId, slug: projId, title: projId };
+    const name = proj.title || proj.slug || projId;
+    const slug = proj.slug || projId;
+
+    const installed = MODS.find(m => m.slug === slug || m.slug === projId || (m.name && m.name.toLowerCase() === name.toLowerCase())) ||
+                      RESOURCEPACKS.find(r => r.slug === slug || r.slug === projId);
+
+    let typeClass = 'opt';
+    let typeLabel = 'Optional';
+    if (dep.dependency_type === 'required') {
+      typeClass = 'req';
+      typeLabel = 'Erforderlich';
+    } else if (dep.dependency_type === 'incompatible') {
+      typeClass = 'inc';
+      typeLabel = 'Inkompatibel';
+    } else if (dep.dependency_type === 'embedded') {
+      typeClass = 'emb';
+      typeLabel = 'Integriert';
+    }
+
+    let statusHtml = '';
+    if (installed) {
+      const verText = installed.version ? ` (v${esc(installed.version)})` : '';
+      statusHtml = `<span class="cc-dep-status installed" title="Bereits im Pack vorhanden">✅ Im Pack${verText}</span>`;
+    } else if (dep.dependency_type === 'required') {
+      statusHtml = `<span class="cc-dep-status missing" title="Achtung: Fehlt im aktuellen Modpack!">⚠️ Fehlt im Pack</span>`;
+    } else if (dep.dependency_type === 'incompatible') {
+      statusHtml = `<span class="cc-dep-status conflict" title="Inkompatibel mit dieser Version!">🚫 Konflikt</span>`;
+    } else {
+      statusHtml = `<span class="cc-dep-status optional" title="Nicht im Pack">ℹ️ Nicht installiert</span>`;
+    }
+
+    return `
+      <div class="cc-dep-item">
+        <div class="cc-dep-info">
+          <span style="font-size:.7rem;">🧩</span>
+          <span class="cc-dep-name" title="${esc(name)}">${esc(name)}</span>
+          <span class="cc-dep-type ${typeClass}">${typeLabel}</span>
+        </div>
+        ${statusHtml}
+      </div>
+    `;
+  }).join('');
+
+  return `<div class="cc-deps-box">${itemsHtml}</div>`;
+}
+
+function updateCompareInfoTooltips() {
+  const vA = compareState.versionA;
+  const vB = compareState.versionB;
+  const allVersions = compareState.versions || [];
+
+  updateSingleVersionInfoTooltip('A', vA, allVersions);
+  updateSingleVersionInfoTooltip('B', vB, allVersions);
+}
+
+function updateSingleVersionInfoTooltip(slot, versionObj, allVersions) {
+  const btnEl = document.getElementById(`cpInfoBtn${slot}`);
+  const ttEl = document.getElementById(`cpInfoTooltip${slot}`);
+  if (!btnEl || !ttEl || !versionObj) return;
+
+  const mcVersion = document.getElementById('mcVersion')?.value || '';
+  const latestRelease = allVersions.find(v => v.version_type === 'release') || allVersions[0];
+
+  const reasons = [];
+  let isOutdated = false;
+  let isIncompatible = false;
+
+  // 1. Check if older than latest release
+  if (latestRelease && versionObj.id !== latestRelease.id) {
+    const pubCurrent = new Date(versionObj.date_published || 0);
+    const pubLatest = new Date(latestRelease.date_published || 0);
+    if (pubLatest > pubCurrent) {
+      isOutdated = true;
+      const latestDateStr = latestRelease.date_published ? new Date(latestRelease.date_published).toLocaleDateString('de-DE') : '';
+      reasons.push(`<b>Veraltet:</b> Es gibt eine neuere Version (<b>v${esc(latestRelease.version_number)}</b> vom ${latestDateStr}).`);
+    }
+  }
+
+  // 2. Check MC Version compatibility
+  if (mcVersion && Array.isArray(versionObj.game_versions) && !versionObj.game_versions.includes(mcVersion)) {
+    isIncompatible = true;
+    const supp = versionObj.game_versions.slice(0, 4).join(', ');
+    reasons.push(`<b>MC-Inkompatibel:</b> Bietet keinen Support für MC <b>${esc(mcVersion)}</b> (unterstützt: ${esc(supp)}).`);
+  }
+
+  // 3. Check version type (beta/alpha)
+  if (versionObj.version_type !== 'release') {
+    reasons.push(`<b>Pre-Release:</b> <code>${versionObj.version_type.toUpperCase()}</code> (kein finaler Release-Build).`);
+  }
+
+  if (reasons.length === 0) {
+    reasons.push(`<b>✅ Aktuelle Version:</b> Dies ist die neueste stabile Release-Version auf Modrinth für dein Pack.`);
+    btnEl.textContent = 'ℹ️';
+    btnEl.className = 'cp-info-btn is-ok';
+  } else if (isIncompatible || isOutdated) {
+    btnEl.textContent = '⚠️';
+    btnEl.className = 'cp-info-btn is-warn';
+  } else {
+    btnEl.textContent = 'ℹ️';
+    btnEl.className = 'cp-info-btn';
+  }
+
+  ttEl.innerHTML = `
+    <div class="cp-info-title">Info Version ${slot} (v${esc(versionObj.version_number)})</div>
+    <ul class="cp-info-list">
+      ${reasons.map(r => `<li>${r}</li>`).join('')}
+    </ul>
+  `;
 }
 
 function renderCompareBody() {
@@ -1239,6 +1664,8 @@ function renderCompareBody() {
   const useNewBtn = document.getElementById('compareUseNewBtn');
 
   if (!bodyEl || !compareState.versionA || !compareState.versionB) return;
+
+  updateCompareInfoTooltips();
 
   const vA = compareState.versionA;
   const vB = compareState.versionB;
@@ -1265,8 +1692,8 @@ function renderCompareBody() {
 
   if (diffStrip) diffStrip.innerHTML = diffsHtml;
 
-  if (keepOldBtn) keepOldBtn.textContent = `⬅️ v${vA.version_number} (A) behalten`;
-  if (useNewBtn) useNewBtn.textContent = `⚡ v${vB.version_number} (B) übernehmen`;
+  if (keepOldBtn) keepOldBtn.innerHTML = `📥 Version A (v${esc(vA.version_number)}) in Pack Builder einfügen`;
+  if (useNewBtn) useNewBtn.innerHTML = `⚡ Version B (v${esc(vB.version_number)}) in Pack Builder einfügen`;
 
   const fileA = (vA.files && vA.files.find(f => f.primary)) || (vA.files && vA.files[0]) || {};
   const fileB = (vB.files && vB.files.find(f => f.primary)) || (vB.files && vB.files[0]) || {};
@@ -1294,6 +1721,10 @@ function renderCompareBody() {
         <div class="cc-meta-item">📁 Dateiname: <strong style="font-family:var(--mono); font-size:.68rem;">${esc(fileA.filename || '-')}</strong></div>
         <div class="cc-meta-item">💾 Größe: <strong>${sizeA}</strong></div>
       </div>
+      <div style="margin-top:4px; font-weight:700; font-size:.75rem; color:var(--text); display:flex; align-items:center; gap:6px;">
+        <span>🧩 Benötigte Abhängigkeiten:</span>
+      </div>
+      ${renderDependenciesList(vA)}
       <div style="margin-top:4px; font-weight:700; font-size:.75rem; color:var(--text);">📝 Changelog / Release Notes:</div>
       <div class="changelog-box">${renderMarkdownChangelog(vA.changelog)}</div>
     </div>
@@ -1314,6 +1745,10 @@ function renderCompareBody() {
         <div class="cc-meta-item">📁 Dateiname: <strong style="font-family:var(--mono); font-size:.68rem;">${esc(fileB.filename || '-')}</strong></div>
         <div class="cc-meta-item">💾 Größe: <strong>${sizeB}</strong></div>
       </div>
+      <div style="margin-top:4px; font-weight:700; font-size:.75rem; color:var(--text); display:flex; align-items:center; gap:6px;">
+        <span>🧩 Benötigte Abhängigkeiten:</span>
+      </div>
+      ${renderDependenciesList(vB)}
       <div style="margin-top:4px; font-weight:700; font-size:.75rem; color:var(--text);">📝 Changelog / Release Notes:</div>
       <div class="changelog-box">${renderMarkdownChangelog(vB.changelog)}</div>
     </div>
@@ -1353,22 +1788,288 @@ function applyCompareDecision(choice) {
   if (!item) {
     item = {
       slug: compareState.itemSlug,
-      name: compareState.modName || compareState.itemSlug,
-      cat: 'Hinzugefügt',
-      version: selectedVerObj.version_number,
-      versionId: selectedVerObj.id,
-      hasUpdate: false
-    };
-    if (isRP) RESOURCEPACKS.push(item); else MODS.push(item);
-  } else {
-    item.version = selectedVerObj.version_number;
-    item.versionId = selectedVerObj.id;
-    item.hasUpdate = false;
+ /* ══ SMART UPDATE CONFLICT CHECKER FOR COMPARE MODAL ══════════════ */
+async function runSmartUpdateForCompare() {
+  const container = document.getElementById('smartUpdateWarningContainer');
+  if (container) container.style.display = 'none';
+
+  if (!compareState.versionB) {
+    showToast('⚠️ Keine Version B zum Prüfen ausgewählt.');
+    return;
   }
 
-  if (isRP) renderRPs(); else renderMods();
-  closeCompareModal();
-  showToast(`✅ ${item.name} auf Version v${item.version} gesetzt!`);
+  const vB = compareState.versionB;
+  const modName = compareState.modName || compareState.itemSlug || 'Mod';
+  const targetSlug = compareState.itemSlug ? compareState.itemSlug.toLowerCase() : '';
+  const mcVersion = document.getElementById('mcVersion')?.value || '1.20.1';
+
+  const now = new Date();
+  const timeStr = now.toTimeString().split(' ')[0];
+
+  const logLines = []; // Array of { html: string, type: 'info'|'ok'|'warn'|'err' }
+  const conflicts = [];
+
+  const addLog = (msgHtml, type = 'info') => {
+    let badgeHtml = '';
+    if (type === 'err') badgeHtml = '<span style="font-weight:700;color:#f87171">[KOLLISION]</span> ';
+    else if (type === 'warn') badgeHtml = '<span style="font-weight:700;color:#fbbf24">[WARNUNG]</span> ';
+    else if (type === 'ok') badgeHtml = '<span style="font-weight:700;color:#34d399">[OK]</span> ';
+    else badgeHtml = '<span style="font-weight:700;color:#60a5fa">[INFO]</span> ';
+
+    logLines.push({
+      html: `<div class="log-${type === 'ok' ? 'ok' : type}"><span class="log-dim">[${timeStr}]</span> ${badgeHtml}${msgHtml}</div>`,
+      type
+    });
+  };
+
+  addLog(`Starte Smart Update Kollisions-Analyse für <b>${esc(modName)}</b> (slug: <code>${esc(targetSlug)}</code>)...`, 'info');
+  addLog(`Ziel-Version B: <code>v${esc(vB.version_number)}</code> (ID: <code>${esc(vB.id || 'N/A')}</code>, Typ: <code>${esc(vB.version_type || 'release')}</code>)`, 'info');
+  addLog(`Gewählte Modpack MC-Version: <b>${esc(mcVersion)}</b>`, 'info');
+
+  // 1. Check MC Version compatibility
+  if (mcVersion && Array.isArray(vB.game_versions) && !vB.game_versions.includes(mcVersion)) {
+    const errText = `Version B (v${esc(vB.version_number)}) ist INKOMPATIBEL mit deiner Minecraft-Version ${esc(mcVersion)}! (Unterstützt: ${esc((vB.game_versions || []).slice(0, 5).join(', '))})`;
+    conflicts.push({
+      type: 'mc',
+      icon: '🎮',
+      title: 'MC-Inkompatibilität',
+      desc: errText
+    });
+    addLog(errText, 'err');
+  } else {
+    addLog(`Minecraft-Version <b>${esc(mcVersion)}</b> wird von Version B offiziell unterstützt.`, 'ok');
+  }
+
+  // 2. Check pre-release / alpha / beta status
+  if (vB.version_type && vB.version_type !== 'release') {
+    const warnText = `Version B ist ein <code>${esc(vB.version_type.toUpperCase())}</code> Test-Build (kein finaler Release-Build).`;
+    conflicts.push({
+      type: 'prerelease',
+      icon: '🧪',
+      title: 'Test-Build (Pre-Release)',
+      desc: warnText
+    });
+    addLog(warnText, 'warn');
+  } else {
+    addLog(`Version B ist ein stabiler Release-Build.`, 'ok');
+  }
+
+  // 3. Check Required & Incompatible dependencies of Version B
+  const deps = Array.isArray(vB.dependencies) ? vB.dependencies : [];
+  addLog(`Prüfe ${deps.length} deklarierte Modrinth-Abhängigkeiten von Version B...`, 'info');
+
+  const missingReqDeps = [];
+  const incDeps = [];
+
+  deps.forEach(dep => {
+    const projId = dep.project_id || dep.version_id;
+    const proj = (compareState.projectCache && compareState.projectCache[projId]) || { id: projId, slug: projId, title: projId };
+    const name = proj.title || proj.slug || projId;
+    const slug = proj.slug || projId;
+    const depType = dep.dependency_type || 'required';
+
+    const installed = MODS.find(m => m.slug === slug || m.slug === projId || (m.name && m.name.toLowerCase() === name.toLowerCase())) ||
+                      RESOURCEPACKS.find(r => r.slug === slug || r.slug === projId);
+
+    if (depType === 'required') {
+      if (!installed) {
+        missingReqDeps.push({ name, slug, dep });
+        addLog(`<b>Pflicht-Abhängigkeit FEHLT:</b> Mod '<b>${esc(name)}</b>' (slug: <code>${esc(slug)}</code>) wird von Version B vorausgesetzt, fehlt aber im Pack Builder!`, 'err');
+      } else {
+        addLog(`Pflicht-Abhängigkeit '<b>${esc(name)}</b>' (slug: <code>${esc(slug)}</code>) ist im Modpack vorhanden (v${esc(installed.version || 'installiert')}).`, 'ok');
+      }
+    } else if (depType === 'incompatible') {
+      if (installed) {
+        incDeps.push({ name, slug, installed });
+        addLog(`<b>EXPLIZITE INKOMPATIBILITÄT:</b> Mod '<b>${esc(name)}</b>' (slug: <code>${esc(slug)}</code>) ist im Modpack installiert, wird aber von Version B als kollidierend/inkompatibel gemeldet!`, 'err');
+      } else {
+        addLog(`Inkompatible Mod '<b>${esc(name)}</b>' (slug: <code>${esc(slug)}</code>) ist nicht im Modpack installiert.`, 'ok');
+      }
+    } else if (depType === 'optional') {
+      addLog(`Optionale Abhängigkeit '<b>${esc(name)}</b>' (slug: <code>${esc(slug)}</code>): ${installed ? 'bereits im Pack' : 'nicht zwingend erforderlich'}.`, 'info');
+    } else if (depType === 'embedded') {
+      addLog(`Integrierte (embedded) Bibliothek '<b>${esc(name)}</b>' in Version B enthalten.`, 'info');
+    }
+  });
+
+  if (missingReqDeps.length) {
+    conflicts.push({
+      type: 'missing_dep',
+      icon: '🧩',
+      title: 'Fehlende Pflicht-Abhängigkeit(en)',
+      desc: `Version B erfordert folgende Mod(s), die aktuell nicht im Pack sind: ${missingReqDeps.map(d => '<b>' + esc(d.name) + '</b>').join(', ')}.`,
+      missingReqDeps
+    });
+  }
+
+  if (incDeps.length) {
+    conflicts.push({
+      type: 'inc_dep',
+      icon: '🚫',
+      title: 'Explizite Inkompatibilität auf Modrinth',
+      desc: `Version B ist laut Entwickler inkompatibel mit installierten Mods: ${incDeps.map(d => '<b>' + esc(d.name) + '</b>').join(', ')}.`,
+      incDeps
+    });
+  }
+
+  // 4. Check Mod-ID / Namespace & Incompatible Pair conflicts against current Pack
+  const targetNs = NAMESPACE_MAP[targetSlug] || targetSlug.replace(/-(fabric|forge|quilt|mc[0-9.]+|mod)$/g, '');
+
+  MODS.forEach(m => {
+    if (m.slug.toLowerCase() !== targetSlug) {
+      const otherSlug = m.slug.toLowerCase();
+      const otherNs = NAMESPACE_MAP[otherSlug] || otherSlug.replace(/-(fabric|forge|quilt|mc[0-9.]+|mod)$/g, '');
+
+      if (targetNs && otherNs && targetNs === otherNs) {
+        const nsText = `Mod-ID Namespace Kollision: Version B (slug: <code>${esc(targetSlug)}</code>) teilt sich Namespace <code>${esc(targetNs)}</code> mit installierter Mod '<b>${esc(m.name)}</b>' (<code>${esc(m.slug)}</code>).`;
+        conflicts.push({
+          type: 'ns_conflict',
+          icon: '🔀',
+          title: 'Gemeinsamer Mod-ID Namespace',
+          desc: nsText
+        });
+        addLog(nsText, 'err');
+      }
+
+      INCOMPATIBLE_PAIRS.forEach(pair => {
+        const matchesTarget = (pair.mods[0] === targetSlug || NAMESPACE_MAP[targetSlug] === pair.mods[0]);
+        const matchesOther = (pair.mods[1] === otherSlug || NAMESPACE_MAP[otherSlug] === pair.mods[1]);
+        const matchesTargetReverse = (pair.mods[1] === targetSlug || NAMESPACE_MAP[targetSlug] === pair.mods[1]);
+        const matchesOtherReverse = (pair.mods[0] === otherSlug || NAMESPACE_MAP[otherSlug] === pair.mods[0]);
+
+        if ((matchesTarget && matchesOther) || (matchesTargetReverse && matchesOtherReverse)) {
+          const pairText = `Bekannte Mod-Inkompatibilität: Mod '${esc(targetSlug)}' kollidiert mit '${esc(otherSlug)}' (${esc(pair.reason)}).`;
+          conflicts.push({
+            type: 'pair_conflict',
+            icon: '🚨',
+            title: 'Bekannte Mod-Inkompatibilität',
+            desc: pair.reason
+          });
+          addLog(pairText, 'err');
+        }
+      });
+    }
+  });
+
+  // Deduplicate conflict descriptions
+  const uniqueConflicts = [];
+  const seenDescs = new Set();
+  conflicts.forEach(c => {
+    if (!seenDescs.has(c.desc)) {
+      seenDescs.add(c.desc);
+      uniqueConflicts.push(c);
+    }
+  });
+
+  const errCount = logLines.filter(l => l.type === 'err').length;
+  const warnCount = logLines.filter(l => l.type === 'warn').length;
+
+  addLog(`Smart Update Analyse beendet: ${errCount} Kollisions-Fehler, ${warnCount} Warnung(en) gefunden.`, errCount > 0 ? 'err' : (warnCount > 0 ? 'warn' : 'ok'));
+
+  // Render Log Console Wrap HTML
+  const logConsoleHtml = `
+    <div class="log-console-wrap" id="suLogWrap" style="margin-top: 10px;">
+      <div class="log-console-header">
+        <div class="log-console-title">📋 Smart Update Kollisions-Log Console</div>
+        <div class="log-filter-btns">
+          <button type="button" class="log-filter-btn active" id="flFilt-suLog-all" onclick="filterLog('suLog','all')">Alle (${logLines.length})</button>
+          <button type="button" class="log-filter-btn err" id="flFilt-suLog-err" onclick="filterLog('suLog','err')">✗ Kollisionen <span id="suErrCount" class="log-cnt-badge">${errCount}</span></button>
+          <button type="button" class="log-filter-btn warn" id="flFilt-suLog-warn" onclick="filterLog('suLog','warn')">⚠️ Warnungen <span id="suWarnCount" class="log-cnt-badge">${warnCount}</span></button>
+          <button type="button" class="log-filter-btn info" id="flFilt-suLog-info" onclick="filterLog('suLog','info')">ℹ️ Info</button>
+        </div>
+        <button type="button" class="log-copy-btn" onclick="copyLogToClipboard('suLog')">📋 Log kopieren</button>
+      </div>
+      <div class="fix-log" id="suLog" style="max-height: 180px; font-size: 0.72rem; border-radius: 0 0 8px 8px;">
+        ${logLines.map(l => l.html).join('')}
+      </div>
+    </div>
+  `;
+
+  if (container) {
+    if (uniqueConflicts.length === 0) {
+      container.innerHTML = `
+        <div class="smart-update-alert success">
+          <div class="su-alert-header">
+            <div class="su-alert-title" style="color: #34d399;">
+              <span>🛡️</span>
+              <span>Smart Update Ergebnis: Version B (v${esc(vB.version_number)}) ist zu 100% kompatibel!</span>
+            </div>
+          </div>
+          <p style="font-size:0.78rem; color:var(--text); margin: 4px 0 0;">Keine Abhängigkeits- oder Namespace-Kollisionen mit deinen installierten Mods gefunden.</p>
+          <div class="su-alert-actions">
+            <button type="button" class="su-btn fix" onclick="applyCompareDecision('useB')">
+              ⚡ Version B jetzt übernehmen
+            </button>
+          </div>
+        </div>
+        ${logConsoleHtml}
+      `;
+    } else {
+      let listHtml = uniqueConflicts.map(c => `
+        <div class="su-alert-item">
+          <span style="font-size:1.1rem; line-height:1;">${c.icon}</span>
+          <div><b>${c.title}:</b> ${c.desc}</div>
+        </div>
+      `).join('');
+
+      const allMissingDeps = [];
+      uniqueConflicts.forEach(c => {
+        if (c.missingReqDeps) allMissingDeps.push(...c.missingReqDeps);
+      });
+
+      let autoFixBtnHtml = '';
+      if (allMissingDeps.length > 0) {
+        const missingSlugsJson = JSON.stringify(allMissingDeps.map(d => d.slug)).replace(/"/g, '&quot;');
+        autoFixBtnHtml = `
+          <button type="button" class="su-btn fix" onclick="smartUpdateAutoFixAndApply(${missingSlugsJson})">
+            🧩 Fehlende Deps hinzufügen &amp; Version B übernehmen
+          </button>
+        `;
+      }
+
+      container.innerHTML = `
+        <div class="smart-update-alert">
+          <div class="su-alert-header">
+            <div class="su-alert-title">
+              <span>🚨</span>
+              <span>Smart Update Warnung: ${uniqueConflicts.length} Mängelsignal(e) / Kollision(en) beim Wechsel auf Version B!</span>
+            </div>
+          </div>
+          <div class="su-alert-list">
+            ${listHtml}
+          </div>
+          <div class="su-alert-actions">
+            <button type="button" class="su-btn cancel" onclick="document.getElementById('smartUpdateWarningContainer').style.display='none'">
+              ↩ Abbrechen &amp; Prüfen
+            </button>
+            ${autoFixBtnHtml}
+            <button type="button" class="su-btn force" onclick="applyCompareDecision('useB')">
+              ⚠️ Trotzdem übernehmen
+            </button>
+          </div>
+        </div>
+        ${logConsoleHtml}
+      `;
+    }
+
+    container.style.display = 'block';
+    container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    updateLogBadgeCounts('suLog');
+  }
+}
+
+async function smartUpdateAutoFixAndApply(missingSlugs) {
+  if (Array.isArray(missingSlugs) && missingSlugs.length > 0) {
+    showToast('🧩 Ergänze fehlende Abhängigkeiten...');
+    for (const slug of missingSlugs) {
+      if (!has(slug, 'mod')) {
+        const res = await detectAndResolve(slug);
+        if (res) addResolved(res, 'Smart-Update-Dep');
+      }
+    }
+  }
+  applyCompareDecision('useB');
+  showToast('🛡️ Smart Update mit gefixten Dependencies angewendet!');
 }
 
 // Known dependency map — slug → required deps
@@ -1437,8 +2138,11 @@ async function fixMyModList() {
   const btn = document.getElementById('fixMyListBtn');
   btn.disabled = true; btn.textContent = '⏳ Wird analysiert...';
   const st = document.getElementById('statusText');
-  st.textContent = 'Analysiere Mod-Liste...';
+  st.textContent = 'Analysiere Mod-Liste & löse Konflikte...';
   document.getElementById('depNotifications').innerHTML = '';
+
+  // Auto fix all Mod-ID/Namespace conflicts & duplicates first
+  autoFixAllConflicts();
 
   const allSlugs = MODS.map(m => m.slug);
   const depsAdded = [];
@@ -1462,8 +2166,8 @@ async function fixMyModList() {
 
   if (depsAdded.length) showDepNotification(depsAdded);
   st.textContent = depsAdded.length
-    ? `✅ ${depsAdded.length} Dependency(ies) ergänzt, Duplikate entfernt.`
-    : '✅ Mod-Liste ist sauber – keine Fehler gefunden.';
+    ? `✅ ${depsAdded.length} Dependency(ies) ergänzt, Mod-ID Konflikte gelöst.`
+    : '✅ Mod-Liste ist sauber – keine Konflikte oder Fehler gefunden.';
 
   btn.disabled = false; btn.textContent = '🔧 Fix my mod list — Fehler beheben & Dependencies ergänzen';
 }
@@ -1580,15 +2284,26 @@ function confirmPlatform() {
   // Show indicator
   const ind = document.getElementById('platformIndicator');
   ind.style.display = 'flex';
-  document.getElementById('piDot').className = 'pi-dot ' + selectedPlatform;
-  document.getElementById('piName').className = 'pi-name ' + selectedPlatform;
-  document.getElementById('piName').textContent = selectedPlatform === 'modrinth' ? 'Modrinth' : 'CurseForge';
-  document.getElementById('piFormat').textContent = selectedPlatform === 'modrinth' ? '.mrpack' : '.zip';
+  const isMr = selectedPlatform === 'modrinth';
+  const piDot = document.getElementById('piDot');
+  if (piDot) {
+    piDot.className = 'pi-dot ' + selectedPlatform;
+    piDot.setAttribute('data-tooltip', isMr ? '🟢 Modrinth Platform: Hash-Verifizierung & .mrpack Export' : '🟠 CurseForge Platform: Manifest.json & .zip Export');
+  }
+  const piName = document.getElementById('piName');
+  if (piName) {
+    piName.className = 'pi-name ' + selectedPlatform;
+    piName.textContent = isMr ? 'Modrinth' : 'CurseForge';
+    piName.setAttribute('data-tooltip', isMr ? '🟢 Aktive Modpack-Plattform: Modrinth API & Katalog' : '🟠 Aktive Modpack-Plattform: CurseForge API & Katalog');
+  }
+  const piFmt = document.getElementById('piFormat');
+  if (piFmt) {
+    piFmt.textContent = isMr ? '.mrpack' : '.zip';
+    piFmt.setAttribute('data-tooltip', isMr ? '📦 Modpack-Format: .mrpack (Modrinth App & Prism Launcher)' : '📦 Modpack-Format: .zip (CurseForge App & MultiMC)');
+  }
   // Update button label
   const btn = document.getElementById('buildBtn');
-  if (btn) btn.textContent = selectedPlatform === 'modrinth'
-    ? '⬇ .mrpack generieren & downloaden'
-    : '⬇ CurseForge .zip generieren & downloaden';
+  if (btn) btn.textContent = '⬇ Modpack herunterladen / exportieren';
   // Run any pending preset load from hero template buttons
   if (window._pendingPresetLoad) { setTimeout(window._pendingPresetLoad, 200); window._pendingPresetLoad = null; }
 }
@@ -1607,7 +2322,7 @@ function changePlatform() {
 /* ── Modrinth .mrpack build ── */
 async function createMrpackBlob(mcV, pName, pVer, fl, progress) {
   const all=[...MODS.map(m=>({...m,isRP:false})),...RESOURCEPACKS.map(r=>({...r,isRP:true}))];
-  const fe=[],nf=[];
+  const fe=[],nf=[],resolvedList=[];
   for(let i=0;i<all.length;i++){
     const item=all[i],sid="st-"+(item.isRP?"rp":"mod")+"-"+item.slug;
     progress?.({ step:'item', index:i, total:all.length, item });
@@ -1617,14 +2332,32 @@ async function createMrpackBlob(mcV, pName, pVer, fl, progress) {
     if(!ver||!ver.files||!ver.files.length){nf.push(item.name);setSt(sid,"nicht gefunden","err");continue;}
     const f=ver.files.find(x=>x.primary)||ver.files[0];
     fe.push({path:(item.isRP?"resourcepacks":"mods")+"/"+f.filename,hashes:f.hashes,env:{client:"required",server:"unsupported"},downloads:[f.url],fileSize:f.size});
+    resolvedList.push({
+      name: item.name,
+      slug: item.slug,
+      version: ver.version_number,
+      isRP: item.isRP,
+      url: 'https://modrinth.com/' + (item.isRP ? 'resourcepack' : 'mod') + '/' + item.slug
+    });
     setSt(sid,"v"+ver.version_number,"ok");
   }
   if(!fe.length) throw new Error("Keine Dateien gefunden. Pruefe die Modliste und Minecraft-Version.");
   progress?.({ step:'zip', found:fe.length, missing:nf });
+
+  const modRows = resolvedList.filter(m => !m.isRP).map(m =>
+    '<li><a href="' + m.url + '" target="_blank">' + esc(m.name) + (m.version ? ' (' + esc(m.version) + ')' : '') + '</a></li>'
+  ).join('\n');
+  const rpRows = resolvedList.filter(m => m.isRP).map(m =>
+    '<li><a href="' + m.url + '" target="_blank">' + esc(m.name) + (m.version ? ' (' + esc(m.version) + ')' : '') + '</a></li>'
+  ).join('\n');
+
+  const modlistHtml = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + esc(pName) + '</title></head><body style="font-family:sans-serif;max-width:800px;margin:2rem auto;background:#1a1a2e;color:#f0f6fc"><h1 style="color:#4ade80">🟢 ' + esc(pName) + ' (.mrpack)</h1><p>MC ' + mcV + ' · Fabric ' + fl + ' · ' + resolvedList.length + ' Dateien</p><h2>Mods</h2><ul>' + modRows + '</ul>' + (rpRows ? '<h2>Texture Packs</h2><ul>' + rpRows + '</ul>' : '') + '<hr><p style="color:#666">Exportiert mit MC Toolkit</p></body></html>';
+
   const idx={formatVersion:1,game:"minecraft",versionId:pVer,name:pName,summary:"MC Toolkit - Modpack fuer MC "+mcV,files:fe,dependencies:{minecraft:mcV,"fabric-loader":fl}};
   const zip=new JSZip();
   zip.file("modrinth.index.json",JSON.stringify(idx,null,2));
-  zip.folder("overrides");
+  zip.file("modlist.html", modlistHtml);
+  zip.file("overrides/modlist.html", modlistHtml);
   const blob=await zip.generateAsync({type:"blob",compression:"DEFLATE"});
   const fn=pName.replace(/\s+/g,"_")+"-"+mcV+".mrpack";
   return { blob, filename:fn, index:idx, found:fe.length, missing:nf };
@@ -1819,31 +2552,7 @@ async function showDownloadPreview() {
 }
 
 async function buildPack(){
-  if(!selectedPlatform){
-    document.getElementById('platformOverlay').style.display='flex';return;
-  }
-
-  // Show download preview first
-  await showDownloadPreview();
-
-  const btn=document.getElementById("buildBtn"),pw=document.getElementById("progressWrap"),pb=document.getElementById("progressBar"),st=document.getElementById("statusText");
-  btn.disabled=true;pw.style.display="block";pb.style.width="0%";
-  const mcV=document.getElementById("mcVersion").value;
-  const pName=document.getElementById("packName").value.trim()||"My Modpack";
-  const pVer=document.getElementById("packVersion").value.trim()||"1.0.0";
-  const fl=document.getElementById("fabricLoader").value.trim()||"0.18.3";
-  if (!navigator.onLine) {
-    st.textContent = '⚠ Keine Internetverbindung – bitte prüfe deine Verbindung und versuche es erneut.';
-    st.style.color = 'var(--red)';
-    btn.disabled = false; return;
-  }
-  st.style.color = '';
-  if(!window.JSZip){st.textContent="JSZip fehlt!";btn.disabled=false;return;}
-  if(selectedPlatform==='modrinth'){
-    await buildMrpack(btn,st,pb,mcV,pName,pVer,fl);
-  } else {
-    await buildCurseForgePack(btn,st,pb,mcV,pName,pVer,fl);
-  }
+  openExportModal();
 }
 
 function esc(s){return(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
@@ -2938,18 +3647,18 @@ const I18N = {
   }
 };
 
-let currentLang = 'de';
+let currentLang = 'en';
 
 function setLang(lang, silent = false) {
-  currentLang = (lang === 'en' ? 'en' : 'de');
+  currentLang = 'en';
   localStorage.setItem('mctoolkit_lang', currentLang);
   document.documentElement.lang = currentLang;
 
   ['langOptDE', 'langOptDE2', 'navLangDE'].forEach(id => {
-    document.getElementById(id)?.classList.toggle('active', currentLang === 'de');
+    document.getElementById(id)?.classList.toggle('active', false);
   });
   ['langOptEN', 'langOptEN2', 'navLangEN'].forEach(id => {
-    document.getElementById(id)?.classList.toggle('active', currentLang === 'en');
+    document.getElementById(id)?.classList.toggle('active', true);
   });
 
   document.querySelectorAll('[data-i18n]').forEach(el => {
@@ -2968,18 +3677,17 @@ function setLang(lang, silent = false) {
   }
 
   if (!silent) {
-    showToast(currentLang === 'en' ? I18N.en.toast_lang_en : I18N.de.toast_lang_de);
+    showToast(I18N.en.toast_lang_en);
   }
 }
 
 // Restore saved language on load & listen for cross-tab sync
 (function() {
-  const saved = localStorage.getItem('mctoolkit_lang') || 'de';
-  setLang(saved, true);
+  setLang('en', true);
 
   window.addEventListener('storage', e => {
-    if (e.key === 'mctoolkit_lang' && e.newValue) {
-      setLang(e.newValue, true);
+    if (e.key === 'mctoolkit_lang') {
+      setLang('en', true);
     }
   });
 })();
@@ -3278,7 +3986,187 @@ function selectPlatformAndBuild() {
   }
 }
 
-/* ══ EXPORT AS TEXT LIST ═══════════════════════════════════════ */
+/* ══ EXPORT MODAL & EXPORT FUNCTIONS ══════════════════════════ */
+function openExportModal() {
+  const el = document.getElementById('exportModal');
+  if (el) {
+    el.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+}
+
+function closeExportModal() {
+  const el = document.getElementById('exportModal');
+  if (el) {
+    el.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+}
+
+async function exportCurseForgeZip() {
+  if (!MODS.length && !RESOURCEPACKS.length) {
+    showToast('⚠ Keine Mods im Pack!');
+    return;
+  }
+  closeExportModal();
+  const btn = document.getElementById('buildBtn');
+  const pw  = document.getElementById('progressWrap');
+  const pb  = document.getElementById('progressBar');
+  const st  = document.getElementById('statusText');
+
+  const mcV   = document.getElementById('mcVersion')?.value || '1.21.1';
+  const pName = document.getElementById('packName')?.value.trim() || 'My Modpack';
+  const pVer  = document.getElementById('packVersion')?.value.trim() || '1.0.0';
+  const fl    = document.getElementById('fabricLoader')?.value.trim() || '0.18.3';
+
+  if (pw) pw.style.display = 'block';
+  if (pb) pb.style.width = '0%';
+  if (st) st.textContent = 'Erstelle CurseForge .zip mit modlist.html...';
+
+  try {
+    await buildCurseForgePack(btn, st, pb, mcV, pName, pVer, fl);
+    showToast('📦 CurseForge .zip mit modlist.html exportiert!');
+    launchConfetti();
+  } catch (e) {
+    console.error(e);
+    if (st) st.textContent = 'Fehler beim Exportieren: ' + (e.message || e);
+    showToast('❌ Fehler beim Exportieren');
+  }
+}
+
+async function exportMrpack() {
+  if (!MODS.length && !RESOURCEPACKS.length) {
+    showToast('⚠ Keine Mods im Pack!');
+    return;
+  }
+  closeExportModal();
+  const btn = document.getElementById('buildBtn');
+  const pw  = document.getElementById('progressWrap');
+  const pb  = document.getElementById('progressBar');
+  const st  = document.getElementById('statusText');
+
+  const mcV   = document.getElementById('mcVersion')?.value || '1.21.1';
+  const pName = document.getElementById('packName')?.value.trim() || 'My Modpack';
+  const pVer  = document.getElementById('packVersion')?.value.trim() || '1.0.0';
+  const fl    = document.getElementById('fabricLoader')?.value.trim() || '0.18.3';
+
+  if (pw) pw.style.display = 'block';
+  if (pb) pb.style.width = '0%';
+  if (st) st.textContent = 'Erstelle .mrpack Archive...';
+
+  try {
+    await buildMrpack(btn, st, pb, mcV, pName, pVer, fl);
+    showToast('🟢 Modrinth .mrpack exportiert!');
+    launchConfetti();
+  } catch (e) {
+    console.error(e);
+    if (st) st.textContent = 'Fehler beim Exportieren: ' + (e.message || e);
+    showToast('❌ Fehler beim Exportieren');
+  }
+}
+
+async function exportLunarClient() {
+  if (!MODS.length && !RESOURCEPACKS.length) {
+    showToast('⚠ Keine Mods im Pack!');
+    return;
+  }
+  closeExportModal();
+  const btn = document.getElementById('buildBtn');
+  const pw  = document.getElementById('progressWrap');
+  const pb  = document.getElementById('progressBar');
+  const st  = document.getElementById('statusText');
+
+  const mcV   = document.getElementById('mcVersion')?.value || '1.21.1';
+  const pName = document.getElementById('packName')?.value.trim() || 'My Modpack';
+  const pVer  = document.getElementById('packVersion')?.value.trim() || '1.0.0';
+  const fl    = document.getElementById('fabricLoader')?.value.trim() || '0.18.3';
+
+  if (pw) pw.style.display = 'block';
+  if (pb) pb.style.width = '0%';
+  if (st) st.textContent = 'Erstelle Lunar Client Archiv mit modlist.html...';
+
+  try {
+    const all = [...MODS.map(m => ({ ...m, isRP: false })), ...RESOURCEPACKS.map(r => ({ ...r, isRP: true }))];
+    const customMods = [];
+    const resolvedList = [];
+
+    for (let i = 0; i < all.length; i++) {
+      const item = all[i];
+      if (st) st.textContent = '(' + (i + 1) + '/' + all.length + ') ' + item.name + '...';
+      if (pb) pb.style.width = Math.round(((i + 1) / all.length) * 85) + '%';
+
+      const ver = await fetchVersion(item.slug, mcV, item.isRP);
+      const f = ver?.files?.find(x => x.primary) || ver?.files?.[0];
+      const downloadUrl = f?.url || ('https://modrinth.com/' + (item.isRP ? 'resourcepack' : 'mod') + '/' + item.slug);
+      const fname = f?.filename || (item.slug + '.jar');
+
+      customMods.push({
+        name: fname,
+        enabled: true,
+        url: downloadUrl
+      });
+
+      resolvedList.push({
+        name: item.name,
+        slug: item.slug,
+        version: ver?.version_number || '?',
+        isRP: item.isRP,
+        url: downloadUrl,
+        webUrl: 'https://modrinth.com/' + (item.isRP ? 'resourcepack' : 'mod') + '/' + item.slug
+      });
+    }
+
+    if (pb) pb.style.width = '95%';
+    if (st) st.textContent = 'Verpacke Lunar Client Profil & modlist.html...';
+
+    const lunarProfile = {
+      name: pName,
+      version: mcV,
+      subVersion: mcV,
+      module: 'fabric',
+      loaderVersion: fl,
+      icon: 'DEFAULT',
+      customMods: customMods
+    };
+
+    const modRows = resolvedList.filter(m => !m.isRP).map(m =>
+      '<li><a href="' + m.webUrl + '" target="_blank">' + esc(m.name) + (m.version !== '?' ? ' (' + esc(m.version) + ')' : '') + '</a> (<a href="' + m.url + '">Download .jar</a>)</li>'
+    ).join('\n');
+
+    const rpRows = resolvedList.filter(m => m.isRP).map(m =>
+      '<li><a href="' + m.webUrl + '" target="_blank">' + esc(m.name) + (m.version !== '?' ? ' (' + esc(m.version) + ')' : '') + '</a> (<a href="' + m.url + '">Download</a>)</li>'
+    ).join('\n');
+
+    const modlistHtml = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + esc(pName) + '</title></head><body style="font-family:sans-serif;max-width:800px;margin:2rem auto;background:#1a1a2e;color:#f0f6fc"><h1 style="color:#38bdf8">🔵 ' + esc(pName) + ' (Lunar Client)</h1><p>MC ' + mcV + ' · Fabric ' + fl + ' · ' + resolvedList.length + ' Dateien</p><h2>Mods</h2><ul>' + modRows + '</ul>' + (rpRows ? '<h2>Texture Packs</h2><ul>' + rpRows + '</ul>' : '') + '<hr><p style="color:#666">Exportiert mit MC Toolkit für Lunar Client</p></body></html>';
+    const readme = pName + '\nMC ' + mcV + ' · Fabric ' + fl + '\nExportiert für Lunar Client mit MC Toolkit\n\nImportiere profile.json in Lunar Client oder lade die Mods aus modlist.html in deinen mods/ Ordner herunter.';
+
+    const zip = new JSZip();
+    zip.file('profile.json', JSON.stringify(lunarProfile, null, 2));
+    zip.file('modlist.html', modlistHtml);
+    zip.file('README.txt', readme);
+
+    const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+    const fn = pName.replace(/\s+/g, '_') + '-lunarclient.zip';
+    const blobUrl = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = fn;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    if (pb) pb.style.width = '100%';
+    if (st) st.textContent = '✅ Lunar Client Archiv exportiert → ' + fn;
+    showToast('🔵 Lunar Client Archiv exportiert!');
+    launchConfetti();
+  } catch (e) {
+    console.error(e);
+    if (st) st.textContent = 'Fehler beim Exportieren: ' + (e.message || e);
+    showToast('❌ Fehler beim Exportieren');
+  }
+}
+
 function exportTextList() {
   if (!MODS.length && !RESOURCEPACKS.length) {
     showToast('⚠ Keine Mods im Pack!');
@@ -3319,6 +4207,7 @@ function closeShortcuts() { document.getElementById('shortcutsModal').classList.
 
 document.addEventListener('click', e => {
   if (e.target === document.getElementById('shortcutsModal')) closeShortcuts();
+  if (e.target === document.getElementById('exportModal')) closeExportModal();
   if (e.target === document.getElementById('shareOverlay'))
     document.getElementById('shareOverlay').classList.remove('open');
 });
@@ -3331,6 +4220,7 @@ document.addEventListener('keydown', e => {
   // Esc closes any modal
   if (e.key === 'Escape') {
     closeShortcuts();
+    closeExportModal();
     ['shareOverlay','imprintOverlay','privacyOverlay','feedbackOverlay','profilesOverlay','templatesOverlay'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.classList.remove('open');
@@ -3359,7 +4249,7 @@ document.addEventListener('keydown', e => {
         if (!typing) { e.preventDefault(); doUndo(); }
         break;
       case 'e':
-        if (!typing) { e.preventDefault(); exportTextList(); }
+        if (!typing) { e.preventDefault(); openExportModal(); }
         break;
       case 'c':
         if (e.shiftKey && !typing) { e.preventDefault(); openShareModal(); }
@@ -4324,18 +5214,56 @@ if (_savedPlatform) {
 
 /* ══ AI SIDEBAR ══════════════════════════════════════════════════ */
 
-let aiIsVip = false;
+let aiIsVip = true;
 let aiLastModpackData = null;
 
-// On mobile: collapse AI sidebar by default so it doesn't block the builder
-(function initAiSidebarMobile() {
-  if (window.innerWidth <= 768) {
+// Activate Bolt AI Assistant by default for all users
+(function initAiSidebar() {
+  aiIsVip = true;
+  const setup = () => {
     const lock = document.getElementById('aiLockScreen');
     const chat = document.getElementById('aiChatScreen');
     if (lock) lock.style.display = 'none';
-    if (chat) chat.style.display = 'none';
+    if (chat) {
+      chat.classList.add('visible');
+      chat.style.display = 'flex';
+    }
+    const badge = document.querySelector('.ai-vip-badge');
+    if (badge) {
+      badge.textContent = '⚡ Active';
+      badge.style.background = 'rgba(74,222,128,.18)';
+      badge.style.color = 'var(--green)';
+      badge.style.borderColor = 'rgba(74,222,128,.35)';
+    }
+    refreshApiKeyUI();
+    initBoltMcSelect();
+    initBoltChats();
+  };
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setup);
+  } else {
+    setTimeout(setup, 50);
   }
 })();
+
+function openBoltChat() {
+  aiIsVip = true;
+  const lock = document.getElementById('aiLockScreen');
+  const chat = document.getElementById('aiChatScreen');
+  if (lock) lock.style.display = 'none';
+  if (chat) {
+    chat.classList.add('visible');
+    chat.style.display = 'flex';
+  }
+  const sidebar = document.getElementById('aiSidebar');
+  if (sidebar) {
+    sidebar.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  const input = document.getElementById('aiInput');
+  if (input) {
+    setTimeout(() => input.focus(), 300);
+  }
+}
 
 const OWNER_EMAIL = 'justmotti@gmail.com';
 
@@ -5059,6 +5987,15 @@ function aiLoadPreset(key) {
   const preset = AI_PRESETS[key];
   if (!preset) return;
   aiLastModpackData = preset;
+  const chat = getActiveBoltChat();
+  if (chat) {
+    chat.lastData = preset;
+    if (preset.name && chat.name.startsWith('💬 Modpack Chat')) {
+      chat.name = '💬 ' + preset.name;
+      renderBoltChatSelect();
+    }
+    saveBoltChats();
+  }
   appendAiMsg('bot', `🧩 <b>${preset.name}</b> bereit! <br><code>${preset.slugs.length} Mods</code> – klick auf "In Builder laden"!`);
   document.getElementById('aiApplyStrip').classList.add('visible');
 }
@@ -5104,8 +6041,188 @@ function aiQuickPrompt(text) {
   sendAiMessage();
 }
 
-function appendAiMsg(role, html) {
+/* ══ BOLT MULTI-CHAT SYSTEM ══════════════════════════════════════ */
+let boltChats = [];
+let activeBoltChatId = 'chat_default';
+
+const DEFAULT_WELCOME_MSG = {
+  role: 'bot',
+  html: `<span class="ai-welcome-tag">Willkommen</span>Hey! Ich bin <b>Bolt</b> ⚡ — nutze die Tools oben oder beschreib mir Server & Spielstil!`
+};
+
+function initBoltChats() {
+  try {
+    const raw = localStorage.getItem('mctoolkit_bolt_chats');
+    if (raw) {
+      boltChats = JSON.parse(raw);
+    }
+  } catch (e) {
+    boltChats = [];
+  }
+
+  if (!Array.isArray(boltChats) || boltChats.length === 0) {
+    boltChats = [{
+      id: 'chat_default',
+      name: '💬 Modpack Chat 1',
+      messages: [DEFAULT_WELCOME_MSG],
+      lastData: null
+    }];
+  }
+
+  const savedActive = localStorage.getItem('mctoolkit_bolt_active_chat');
+  if (savedActive && boltChats.some(c => c.id === savedActive)) {
+    activeBoltChatId = savedActive;
+  } else {
+    activeBoltChatId = boltChats[0].id;
+  }
+
+  saveBoltChats();
+  renderBoltChatSelect();
+  renderActiveBoltChat();
+}
+
+function saveBoltChats() {
+  try {
+    localStorage.setItem('mctoolkit_bolt_chats', JSON.stringify(boltChats));
+    localStorage.setItem('mctoolkit_bolt_active_chat', activeBoltChatId);
+  } catch (e) {}
+}
+
+function getActiveBoltChat() {
+  let chat = boltChats.find(c => c.id === activeBoltChatId);
+  if (!chat) {
+    chat = boltChats[0];
+    if (chat) activeBoltChatId = chat.id;
+  }
+  return chat;
+}
+
+function renderBoltChatSelect() {
+  const sel = document.getElementById('boltChatSelect');
+  const delBtn = document.getElementById('deleteBoltChatBtn');
+  if (!sel) return;
+
+  sel.innerHTML = '';
+  boltChats.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.id;
+    opt.textContent = c.name || 'Chat ' + c.id;
+    if (c.id === activeBoltChatId) opt.selected = true;
+    sel.appendChild(opt);
+  });
+
+  if (delBtn) {
+    delBtn.style.display = boltChats.length > 1 ? 'inline-flex' : 'none';
+  }
+}
+
+function renderActiveBoltChat() {
+  const chat = getActiveBoltChat();
   const box = document.getElementById('aiMessages');
+  if (!box || !chat) return;
+
+  box.innerHTML = '';
+  if (!chat.messages || chat.messages.length === 0) {
+    chat.messages = [DEFAULT_WELCOME_MSG];
+  }
+
+  chat.messages.forEach(m => {
+    const div = document.createElement('div');
+    div.className = 'ai-msg ' + m.role;
+    div.innerHTML = `
+      <div class="ai-msg-avatar"><span>${m.role === 'bot' ? '⚡' : 'Du'}</span></div>
+      <div class="ai-msg-bubble">${m.html}</div>
+    `;
+    box.appendChild(div);
+  });
+
+  box.scrollTop = box.scrollHeight;
+
+  if (chat.lastData) {
+    aiLastModpackData = chat.lastData;
+    document.getElementById('aiApplyStrip')?.classList.add('visible');
+  } else {
+    aiLastModpackData = null;
+    document.getElementById('aiApplyStrip')?.classList.remove('visible');
+  }
+}
+
+function switchBoltChat(id) {
+  if (id === activeBoltChatId) return;
+  activeBoltChatId = id;
+  saveBoltChats();
+  renderBoltChatSelect();
+  renderActiveBoltChat();
+  showToast('💬 Chat gewechselt');
+}
+
+function createBoltChat() {
+  const count = boltChats.length + 1;
+  const packName = document.getElementById('packName')?.value?.trim();
+  const defaultName = packName ? `💬 ${packName}` : `💬 Modpack Chat ${count}`;
+  
+  const name = prompt('Name für den neuen Chat:', defaultName);
+  if (name === null) return;
+
+  const newId = 'chat_' + Date.now();
+  const newChat = {
+    id: newId,
+    name: name.trim() || `💬 Chat ${count}`,
+    messages: [DEFAULT_WELCOME_MSG],
+    lastData: null
+  };
+
+  boltChats.push(newChat);
+  activeBoltChatId = newId;
+  saveBoltChats();
+  renderBoltChatSelect();
+  renderActiveBoltChat();
+  showToast('✨ Neuer Chat erstellt!');
+}
+
+function renameCurrentBoltChat() {
+  const chat = getActiveBoltChat();
+  if (!chat) return;
+
+  const newName = prompt('Neuer Name für diesen Chat:', chat.name);
+  if (newName === null || !newName.trim()) return;
+
+  chat.name = newName.trim();
+  saveBoltChats();
+  renderBoltChatSelect();
+  showToast('✏️ Chat umbenannt!');
+}
+
+function clearBoltChat() {
+  if (!confirm('Möchtest du den aktuellen Chat wirklich leeren?')) return;
+  const chat = getActiveBoltChat();
+  if (chat) {
+    chat.messages = [DEFAULT_WELCOME_MSG];
+    chat.lastData = null;
+    aiLastModpackData = null;
+    document.getElementById('aiApplyStrip')?.classList.remove('visible');
+    saveBoltChats();
+    renderActiveBoltChat();
+    showToast('🧹 Chat geleert!');
+  }
+}
+
+function deleteCurrentBoltChat() {
+  if (boltChats.length <= 1) return;
+  const chat = getActiveBoltChat();
+  if (!confirm(`Möchtest du den Chat "${chat.name}" wirklich löschen?`)) return;
+
+  boltChats = boltChats.filter(c => c.id !== activeBoltChatId);
+  activeBoltChatId = boltChats[0].id;
+  saveBoltChats();
+  renderBoltChatSelect();
+  renderActiveBoltChat();
+  showToast('🗑 Chat gelöscht');
+}
+
+function appendAiMsg(role, html, saveToStore = true) {
+  const box = document.getElementById('aiMessages');
+  if (!box) return;
   const div = document.createElement('div');
   div.className = 'ai-msg ' + role;
   div.innerHTML = `
@@ -5114,6 +6231,15 @@ function appendAiMsg(role, html) {
   `;
   box.appendChild(div);
   box.scrollTop = box.scrollHeight;
+
+  if (saveToStore) {
+    const chat = getActiveBoltChat();
+    if (chat) {
+      if (!chat.messages) chat.messages = [];
+      chat.messages.push({ role, html });
+      saveBoltChats();
+    }
+  }
   return div;
 }
 
@@ -5212,6 +6338,15 @@ Für Performance: sodium, lithium, iris, featherlight, nvidium, moreculling, ent
         mods:    modsM  ? modsM[1].trim()  : '',
         version: verM   ? verM[1].trim()   : '1.21.1'
       };
+      const chat = getActiveBoltChat();
+      if (chat) {
+        chat.lastData = aiLastModpackData;
+        if (aiLastModpackData.name && chat.name.startsWith('💬 Modpack Chat')) {
+          chat.name = '💬 ' + aiLastModpackData.name;
+          renderBoltChatSelect();
+        }
+        saveBoltChats();
+      }
       document.getElementById('aiApplyStrip').classList.add('visible');
     }
   } catch(e) {

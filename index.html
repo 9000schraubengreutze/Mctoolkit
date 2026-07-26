@@ -161,7 +161,7 @@
 
   <!-- Actions + Templates -->
   <div class="hero-actions">
-    <a href="#app" class="btn-primary" onclick="setTimeout(()=>document.getElementById('platformOverlay').style.display='flex',100)">⚡ Pack erstellen</a>
+    <a href="#app" class="btn-primary" onclick="openPlatformOverlay()">⚡ Pack erstellen</a>
     <a href="#features" class="btn-ghost">Mehr erfahren →</a>
   </div>
 
@@ -472,7 +472,7 @@
     <div class="section-tag">Los geht's</div>
     <h2 class="section-title">Bereit für dein Modpack?</h2>
     <p class="section-sub" style="margin:0 auto 2.5rem">Scrolle nach unten und starte direkt. Keine Registrierung, kein Warten.</p>
-    <a href="#app" class="btn-primary" style="font-size:1rem; padding:15px 36px;" onclick="setTimeout(()=>document.getElementById('platformOverlay').style.display='flex',100)">⚡ Jetzt starten</a>
+    <a href="#app" class="btn-primary" style="font-size:1rem; padding:15px 36px;" onclick="openPlatformOverlay()">⚡ Jetzt starten</a>
   </div>
 </section>
 
@@ -515,21 +515,23 @@
       <p>Je nach Wahl erhältst du das passende Format –<br>
          <strong>.mrpack</strong> für Modrinth oder <strong>.zip</strong> für CurseForge.</p>
       <div class="platform-cards">
-        <div class="platform-card modrinth" id="pcModrinth" onclick="selectPlatform('modrinth')">
+        <div class="platform-card modrinth" id="pcModrinth" onclick="handleCardClick('modrinth')">
+          <span class="pc-check">✓ Ausgewählt</span>
           <div class="pc-logo">🟢</div>
           <div class="pc-name">Modrinth</div>
           <div class="pc-desc">Modrinth App, Prism Launcher, MultiMC</div>
           <div class="pc-badge modrinth">.mrpack</div>
         </div>
-        <div class="platform-card curseforge" id="pcCurseforge" onclick="selectPlatform('curseforge')">
+        <div class="platform-card curseforge" id="pcCurseforge" onclick="handleCardClick('curseforge')">
+          <span class="pc-check">✓ Ausgewählt</span>
           <div class="pc-logo">🟠</div>
           <div class="pc-name">CurseForge</div>
           <div class="pc-desc">CurseForge App, GDLauncher</div>
           <div class="pc-badge curseforge">.zip</div>
         </div>
       </div>
-      <button class="platform-confirm" id="platformConfirm" onclick="confirmPlatform()">
-        Weiter →
+      <button class="platform-confirm ready" id="platformConfirm" onclick="confirmPlatform()">
+        🟢 Mit Modrinth fortfahren (.mrpack) →
       </button>
     </div>
   </div>

@@ -1788,7 +1788,36 @@ function applyCompareDecision(choice) {
   if (!item) {
     item = {
       slug: compareState.itemSlug,
- /* ══ SMART UPDATE CONFLICT CHECKER FOR COMPARE MODAL ══════════════ */
+      name: compareState.modName || compareState.itemSlug,
+      cat: 'Hinzugefügt',
+      version: selectedVerObj.version_number,
+      versionId: selectedVerObj.id,
+      hasUpdate: false
+    };
+    if (isRP) RESOURCEPACKS.push(item); else MODS.push(item);
+  } else {
+    item.version = selectedVerObj.version_number;
+    item.versionId = selectedVerObj.id;
+    item.hasUpdate = false;
+  }
+
+  if (isRP) renderRPs(); else renderMods();
+  showPage('builder');
+  closeCompareModal();
+  showToast(`✅ ${item.name} (v${item.version}) direkt im Pack Builder übernommen!`);
+
+  setTimeout(() => {
+    const rowId = `row-${isRP ? 'resourcepack' : 'mod'}-${item.slug}`;
+    const rowEl = document.getElementById(rowId);
+    if (rowEl) {
+      rowEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      rowEl.classList.add('flash-highlight');
+      setTimeout(() => rowEl.classList.remove('flash-highlight'), 1800);
+    }
+  }, 200);
+}
+
+/* ══ SMART UPDATE CONFLICT CHECKER FOR COMPARE MODAL ══════════════ */
 async function runSmartUpdateForCompare() {
   const container = document.getElementById('smartUpdateWarningContainer');
   if (container) container.style.display = 'none';
@@ -2267,23 +2296,52 @@ function setSt(id,txt,cls){const e=document.getElementById(id);if(e){e.textConte
 /* ── Platform selector logic ── */
 let selectedPlatform = null;
 
+function openPlatformOverlay() {
+  const po = document.getElementById('platformOverlay');
+  if (po) {
+    po.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+  }
+  selectPlatform(selectedPlatform || 'modrinth');
+}
+
+function handleCardClick(p) {
+  if (selectedPlatform === p) {
+    confirmPlatform();
+  } else {
+    selectPlatform(p);
+  }
+}
+
 function selectPlatform(p) {
-  selectedPlatform = p;
+  selectedPlatform = p || 'modrinth';
   document.querySelectorAll('.platform-card').forEach(c => c.classList.remove('selected'));
-  document.getElementById('pc' + p.charAt(0).toUpperCase() + p.slice(1)).classList.add('selected');
-  document.getElementById('platformConfirm').classList.add('ready');
+  const targetCard = document.getElementById('pc' + selectedPlatform.charAt(0).toUpperCase() + selectedPlatform.slice(1));
+  if (targetCard) targetCard.classList.add('selected');
+  const confirmBtn = document.getElementById('platformConfirm');
+  if (confirmBtn) {
+    confirmBtn.classList.add('ready');
+    confirmBtn.innerHTML = selectedPlatform === 'modrinth'
+      ? '🟢 Mit Modrinth fortfahren (.mrpack) →'
+      : '🟠 Mit CurseForge fortfahren (.zip) →';
+  }
 }
 
 function confirmPlatform() {
-  if (!selectedPlatform) return;
+  if (!selectedPlatform) selectedPlatform = 'modrinth';
   localStorage.setItem('mctoolkit_platform', selectedPlatform);
-  document.getElementById('platformOverlay').style.display = 'none';
+  const po = document.getElementById('platformOverlay');
+  if (po) po.style.display = 'none';
   document.body.style.overflow = '';
   document.documentElement.style.overflow = '';
-  setTimeout(() => document.getElementById('app').scrollIntoView({behavior:'smooth', block:'start'}), 80);
+  setTimeout(() => {
+    const appEl = document.getElementById('app');
+    if (appEl) appEl.scrollIntoView({behavior:'smooth', block:'start'});
+  }, 80);
   // Show indicator
   const ind = document.getElementById('platformIndicator');
-  ind.style.display = 'flex';
+  if (ind) ind.style.display = 'flex';
   const isMr = selectedPlatform === 'modrinth';
   const piDot = document.getElementById('piDot');
   if (piDot) {
@@ -2311,12 +2369,9 @@ function confirmPlatform() {
 function changePlatform() {
   selectedPlatform = null;
   localStorage.removeItem('mctoolkit_platform');
-  document.getElementById('platformOverlay').style.display = 'flex';
-  document.body.style.overflow = 'hidden';
-  document.documentElement.style.overflow = 'hidden';
-  document.getElementById('platformIndicator').style.display = 'none';
-  document.querySelectorAll('.platform-card').forEach(c => c.classList.remove('selected'));
-  document.getElementById('platformConfirm').classList.remove('ready');
+  openPlatformOverlay();
+  const ind = document.getElementById('platformIndicator');
+  if (ind) ind.style.display = 'none';
 }
 
 /* ── Modrinth .mrpack build ── */
@@ -3977,12 +4032,7 @@ function selectPlatformAndBuild() {
     buildPack();
   } else {
     // Show platform overlay then build
-    const po = document.getElementById('platformOverlay');
-    if (po) {
-      po.style.display = 'flex';
-      document.body.style.overflow = 'hidden';
-      document.documentElement.style.overflow = 'hidden';
-    }
+    openPlatformOverlay();
   }
 }
 
@@ -5207,9 +5257,7 @@ if (_savedPlatform) {
   selectedPlatform = _savedPlatform;
   confirmPlatform();
 } else {
-  document.getElementById('platformOverlay').style.display = 'flex';
-  document.body.style.overflow = 'hidden';
-  document.documentElement.style.overflow = 'hidden';
+  openPlatformOverlay();
 }
 
 /* ══ AI SIDEBAR ══════════════════════════════════════════════════ */
@@ -6025,9 +6073,7 @@ function heroLoadPreset(key) {
 
   // If platform not chosen yet, show overlay first then load
   if (!selectedPlatform) {
-    document.getElementById('platformOverlay').style.display = 'flex';
-    document.body.style.overflow = 'hidden';
-    document.documentElement.style.overflow = 'hidden';
+    openPlatformOverlay();
     // After confirm, load the preset
     const origConfirm = window._pendingPresetLoad;
     window._pendingPresetLoad = doLoad;

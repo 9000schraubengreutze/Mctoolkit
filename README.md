@@ -1,7 +1,7 @@
 # MCToolKit
 
 A fast, browser-based tool for creating and converting Minecraft modpacks.
-
+If you want to add a feature fee free to add it!
 Instead of manually searching and adding every mod, simply paste your mod list, choose your target platform, and export a ready-to-use modpack.
 
 ## Features
@@ -32,7 +32,3 @@ Creating or converting modpacks manually can be time-consuming. MCToolKit simpli
 * [ ] Version conflict detection
 * [ ] Save and edit projects
 * [ ] Improved mod matching
-
-## Contributing
-
-Contributions, feature requests, and bug reports are welcome. Feel free to open an issue or submit a pull request.

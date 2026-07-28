@@ -5210,6 +5210,56 @@ function switchTut(id, btn) {
   btn.classList.add('active');
 }
 
+/* ══ WORKFLOW DEMO SHOWCASE ══════════════════════════════════ */
+let currentWdStep = 1;
+let wdTimer = null;
+
+function showWorkflowDemo(stepNum, userTriggered = true) {
+  if (userTriggered && wdTimer) {
+    clearInterval(wdTimer);
+    wdTimer = null;
+    const tag = document.getElementById('wdAutoplayTag');
+    if (tag) tag.textContent = '⏸ Interaktiv';
+  }
+  currentWdStep = stepNum;
+  document.querySelectorAll('.wd-slide').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.step').forEach(st => st.classList.remove('active'));
+  document.querySelectorAll('.wd-nav-dot').forEach(d => d.classList.remove('active'));
+
+  const activeSlide = document.getElementById('wd-slide-' + stepNum);
+  if (activeSlide) activeSlide.classList.add('active');
+
+  const activeStep = document.getElementById('howto-step-' + stepNum);
+  if (activeStep) activeStep.classList.add('active');
+
+  const activeDot = document.getElementById('wd-dot-' + stepNum);
+  if (activeDot) activeDot.classList.add('active');
+
+  const indicator = document.getElementById('wdStepIndicator');
+  if (indicator) indicator.textContent = 'Schritt ' + stepNum + ' / 3';
+}
+
+function nextWorkflowDemo() {
+  let next = currentWdStep + 1;
+  if (next > 3) next = 1;
+  showWorkflowDemo(next, true);
+}
+
+function prevWorkflowDemo() {
+  let prev = currentWdStep - 1;
+  if (prev < 1) prev = 3;
+  showWorkflowDemo(prev, true);
+}
+
+function initWorkflowDemoAutoPlay() {
+  if (wdTimer) clearInterval(wdTimer);
+  wdTimer = setInterval(() => {
+    let next = currentWdStep + 1;
+    if (next > 3) next = 1;
+    showWorkflowDemo(next, false);
+  }, 4500);
+}
+
 
 /* ══ COOKIE BANNER ═════════════════════════════════════════════ */
 function initCookieBanner() {
@@ -5250,6 +5300,7 @@ document.addEventListener('click', e => {
 renderMods();renderRPs();
 loadFromUrl();
 initCookieBanner();
+initWorkflowDemoAutoPlay();
 
 // Restore saved platform or show overlay
 const _savedPlatform = localStorage.getItem('mctoolkit_platform');

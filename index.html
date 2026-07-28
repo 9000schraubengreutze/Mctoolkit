@@ -28,6 +28,10 @@
   <!-- Settings Button top-right -->
   <div style="position:relative;margin-left:auto;display:flex;align-items:center;gap:8px">
 
+    <a href="https://github.com/9000schraubengreutze/Mctoolkit" target="_blank" rel="noopener" class="nav-github-link" title="GitHub Repository">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+      <span>GitHub</span>
+    </a>
 
     <button class="nav-settings-btn" id="navSettingsBtn" onclick="toggleSettingsPanel()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -117,11 +121,10 @@
 
   <div class="hero-tag">100% im Browser &bull; Keine Uploads &bull; Open Source</div>
 
-  <h1>Your mod list.<br><em>A working modpack.</em><br><span class="h1-sub">In seconds.</span></h1>
+  <h1>Create or convert<br><em>Minecraft modpacks in seconds.</em></h1>
 
   <p class="hero-sub">
-    Einfach einfügen – MC Toolkit erkennt deine Mods, behebt Fehler<br>
-    und baut ein sauberes <strong>.mrpack</strong> oder <strong>CurseForge .zip</strong>.
+    Supports CurseForge and Modrinth. No downloads required.
   </p>
 
   <!-- Live Example -->
@@ -178,7 +181,7 @@
     <div class="trust-badge">🔒 100% im Browser</div>
     <div class="trust-badge">📵 Keine Uploads</div>
     <div class="trust-badge">↔ CurseForge ↔ Modrinth</div>
-    <a href="https://github.com" target="_blank" class="trust-badge trust-link">⭐ Open Source</a>
+    <a href="https://github.com/9000schraubengreutze/Mctoolkit" target="_blank" rel="noopener" class="trust-badge trust-link">⭐ Open Source</a>
   </div>
 
   <div class="hero-stats">
@@ -186,6 +189,35 @@
     <div class="hero-stat"><div class="num">3</div><div class="lbl">Tools in einem</div></div>
     <div class="hero-stat"><div class="num">100<span>%</span></div><div class="lbl">Im Browser</div></div>
     <div class="hero-stat"><div class="num">0</div><div class="lbl">Daten gesammelt</div></div>
+  </div>
+</section>
+
+<!-- ═══════════════════════ BENEFITS ═══════════════════════════════════════ -->
+<section id="benefits">
+  <div class="section-inner" style="text-align: center;">
+    <div class="section-tag">Deine Vorteile</div>
+    <h2 class="section-title" style="margin: 0 auto 0.5rem;">Warum MC Toolkit?</h2>
+    <p class="section-sub" style="margin: 0 auto 2.5rem;">Entworfen für maximale Einfachheit, Geschwindigkeit und Flexibilität.</p>
+
+    <div class="benefits-grid">
+      <div class="benefit-card">
+        <div class="benefit-icon">🌐</div>
+        <h3>Browser-based</h3>
+        <p>100% im Browser ausführbar. Kein Download, keine Installation und keine Einrichtung eines lokalen Servers erforderlich.</p>
+      </div>
+
+      <div class="benefit-card">
+        <div class="benefit-icon">🎁</div>
+        <h3>Free</h3>
+        <p>Vollständig kostenlos und Open Source. Keine Versteckten Kosten, kein Abonnement und keine Registrierung notwendig.</p>
+      </div>
+
+      <div class="benefit-card">
+        <div class="benefit-icon">⚡</div>
+        <h3>Supports CurseForge &amp; Modrinth</h3>
+        <p>Nativ kompatibel mit beiden Plattformen. Exportiere im <code>.mrpack</code> oder <code>.zip</code> Format für deinen Lieblingslauncher.</p>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -234,38 +266,169 @@
 <!-- ═══════════════════════ HOW IT WORKS ══════════════════════════════════ -->
 <section id="howto">
   <div class="section-inner">
-    <div class="section-tag">Anleitung</div>
+    <div class="section-tag">Anleitung &amp; Demo</div>
     <h2 class="section-title">In 3 Schritten zum Modpack</h2>
-    <p class="section-sub">Die App muss über einen lokalen Webserver geöffnet werden, damit der Browser die Modrinth API aufrufen darf.</p>
+    <p class="section-sub">Sieh dir den einfachen Workflow in der interaktiven Vorschau an – 100% im Browser, ohne Installation.</p>
 
-    <div class="steps">
-      <div class="step">
-        <div class="step-left"><div class="step-num">01</div><div class="step-line"></div></div>
-        <div class="step-content">
-          <h3>MC Toolkit öffnen</h3>
-          <p>Einfach <a href="https://crystalpack-builder.netlify.app" target="_blank">crystalpack-builder.netlify.app</a> im Browser aufrufen – fertig.
-            Kein Download, keine Installation, kein lokaler Server nötig.
-          </p>
+    <div class="howto-container">
+      <div class="steps">
+        <div class="step active" id="howto-step-1" onclick="showWorkflowDemo(1)">
+          <div class="step-left"><div class="step-num">01</div><div class="step-line"></div></div>
+          <div class="step-content">
+            <h3>1. Mods suchen &amp; einfügen</h3>
+            <p>Füge deine Mod-Namen oder Links im <b>Pack Builder</b> ein. MC Toolkit erkennt Modrinth &amp; CurseForge Mods automatisch.</p>
+            <div class="step-badge">🔍 Live-Suche &amp; Massen-Import</div>
+          </div>
+        </div>
+        <div class="step" id="howto-step-2" onclick="showWorkflowDemo(2)">
+          <div class="step-left"><div class="step-num">02</div><div class="step-line"></div></div>
+          <div class="step-content">
+            <h3>2. Auto-Fixing &amp; Launcher wählen</h3>
+            <p>Fehlende Abhängigkeiten (wie Fabric API) werden automatisch ergänzt. Wähle <b>Modrinth (.mrpack)</b> oder <b>CurseForge (.zip)</b>.</p>
+            <div class="step-badge">✦ 100% Dependency Resolver</div>
+          </div>
+        </div>
+        <div class="step" id="howto-step-3" onclick="showWorkflowDemo(3)">
+          <div class="step-left"><div class="step-num">03</div><div class="step-line"></div></div>
+          <div class="step-content">
+            <h3>3. Generieren &amp; im Launcher spielen</h3>
+            <p>1-Klick Export startet den Download. Importiere die Datei direkt in der Modrinth App, CurseForge App oder Prism Launcher.</p>
+            <div class="step-badge">⚡ Direkt spielbereit</div>
+          </div>
         </div>
       </div>
-      <div class="step">
-        <div class="step-left"><div class="step-num">02</div><div class="step-line"></div></div>
-        <div class="step-content">
-          <h3>Mods zusammenstellen</h3>
-          <p>Im <b>Pack Builder</b> Tab Mods per Suche finden oder per Paste hinzufügen.
-            Oder im <b>Pack reparieren</b> Tab eine bestehende .mrpack hochladen und automatisch fixen.
-            Im <b>Zusammenführen</b> Tab zwei Packs kombinieren.
-          </p>
+
+      <!-- Live Workflow Showcase Screen (Interactive Demo / Screenshot Mockup) -->
+      <div class="workflow-demo-window" id="workflowDemoWindow">
+        <div class="wd-header">
+          <div class="wd-dots">
+            <span class="wd-dot red"></span>
+            <span class="wd-dot yellow"></span>
+            <span class="wd-dot green"></span>
+          </div>
+          <div class="wd-title">mctoolkit.app — Workflow Demo</div>
+          <div class="wd-controls">
+            <button class="wd-step-btn" onclick="prevWorkflowDemo()">◀</button>
+            <span class="wd-step-indicator" id="wdStepIndicator">Schritt 1 / 3</span>
+            <button class="wd-step-btn" onclick="nextWorkflowDemo()">▶</button>
+          </div>
         </div>
-      </div>
-      <div class="step">
-        <div class="step-left"><div class="step-num">03</div><div class="step-line"></div></div>
-        <div class="step-content">
-          <h3>Generieren & Installieren</h3>
-          <p>Auf den Download-Button klicken – die fertige <code>.mrpack</code> wird heruntergeladen.
-            Im <b>Modrinth Launcher</b> importieren: <i>Mods → Aus Datei importieren</i>.
-            Fertig!
-          </p>
+
+        <div class="wd-body">
+          <!-- Slide 1: Mod Search & Paste -->
+          <div class="wd-slide active" id="wd-slide-1">
+            <div class="wd-mock-bar">
+              <div class="wd-mock-search">
+                <span class="wd-icon">🔍</span>
+                <span class="wd-typed">sodium, iris shaders, lithium, fabric-api</span>
+                <span class="wd-cursor"></span>
+              </div>
+              <div class="wd-mock-btn">+ Hinzufügen</div>
+            </div>
+
+            <div class="wd-mock-list">
+              <div class="wd-mock-item">
+                <span class="wd-mi-icon">🟢</span>
+                <div class="wd-mi-info">
+                  <div class="wd-mi-title">Sodium <span class="wd-tag">Performance</span></div>
+                  <div class="wd-mi-sub">Modrinth • Fabric 1.21.1</div>
+                </div>
+                <span class="wd-mi-check">✔ Bereit</span>
+              </div>
+              <div class="wd-mock-item">
+                <span class="wd-mi-icon">🟢</span>
+                <div class="wd-mi-info">
+                  <div class="wd-mi-title">Iris Shaders <span class="wd-tag">Grafik</span></div>
+                  <div class="wd-mi-sub">Modrinth • Fabric 1.21.1</div>
+                </div>
+                <span class="wd-mi-check">✔ Bereit</span>
+              </div>
+              <div class="wd-mock-item">
+                <span class="wd-mi-icon">⚡</span>
+                <div class="wd-mi-info">
+                  <div class="wd-mi-title">ClickCrystals <span class="wd-tag">PvP Utility</span></div>
+                  <div class="wd-mi-sub">Auto-Match • Fabric 1.21.1</div>
+                </div>
+                <span class="wd-mi-check">✔ Bereit</span>
+              </div>
+            </div>
+            <div class="wd-caption">
+              <span>💡 Tipp:</span> Du kannst eine ganze Liste von Mods per Copy &amp; Paste auf einmal importieren.
+            </div>
+          </div>
+
+          <!-- Slide 2: Dependency Resolution & Platform Selection -->
+          <div class="wd-slide" id="wd-slide-2">
+            <div class="wd-alert-box">
+              <div class="wd-alert-icon">✦</div>
+              <div>
+                <div class="wd-alert-title">Automatische Konflikt- &amp; Dependency-Prüfung</div>
+                <div class="wd-alert-sub">2 benötigte Library-Mods wurden automatisch hinzugefügt (Fabric API, MaLiLib).</div>
+              </div>
+            </div>
+
+            <div class="wd-platform-preview">
+              <div class="wd-plat-card selected">
+                <div class="wd-plat-badge">Empfohlen</div>
+                <div class="wd-plat-icon">🟢</div>
+                <div class="wd-plat-name">Modrinth (.mrpack)</div>
+                <div class="wd-plat-sub">Modrinth App, Prism Launcher, MultiMC</div>
+              </div>
+              <div class="wd-plat-card">
+                <div class="wd-plat-icon">🟠</div>
+                <div class="wd-plat-name">CurseForge (.zip)</div>
+                <div class="wd-plat-sub">CurseForge App, GDLauncher</div>
+              </div>
+            </div>
+
+            <div class="wd-caption">
+              <span>⚡ Vorteil:</span> Kein Ausprobieren nötig. MC Toolkit garantiert, dass alle Abhängigkeiten stimmen.
+            </div>
+          </div>
+
+          <!-- Slide 3: 1-Click Export & Launcher Import -->
+          <div class="wd-slide" id="wd-slide-3">
+            <div class="wd-export-preview">
+              <div class="wd-exp-card">
+                <div class="wd-exp-icon">📦</div>
+                <div class="wd-exp-meta">
+                  <div class="wd-exp-title">my-custom-pack.mrpack</div>
+                  <div class="wd-exp-sub">12 Mods • Fabric 1.21.1 • Modrinth Format</div>
+                </div>
+                <div class="wd-exp-btn">⬇ Download</div>
+              </div>
+
+              <div class="wd-import-visual">
+                <div class="wd-iv-step">
+                  <span class="wd-iv-num">1</span>
+                  <span>Launcher öffnen</span>
+                </div>
+                <div class="wd-iv-arrow">➔</div>
+                <div class="wd-iv-step highlight">
+                  <span class="wd-iv-num">2</span>
+                  <span>„Aus Datei importieren" → <code>.mrpack</code> wählen</span>
+                </div>
+                <div class="wd-iv-arrow">➔</div>
+                <div class="wd-iv-step success">
+                  <span class="wd-iv-num">3</span>
+                  <span>🎮 Spielen!</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="wd-caption">
+              <span>🎉 Fertig:</span> Dein Launcher lädt alle Mods automatisch herunter und startet das Spiel.
+            </div>
+          </div>
+        </div>
+
+        <div class="wd-footer">
+          <div class="wd-nav-dots">
+            <span class="wd-nav-dot active" id="wd-dot-1" onclick="showWorkflowDemo(1)"></span>
+            <span class="wd-nav-dot" id="wd-dot-2" onclick="showWorkflowDemo(2)"></span>
+            <span class="wd-nav-dot" id="wd-dot-3" onclick="showWorkflowDemo(3)"></span>
+          </div>
+          <div class="wd-autoplay-tag" id="wdAutoplayTag">▶ Live Demo Vorschau</div>
         </div>
       </div>
     </div>
@@ -301,16 +464,24 @@
     <h2 class="section-title">Häufige Fragen</h2>
     <div class="faq-list">
       <div class="faq-item">
-        <div class="faq-q" onclick="toggleFaq(this)">Ist MC Toolkit kostenlos nutzbar? <span class="faq-arrow">▼</span></div>
-        <div class="faq-a">Ja, vollständig kostenlos und ohne Account. MC Toolkit läuft auf einem Server – einfach die Seite aufrufen und direkt loslegen. Keine Installation, kein lokaler Server, keine Registrierung nötig.</div>
+        <div class="faq-q" onclick="toggleFaq(this)">Ist das kostenlos? <span class="faq-arrow">▼</span></div>
+        <div class="faq-a">Ja, MC Toolkit ist zu 100% kostenlos und Open Source. Es gibt keine versteckten Kosten, keine Werbeeinblendungen, keine Premium-Features und du musst dich nicht registrieren oder anmelden.</div>
       </div>
       <div class="faq-item">
-        <div class="faq-q" onclick="toggleFaq(this)">Wo werden meine Daten gespeichert? <span class="faq-arrow">▼</span></div>
-        <div class="faq-a">Nirgends. MC Toolkit läuft vollständig im Browser. Es gibt keinen Backend-Server, keine Datenbank und kein Tracking. Deine Modliste existiert nur im aktuellen Browser-Tab.</div>
+        <div class="faq-q" onclick="toggleFaq(this)">Werden Mods oder eigene Dateien hochgeladen? <span class="faq-arrow">▼</span></div>
+        <div class="faq-a">Nein! Es werden keine Mod-Dateien auf Server hochgeladen. MC Toolkit verarbeitet deine Mod-Namen, Links und Dateilisten direkt im Browser. Bei der Modpack-Erstellung werden lediglich saubere Manifest-Metadaten (Slugs, Versionen, Projekt-IDs) generiert. Dein Launcher lädt die echten Mod-Dateien später sicher direkt von Modrinth oder CurseForge herunter.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">Werden Dependencies (Abhängigkeiten) berücksichtigt? <span class="faq-arrow">▼</span></div>
+        <div class="faq-a">Ja, absolut! MC Toolkit verfügt über einen integrierten Dependency-Resolver. Das Tool analysiert die Modrinth- &amp; CurseForge-API und fügt erforderliche Library-Mods (wie <code>fabric-api</code>, <code>indium</code>, <code>cloth-config</code>, etc.) automatisch hinzu, damit dein Pack direkt ohne Abstürze startet.</div>
       </div>
       <div class="faq-item">
         <div class="faq-q" onclick="toggleFaq(this)">Welche Minecraft-Versionen werden unterstützt? <span class="faq-arrow">▼</span></div>
-        <div class="faq-a">Der Builder unterstützt 1.21.11, 1.21.4, 1.21.1, 1.20.4 und 1.20.1. Im Pack Reparatur Tool wird die Version automatisch aus der hochgeladenen .mrpack ausgelesen und kann manuell angepasst werden.</div>
+        <div class="faq-a">MC Toolkit unterstützt alle gängigen Minecraft-Versionen (z. B. 1.21.11, 1.21.4, 1.21.1, 1.20.4, 1.20.1 u.v.m.). Im Pack Builder kannst du deine Zielversion frei wählen. Beim Reparieren/Fixen oder Konvertieren bestehender Packs wird die Minecraft-Version automatisch aus der Datei ausgelesen.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">Wo werden meine Daten gespeichert? <span class="faq-arrow">▼</span></div>
+        <div class="faq-a">Nirgends auf externen Servern. MC Toolkit läuft vollständig clientseitig im Browser. Es gibt keine externe Datenbank und kein Tracking. Deine zusammengestellte Modliste bleibt privat in deinem Browser.</div>
       </div>
       <div class="faq-item">
         <div class="faq-q" onclick="toggleFaq(this)">Was ist eine .mrpack-Datei? <span class="faq-arrow">▼</span></div>
@@ -488,10 +659,11 @@
   <div class="footer-links">
     <a href="#features">Features</a>
     <a href="#howto">Anleitung</a>
-    <a href="#requirements">Voraussetzungen</a>
+    <a href="#benefits">Vorteile</a>
     <a href="#tutorial">Tutorial</a>
     <a href="#faq">FAQ</a>
     <a href="#app">App starten</a>
+    <a href="https://github.com/9000schraubengreutze/Mctoolkit" target="_blank" rel="noopener">⭐ GitHub ↗</a>
     <a href="https://modrinth.com" target="_blank" rel="noopener">Modrinth ↗</a>
     <a href="https://discord.gg/" target="_blank" rel="noopener" id="discordLink">💬 Discord ↗</a>
     <a href="#" onclick="openFeedback(event)" style="color:var(--green)">📣 Feedback geben</a>
@@ -501,8 +673,8 @@
   </div>
 </footer>
 <div class="footer-bottom">
-  <p>© 2025 MC Toolkit &bull; Nicht offiziell mit Modrinth oder Mojang verbunden.</p>
-  <span class="version">v3.0.0 &bull; MC 1.21.11</span>
+  <p>© 2025 MC Toolkit &bull; Nicht offiziell mit Modrinth, CurseForge oder Mojang verbunden.</p>
+  <span class="version">v3.0.0 &bull; MC 1.21.11 &bull; Open Source</span>
 </div>
 
 <!-- ═══════════════════════ APP ════════════════════════════════════════════ -->
@@ -1326,18 +1498,20 @@
         <button class="pm-close" onclick="document.getElementById('imprintOverlay').classList.remove('open')">✕</button>
       </div>
       <div style="font-size:.83rem;color:var(--sub);line-height:1.9;overflow-y:auto;max-height:60vh">
-        <p><b style="color:var(--text)">Angaben gemäß § 5 TMG</b></p>
+        <p><b style="color:var(--text)">Angaben gemäß § 5 TMG / DDG</b></p>
+        <p>MC Toolkit ist ein rein privates, nicht-kommerzielles Open-Source-Projekt zur Erstellung und Verwaltung von Minecraft Modpacks.</p>
         <br>
-        <p>MC Toolkit ist ein privates Open-Source-Projekt und kein kommerzielles Angebot.</p>
+        <p><b style="color:var(--text)">Verantwortlich für den Inhalt &amp; Kontakt</b><br>
+        Dieses Projekt wird privat bereitgestellt. Bei Fragen, Feedback oder rechtlichen Hinweisen erreichst du uns über unseren offiziellen Discord-Server oder das <a href="https://github.com/9000schraubengreutze/Mctoolkit" target="_blank" rel="noopener" style="color:var(--green)">GitHub Repository</a>.</p>
         <br>
-        <p><b style="color:var(--text)">Verantwortlich für den Inhalt</b><br>
-        Dieses Projekt wird privat betrieben. Bei Fragen wende dich bitte über den Discord-Server oder das Feedback-Formular an uns.</p>
+        <p><b style="color:var(--text)">Haftung für Inhalte &amp; Links</b><br>
+        Als Diensteanbieter sind wir gemäß § 7 Abs.1 TMG für eigene Inhalte verantwortlich. Für externe Links zu Webseiten Dritter (z. B. Modrinth, CurseForge) übernehmen wir keine Gewähr, da wir auf deren Inhalte keinen Einfluss haben.</p>
         <br>
-        <p><b style="color:var(--text)">Haftungsausschluss</b><br>
-        MC Toolkit ist nicht offiziell mit Modrinth, CurseForge oder Mojang Studios verbunden. Alle Markennamen und Logos sind Eigentum ihrer jeweiligen Inhaber.</p>
+        <p><b style="color:var(--text)">Urheberrecht &amp; Markenhinweis</b><br>
+        MC Toolkit steht in keiner offiziellen Verbindung zu Mojang Studios, Microsoft, Modrinth oder CurseForge. Minecraft ist ein eingetragenes Warenzeichen von Mojang Synergies AB.</p>
         <br>
         <p><b style="color:var(--text)">Streitschlichtung</b><br>
-        Die EU-Kommission stellt eine Plattform zur Online-Streitbeilegung (OS) bereit: <a href="https://ec.europa.eu/consumers/odr" target="_blank" style="color:var(--green)">ec.europa.eu/consumers/odr</a></p>
+        Die EU-Kommission stellt eine Plattform zur Online-Streitbeilegung (OS) bereit: <a href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noopener" style="color:var(--green)">ec.europa.eu/consumers/odr</a></p>
       </div>
     </div>
   </div>
@@ -1351,22 +1525,22 @@
       </div>
       <div style="font-size:.83rem;color:var(--sub);line-height:1.9;overflow-y:auto;max-height:60vh">
         <p><b style="color:var(--text)">1. Datenschutz auf einen Blick</b></p>
-        <p>MC Toolkit speichert keine personenbezogenen Daten auf einem Server. Die gesamte Anwendung läuft im Browser des Nutzers.</p>
+        <p>MC Toolkit verarbeitet personenbezogene Daten so sparsam wie möglich. Die gesamte Logik zur Modpack-Erstellung läuft direkt lokal in deinem Browser.</p>
         <br>
         <p><b style="color:var(--text)">2. Lokale Speicherung (localStorage)</b></p>
-        <p>Mod-Profile werden ausschließlich lokal im Browser gespeichert (localStorage). Diese Daten verlassen dein Gerät nicht und können jederzeit im Browser gelöscht werden.</p>
+        <p>Gespeicherte Modpack-Profile und Einstellungen werden ausschließlich lokal im <code>localStorage</code> deines Browsers abgelegt. Diese Daten werden nicht an unsere Server gesendet und können jederzeit über deine Browser-Einstellungen gelöscht werden.</p>
         <br>
-        <p><b style="color:var(--text)">3. Externe API-Aufrufe</b></p>
-        <p>Beim Generieren eines Modpacks werden Anfragen an die öffentliche Modrinth API (<a href="https://api.modrinth.com" target="_blank" style="color:var(--green)">api.modrinth.com</a>) gestellt. Dabei wird deine IP-Adresse an Modrinth übermittelt. Bitte beachte die <a href="https://modrinth.com/legal/privacy" target="_blank" style="color:var(--green)">Datenschutzerklärung von Modrinth</a>.</p>
+        <p><b style="color:var(--text)">3. Externe API-Aufrufe (Modrinth &amp; CurseForge)</b></p>
+        <p>Beim Suchen oder Generieren von Modpacks sendet dein Browser direkte Anfragen an die öffentliche Modrinth API (<a href="https://api.modrinth.com" target="_blank" rel="noopener" style="color:var(--green)">api.modrinth.com</a>). Dabei wird deine IP-Adresse übermittelt. Siehe <a href="https://modrinth.com/legal/privacy" target="_blank" rel="noopener" style="color:var(--green)">Datenschutzerklärung von Modrinth</a>.</p>
         <br>
-        <p><b style="color:var(--text)">4. Hosting</b></p>
-        <p>Die Seite wird über Netlify gehostet. Netlify kann Server-Logs mit IP-Adressen führen. Weitere Informationen: <a href="https://www.netlify.com/privacy/" target="_blank" style="color:var(--green)">netlify.com/privacy</a></p>
+        <p><b style="color:var(--text)">4. Hosting (Vercel)</b></p>
+        <p>Diese Website wird über den Cloud-Hosting-Dienst <b>Vercel</b> (Vercel Inc., 440 N Barranca Ave #4133, Covina, CA 91723, USA) bereitgestellt. Zur technischen Auslieferung, Stabilität und Sicherheit erfasst Vercel automatisiert anonymisierte Server-Logfiles (z. B. IP-Adresse, Browsertyp, Zugriffszeitraum). Weitere Details findest du in der Datenschutzerklärung von Vercel: <a href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noopener" style="color:var(--green)">vercel.com/legal/privacy-policy</a></p>
         <br>
-        <p><b style="color:var(--text)">5. Cookies</b></p>
-        <p>MC Toolkit verwendet keine Cookies.</p>
+        <p><b style="color:var(--text)">5. Cookies &amp; Tracking</b></p>
+        <p>MC Toolkit verwendet keine Tracking-Cookies, Werbecookies oder Analysedienste Dritter.</p>
         <br>
         <p><b style="color:var(--text)">6. Deine Rechte</b></p>
-        <p>Du hast jederzeit das Recht auf Auskunft, Berichtigung und Löschung deiner gespeicherten Daten. Da keine Daten auf unserem Server gespeichert werden, kannst du lokale Daten direkt in den Browser-Einstellungen löschen.</p>
+        <p>Du hast das Recht auf Auskunft, Berichtigung und Löschung. Da wir keine personenbezogenen Daten auf eigenen Servern speichern, kannst du lokale Einstellungen jederzeit direkt in deinen Browser-Daten löschen.</p>
       </div>
     </div>
   </div>
@@ -1389,7 +1563,7 @@
           <span>Discord beitreten – direkte Kommunikation</span>
           <span style="margin-left:auto">→</span>
         </a>
-        <a href="https://github.com/" target="_blank" rel="noopener"
+        <a href="https://github.com/9000schraubengreutze/Mctoolkit" target="_blank" rel="noopener"
            style="display:flex;align-items:center;gap:12px;padding:13px 16px;background:var(--bg3);border:1px solid var(--border);border-radius:12px;text-decoration:none;color:var(--text);font-weight:700;font-size:.88rem;transition:opacity .15s"
            onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">
           <span style="font-size:1.5rem">🐙</span>

@@ -20,10 +20,63 @@
 
 <!-- ═══════════════════════ NAV ════════════════════════════════════════════ -->
 <nav>
-  <a href="#home" class="nav-logo" onclick="closeOverlayAndScroll(event,'home')">
-    <div class="nav-logo-icon">⚡</div>
-    <span class="nav-logo-text">MC <span>Toolkit</span></span>
+  <a href="/" class="nav-logo" onclick="navigateTo('/', event)">
+    <div class="nav-logo-icon">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+    </div>
+    <span class="nav-logo-text">MC<span>ToolKit</span></span>
   </a>
+
+  <!-- Navigation Menu Links -->
+  <div class="nav-links">
+    <a href="/" onclick="navigateTo('/', event)" class="nav-link">Home</a>
+    
+    <div class="nav-dropdown" id="toolsNavDropdown">
+      <button class="nav-link nav-dropdown-btn" onclick="toggleToolsDropdown(event)">
+        Tools <span class="nav-caret">▾</span>
+      </button>
+      <div class="tools-dropdown-menu" id="toolsDropdownMenu">
+        <a href="/tools/modpack-generator" onclick="openToolRoute('builder', 'modpack-generator', event)" class="td-item">
+          <span class="td-icon purple">🧩</span>
+          <div>
+            <div class="td-title">Modpack Generator</div>
+            <div class="td-desc">Aus Modliste erstellen</div>
+          </div>
+        </a>
+        <a href="/tools/pack-converter" onclick="openToolRoute('convert', 'pack-converter', event)" class="td-item">
+          <span class="td-icon green">🔄</span>
+          <div>
+            <div class="td-title">Pack Converter</div>
+            <div class="td-desc">CurseForge ↔ Modrinth</div>
+          </div>
+        </a>
+        <a href="/tools/pack-repair" onclick="openToolRoute('fix', 'pack-repair', event)" class="td-item">
+          <span class="td-icon orange">🔥</span>
+          <div>
+            <div class="td-title">Pack Repair</div>
+            <div class="td-desc">Packs reparieren</div>
+          </div>
+        </a>
+        <a href="/tools/compatibility-checker" onclick="openToolRoute('upgrade', 'compatibility-checker', event)" class="td-item">
+          <span class="td-icon yellow">⚡</span>
+          <div>
+            <div class="td-title">Compatibility Checker</div>
+            <div class="td-desc">Versionen prüfen</div>
+          </div>
+        </a>
+        <a href="/tools/public-packs" onclick="openToolRoute('community', 'public-packs', event)" class="td-item">
+          <span class="td-icon purple">🌐</span>
+          <div>
+            <div class="td-title">Public Packs</div>
+            <div class="td-desc">Entdecken &amp; Stöbern</div>
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <a href="#faq" onclick="closeOverlayAndScroll(event,'faq')" class="nav-link">FAQ</a>
+    <a href="https://github.com/9000schraubengreutze/Mctoolkit" target="_blank" rel="noopener" class="nav-link">GitHub ↗</a>
+  </div>
 
   <!-- Settings Button top-right -->
   <div style="position:relative;margin-left:auto;display:flex;align-items:center;gap:8px">
@@ -59,7 +112,7 @@
         </div>
         <div class="sp-section">
           <div class="sp-label" data-i18n="sp_navigation">Navigation</div>
-          <button class="sp-item" onclick="closeSettingsPanel();closeOverlayAndScroll(event,'features')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span data-i18n="nav_features">Features</span></button>
+          <button class="sp-item" onclick="closeSettingsPanel();closeOverlayAndScroll(event,'tools')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span>Tools</span></button>
           <button class="sp-item" onclick="closeSettingsPanel();closeOverlayAndScroll(event,'howto')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span data-i18n="nav_howto">Anleitung</span></button>
           <button class="sp-item" onclick="closeSettingsPanel();closeOverlayAndScroll(event,'faq')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span data-i18n="nav_faq">FAQ</span></button>
         </div>
@@ -90,7 +143,7 @@
         </div>
         <div class="sp-section">
           <div class="sp-label" data-i18n="sp_navigation">Navigation</div>
-          <button class="sp-item" onclick="closeSettingsPanel();closeOverlayAndScroll(event,'features')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span data-i18n="nav_features">Features</span></button>
+          <button class="sp-item" onclick="closeSettingsPanel();closeOverlayAndScroll(event,'tools')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span>Tools</span></button>
           <button class="sp-item" onclick="closeSettingsPanel();closeOverlayAndScroll(event,'howto')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span data-i18n="nav_howto">Anleitung</span></button>
           <button class="sp-item" onclick="closeSettingsPanel();closeOverlayAndScroll(event,'faq')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span data-i18n="nav_faq">FAQ</span></button>
         </div>
@@ -118,146 +171,235 @@
 
 <!-- ═══════════════════════ HERO ═══════════════════════════════════════════ -->
 <section class="hero" id="home">
+  <div class="hero-inner">
+    <div class="hero-content">
+      <div class="hero-tag">
+        <span class="ht-dot"></span> Free &bull; No downloads &bull; Browser-based
+      </div>
 
-  <div class="hero-tag">100% im Browser &bull; Keine Uploads &bull; Open Source</div>
+      <h1>All-in-One Minecraft<br><span class="hero-purple-gradient">Modding Tools</span></h1>
 
-  <h1>Create or convert<br><em>Minecraft modpacks in seconds.</em></h1>
+      <p class="hero-sub">
+        Erstelle, konvertiere und verwalte Minecraft-Modpacks direkt im Browser – komplett ohne Downloads.
+      </p>
 
-  <p class="hero-sub">
-    Supports CurseForge and Modrinth. No downloads required.
-  </p>
+      <div class="hero-actions">
+        <button class="btn-primary hero-btn-purple" onclick="scrollToTools()">
+          Tools entdecken <span>➔</span>
+        </button>
+        <a href="#benefits" class="btn-ghost" onclick="closeOverlayAndScroll(event,'benefits')">
+          Mehr erfahren
+        </a>
+      </div>
 
-  <!-- Live Example -->
-  <div class="hero-example">
-    <div class="he-col he-input">
-      <div class="he-label">📋 Du fügst ein:</div>
-      <div class="he-code">
-        <div class="he-line">sodium</div>
-        <div class="he-line">iris shaders</div>
-        <div class="he-line">clickcrystals</div>
-        <div class="he-line muted">... 8 weitere</div>
+      <div class="hero-quick-chips">
+        <span class="ht-label">Schnellstart:</span>
+        <button class="ht-chip" onclick="heroLoadPreset('performance')">⚡ Performance Pack</button>
+        <button class="ht-chip" onclick="heroLoadPreset('survival')">🌲 SMP Starter</button>
+        <button class="ht-chip" onclick="heroLoadPreset('crystalpvp')">💎 Crystal PvP</button>
       </div>
     </div>
-    <div class="he-arrow-col">
-      <div class="he-magic">
-        <div class="he-magic-label">MC Toolkit</div>
-        <div class="he-magic-steps">
-          <div class="he-magic-step dep">✦ Fabric API hinzugefügt</div>
-          <div class="he-magic-step dep">✦ MaLiLib hinzugefügt</div>
-          <div class="he-magic-step fix">✔ Fehler behoben</div>
-          <div class="he-magic-step build">⬇ .mrpack erstellt</div>
+
+    <!-- Right Column: 3D Minecraft Isometric Illustration -->
+    <div class="hero-illustration">
+      <div class="mc-island-wrapper">
+        <div class="mc-island-glow"></div>
+        <div class="mc-sparkles">
+          <span class="sparkle sp1">✦</span>
+          <span class="sparkle sp2">✦</span>
+          <span class="sparkle sp3">★</span>
+          <span class="sparkle sp4">✦</span>
+          <span class="sparkle sp5">★</span>
+        </div>
+        <div class="mc-iso-scene">
+          <svg viewBox="0 0 400 360" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="grassTop" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#4ade80"/>
+                <stop offset="100%" stop-color="#22c55e"/>
+              </linearGradient>
+              <linearGradient id="dirtLeft" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#3d281d"/>
+                <stop offset="100%" stop-color="#241710"/>
+              </linearGradient>
+              <linearGradient id="dirtRight" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#281a13"/>
+                <stop offset="100%" stop-color="#140d0a"/>
+              </linearGradient>
+              <linearGradient id="craftTop" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#d97706"/>
+                <stop offset="100%" stop-color="#b45309"/>
+              </linearGradient>
+              <linearGradient id="chestTop" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#f59e0b"/>
+                <stop offset="100%" stop-color="#d97706"/>
+              </linearGradient>
+              <linearGradient id="furnaceTop" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#64748b"/>
+                <stop offset="100%" stop-color="#334155"/>
+              </linearGradient>
+              <filter id="purpleGlow" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="15" result="blur"/>
+                <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+              </filter>
+            </defs>
+
+            <!-- Background Glow -->
+            <ellipse cx="200" cy="220" rx="140" ry="60" fill="#a855f7" opacity="0.25" filter="url(#purpleGlow)"/>
+
+            <!-- Floating Island -->
+            <g transform="translate(0, 40)">
+              <!-- Dirt Left -->
+              <polygon points="200,260 80,190 80,240 200,310" fill="url(#dirtLeft)"/>
+              <!-- Dirt Right -->
+              <polygon points="200,260 320,190 320,240 200,310" fill="url(#dirtRight)"/>
+              <!-- Grass Top -->
+              <polygon points="200,140 320,210 200,280 80,210" fill="url(#grassTop)"/>
+              <!-- Grass Side Rim -->
+              <polygon points="80,210 200,280 200,290 80,220" fill="#22c55e"/>
+              <polygon points="200,280 320,210 320,220 200,290" fill="#16a34a"/>
+
+              <!-- Crafting Table -->
+              <g transform="translate(-30, -35)">
+                <polygon points="170,120 220,90 270,120 220,150" fill="url(#craftTop)"/>
+                <polygon points="170,120 220,150 220,185 170,155" fill="#78350f"/>
+                <polygon points="220,150 270,120 270,155 220,185" fill="#451a03"/>
+                <line x1="187" y1="130" x2="237" y2="100" stroke="#fef3c7" stroke-width="1.5" opacity="0.6"/>
+                <line x1="203" y1="140" x2="253" y2="110" stroke="#fef3c7" stroke-width="1.5" opacity="0.6"/>
+                <line x1="203" y1="110" x2="237" y2="130" stroke="#fef3c7" stroke-width="1.5" opacity="0.6"/>
+                <line x1="220" y1="100" x2="253" y2="120" stroke="#fef3c7" stroke-width="1.5" opacity="0.6"/>
+              </g>
+
+              <!-- Chest -->
+              <g transform="translate(35, -15)">
+                <polygon points="200,140 245,115 290,140 245,165" fill="url(#chestTop)"/>
+                <polygon points="200,140 245,165 245,195 200,170" fill="#92400e"/>
+                <polygon points="245,165 290,140 290,170 245,195" fill="#78350f"/>
+                <polygon points="242,152 248,149 248,157 242,160" fill="#e2e8f0"/>
+              </g>
+
+              <!-- Furnace -->
+              <g transform="translate(5, -60)">
+                <polygon points="200,110 235,90 270,110 235,130" fill="url(#furnaceTop)"/>
+                <polygon points="200,110 235,130 235,155 200,135" fill="#1e293b"/>
+                <polygon points="235,130 270,110 270,135 235,155" fill="#0f172a"/>
+                <polygon points="212,125 225,132 225,142 212,135" fill="#f97316"/>
+                <polygon points="214,127 223,132 223,140 214,135" fill="#fef08a"/>
+              </g>
+
+              <!-- Magic Orbs -->
+              <circle cx="160" cy="80" r="4" fill="#c084fc" opacity="0.9"/>
+              <circle cx="280" cy="95" r="3" fill="#e879f9" opacity="0.8"/>
+              <circle cx="130" cy="170" r="5" fill="#a855f7" opacity="0.85"/>
+              <circle cx="295" cy="180" r="4" fill="#38bdf8" opacity="0.9"/>
+            </g>
+          </svg>
         </div>
       </div>
     </div>
-    <div class="he-col he-output">
-      <div class="he-label">✅ Du bekommst:</div>
-      <div class="he-result">
-        <div class="he-result-icon">📦</div>
-        <div>
-          <div class="he-result-name">my-modpack.mrpack</div>
-          <div class="he-result-meta">11 Mods · Fabric · 1.21.1</div>
-        </div>
-      </div>
-      <div class="he-dep-badge">✦ Dependencies auto-fixed</div>
-    </div>
-  </div>
-
-  <!-- Actions + Templates -->
-  <div class="hero-actions">
-    <a href="#app" class="btn-primary" onclick="openPlatformOverlay()">⚡ Pack erstellen</a>
-    <a href="#features" class="btn-ghost">Mehr erfahren →</a>
-  </div>
-
-  <div class="hero-templates">
-    <span class="ht-label">Schnellstart:</span>
-    <button class="ht-chip" onclick="heroLoadPreset('performance')">⚡ Performance Pack</button>
-    <button class="ht-chip" onclick="heroLoadPreset('survival')">🌲 SMP Starter</button>
-    <button class="ht-chip" onclick="heroLoadPreset('crystalpvp')">💎 Crystal PvP</button>
-    <button class="ht-chip" onclick="heroLoadPreset('hypixel')">🏆 Full Pack</button>
-  </div>
-
-  <!-- Trust -->
-  <div class="hero-trust">
-    <div class="trust-badge">🔒 100% im Browser</div>
-    <div class="trust-badge">📵 Keine Uploads</div>
-    <div class="trust-badge">↔ CurseForge ↔ Modrinth</div>
-    <a href="https://github.com/9000schraubengreutze/Mctoolkit" target="_blank" rel="noopener" class="trust-badge trust-link">⭐ Open Source</a>
-  </div>
-
-  <div class="hero-stats">
-    <div class="hero-stat"><div class="num">6</div><div class="lbl">Pack-Vorlagen</div></div>
-    <div class="hero-stat"><div class="num">3</div><div class="lbl">Tools in einem</div></div>
-    <div class="hero-stat"><div class="num">100<span>%</span></div><div class="lbl">Im Browser</div></div>
-    <div class="hero-stat"><div class="num">0</div><div class="lbl">Daten gesammelt</div></div>
   </div>
 </section>
 
-<!-- ═══════════════════════ BENEFITS ═══════════════════════════════════════ -->
+<!-- ═══════════════════════ TOOL OVERVIEW GRID ══════════════════════════════ -->
+<section id="tools">
+  <div class="section-inner">
+    <div class="section-tag">Tools</div>
+    <h2 class="section-title">All Tools</h2>
+    <p class="section-sub">Powerful tools to enhance your Minecraft modding experience.</p>
+
+    <div class="tools-overview-grid">
+      <!-- 1. Modpack Generator -->
+      <div class="tool-card" onclick="openToolRoute('builder', 'modpack-generator', event)" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')openToolRoute('builder', 'modpack-generator', event)">
+        <div class="tool-card-head">
+          <div class="tool-card-icon purple">🧩</div>
+          <div>
+            <h3>Modpack Generator</h3>
+            <span class="tool-card-badge">Beliebt</span>
+          </div>
+        </div>
+        <p>Erstelle ein vollständiges Modpack aus einer Modliste. Unterstützt CurseForge und Modrinth.</p>
+        <div class="tool-card-btn">Tool öffnen <span>➔</span></div>
+      </div>
+
+      <!-- 2. Pack Converter -->
+      <div class="tool-card" onclick="openToolRoute('convert', 'pack-converter', event)" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')openToolRoute('convert', 'pack-converter', event)">
+        <div class="tool-card-head">
+          <div class="tool-card-icon green">🔄</div>
+          <div>
+            <h3>Pack Converter</h3>
+            <span class="tool-card-badge">Universal</span>
+          </div>
+        </div>
+        <p>Konvertiere Modpacks zwischen CurseForge (.zip) und Modrinth (.mrpack).</p>
+        <div class="tool-card-btn">Tool öffnen <span>➔</span></div>
+      </div>
+
+      <!-- 3. Pack Repair -->
+      <div class="tool-card" onclick="openToolRoute('fix', 'pack-repair', event)" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')openToolRoute('fix', 'pack-repair', event)">
+        <div class="tool-card-head">
+          <div class="tool-card-icon orange">🔥</div>
+          <div>
+            <h3>Pack Repair</h3>
+            <span class="tool-card-badge">Auto-Fix</span>
+          </div>
+        </div>
+        <p>Repariert fehlerhafte oder unvollständige Modpacks und behebt Loader-Inkompatibilitäten.</p>
+        <div class="tool-card-btn">Tool öffnen <span>➔</span></div>
+      </div>
+
+      <!-- 5. Compatibility Checker -->
+      <div class="tool-card" onclick="openToolRoute('upgrade', 'compatibility-checker', event)" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')openToolRoute('upgrade', 'compatibility-checker', event)">
+        <div class="tool-card-head">
+          <div class="tool-card-icon yellow">⚡</div>
+          <div>
+            <h3>Compatibility Checker</h3>
+            <span class="tool-card-badge">Versionen</span>
+          </div>
+        </div>
+        <p>Überprüft die Kompatibilität von Mods mit deiner Minecraft-Version.</p>
+        <div class="tool-card-btn">Tool öffnen <span>➔</span></div>
+      </div>
+
+      <!-- 5. Public Packs -->
+      <div class="tool-card" onclick="openToolRoute('community', 'public-packs', event)" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')openToolRoute('community', 'public-packs', event)">
+        <div class="tool-card-head">
+          <div class="tool-card-icon purple">🌐</div>
+          <div>
+            <h3>Public Packs</h3>
+            <span class="tool-card-badge">Katalog</span>
+          </div>
+        </div>
+        <p>Durchsuche und entdecke öffentliche Modpacks der Community.</p>
+        <div class="tool-card-btn">Tool öffnen <span>➔</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════ BENEFITS / FEATURES ══════════════════════════════ -->
 <section id="benefits">
   <div class="section-inner" style="text-align: center;">
-    <div class="section-tag">Deine Vorteile</div>
+    <div class="section-tag">Vorteile</div>
     <h2 class="section-title" style="margin: 0 auto 0.5rem;">Warum MC Toolkit?</h2>
     <p class="section-sub" style="margin: 0 auto 2.5rem;">Entworfen für maximale Einfachheit, Geschwindigkeit und Flexibilität.</p>
 
     <div class="benefits-grid">
       <div class="benefit-card">
-        <div class="benefit-icon">🌐</div>
-        <h3>Browser-based</h3>
-        <p>100% im Browser ausführbar. Kein Download, keine Installation und keine Einrichtung eines lokalen Servers erforderlich.</p>
-      </div>
-
-      <div class="benefit-card">
-        <div class="benefit-icon">🎁</div>
-        <h3>Free</h3>
-        <p>Vollständig kostenlos und Open Source. Keine Versteckten Kosten, kein Abonnement und keine Registrierung notwendig.</p>
-      </div>
-
-      <div class="benefit-card">
         <div class="benefit-icon">⚡</div>
-        <h3>Supports CurseForge &amp; Modrinth</h3>
-        <p>Nativ kompatibel mit beiden Plattformen. Exportiere im <code>.mrpack</code> oder <code>.zip</code> Format für deinen Lieblingslauncher.</p>
+        <h3>Schnell</h3>
+        <p>Erstelle und konvertiere Modpacks innerhalb weniger Sekunden.</p>
       </div>
-    </div>
-  </div>
-</section>
 
-<!-- ═══════════════════════ FEATURES ═══════════════════════════════════════ -->
-<section id="features">
-  <div class="section-inner">
-    <div class="section-tag">Features</div>
-    <h2 class="section-title">Alles was du brauchst</h2>
-    <p class="section-sub">Drei leistungsstarke Tools in einer Seite – vollständig kostenlos und ohne Account.</p>
+      <div class="benefit-card">
+        <div class="benefit-icon">🛡️</div>
+        <h3>Sicher</h3>
+        <p>Alles läuft 100% direkt im Browser. Es werden keine Dateien auf Servern gespeichert.</p>
+      </div>
 
-    <div class="features-grid">
-      <div class="feature-card">
-        <div class="feature-icon green">🧩</div>
-        <h3>Pack Builder</h3>
-        <p>22 vorinstallierte Crystal PvP & Performance Mods. Weitere Mods & Texture Packs per Suche oder Paste hinzufügen. Automatische Typ-Erkennung (Mod vs. Texture Pack).</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon orange">🔥</div>
-        <h3>Pack Reparatur</h3>
-        <p>Fehlerhafte .mrpack hochladen – veraltete Mods und inkompatible Fabric Loader-Versionen werden automatisch erkannt und auf die neueste kompatible Version aktualisiert.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon purple">⚙️</div>
-        <h3>Pack Merger</h3>
-        <p>Zwei bestehende Modpacks zu einem zusammenführen. Duplikate werden automatisch erkannt und entfernt. Vorschau vor dem Download.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon blue">🔍</div>
-        <h3>Live Modrinth-Suche</h3>
-        <p>Suche direkt nach Mods und Texture Packs auf Modrinth – mit automatischer Typ-Erkennung. Einfach klicken und zum Pack hinzufügen.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon yellow">📋</div>
-        <h3>Liste importieren</h3>
-        <p>Einfach eine Liste von Mod-Namen einfügen – per Zeilenumbruch oder Komma getrennt. Mods und Texture Packs werden automatisch erkannt und sortiert.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon red">🔒</div>
-        <h3>100% Privat</h3>
-        <p>Alles läuft direkt im Browser. Keine Daten werden gespeichert oder an Server gesendet. Kein Account, kein Tracking, keine Cookies.</p>
+      <div class="benefit-card">
+        <div class="benefit-icon">🌐</div>
+        <h3>Universell</h3>
+        <p>Vollständige Unterstützung für CurseForge und Modrinth auf allen Geräten.</p>
       </div>
     </div>
   </div>
@@ -315,7 +457,7 @@
         </div>
 
         <div class="wd-body">
-          <!-- Slide 1: Mod Search & Paste -->
+          <!-- Slide 1: Public Packs & Paste -->
           <div class="wd-slide active" id="wd-slide-1">
             <div class="wd-mock-bar">
               <div class="wd-mock-search">
@@ -432,36 +574,169 @@
         </div>
       </div>
     </div>
-  </div>
-</section>
 
-<!-- ═══════════════════════ REQUIREMENTS ══════════════════════════════════ -->
-<section id="requirements">
-  <div class="section-inner">
-    <div class="section-tag">Voraussetzungen</div>
-    <h2 class="section-title">Was du brauchst</h2>
-    <div class="req-grid">
-      <div class="req-card">
-        <div class="req-icon">🌐</div>
-        <div><h4>Browser deiner Wahl</h4><p>Chrome, Firefox, Edge, Safari, Brave – jeder aktuelle Browser funktioniert, ganz ohne Installation oder Einrichtung.</p></div>
+    <!-- Integrated Launcher Import Tutorial -->
+    <div style="margin-top: 4rem; border-top: 1px dashed var(--border2); padding-top: 3rem;">
+      <div style="text-align: center;">
+        <h3 style="font-size: 1.3rem; font-weight: 800; color: var(--text); margin-bottom: .4rem;">Pack in deinen Launcher importieren</h3>
+        <p class="section-sub" style="margin: 0 auto 1.5rem;">Wähle deinen bevorzugten Launcher für eine detaillierte Anleitung:</p>
       </div>
-      <div class="req-card">
-        <div class="req-icon">📡</div>
-        <div><h4>Internetverbindung</h4><p>Für die Modrinth API-Abfragen beim Generieren des Modpacks. Ohne Verbindung erscheint eine Fehlermeldung.</p></div>
+
+      <div class="tut-tabs" style="justify-content: center;">
+        <button class="tut-tab active" onclick="switchTut('modrinth',this)">🟢 Modrinth App</button>
+        <button class="tut-tab" onclick="switchTut('curseforge',this)">🟠 CurseForge App</button>
+        <button class="tut-tab" onclick="switchTut('prism',this)">🔷 Prism Launcher</button>
       </div>
-      <div class="req-card">
-        <div class="req-icon">🎮</div>
-        <div><h4>Minecraft Launcher</h4><p>Modrinth App, Prism Launcher oder CurseForge App – zum Installieren des fertigen Packs. Alle kostenlos verfügbar.</p></div>
+
+      <!-- Modrinth -->
+      <div class="tut-panel active" id="tut-modrinth">
+        <div class="tut-steps">
+          <div class="tut-step">
+            <div class="tut-step-num">1</div>
+            <div class="tut-step-body">
+              <h4>Pack herunterladen</h4>
+              <p>Klicke in MC Toolkit auf <b>„⬇ Pack generieren &amp; downloaden"</b>. Die <code>.mrpack</code> Datei landet in deinem Download-Ordner.</p>
+              <div class="tut-img-placeholder modrinth">
+                <div class="tip-icon">💾</div>
+                <div class="tip-text">Downloads-Ordner → <code>deinPack.mrpack</code></div>
+              </div>
+            </div>
+          </div>
+          <div class="tut-step">
+            <div class="tut-step-num">2</div>
+            <div class="tut-step-body">
+              <h4>Modrinth App öffnen</h4>
+              <p>Öffne die <b>Modrinth App</b>. Falls noch nicht installiert: <a href="https://modrinth.com/app" target="_blank" rel="noopener">modrinth.com/app</a> → kostenlos herunterladen.</p>
+            </div>
+          </div>
+          <div class="tut-step">
+            <div class="tut-step-num">3</div>
+            <div class="tut-step-body">
+              <h4>„Import" auswählen</h4>
+              <p>Klicke oben links auf das <b>+ Symbol</b> oder gehe zu <b>Modpacks</b> → rechts oben auf <b>„Import"</b>.</p>
+              <div class="tut-img-placeholder modrinth">
+                <div class="tip-icon">📂</div>
+                <div class="tip-text">Modrinth App → + → <b>Import from file</b></div>
+              </div>
+            </div>
+          </div>
+          <div class="tut-step">
+            <div class="tut-step-num">4</div>
+            <div class="tut-step-body">
+              <h4>Datei auswählen &amp; fertig!</h4>
+              <p>Wähle deine <code>.mrpack</code> Datei aus dem Download-Ordner. Modrinth lädt alle Mods automatisch herunter. Danach auf <b>„Spielen"</b> klicken – fertig! 🎉</p>
+              <div class="tut-badge modrinth">✅ Mods werden automatisch installiert</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CurseForge -->
+      <div class="tut-panel" id="tut-curseforge">
+        <div class="tut-steps">
+          <div class="tut-step">
+            <div class="tut-step-num">1</div>
+            <div class="tut-step-body">
+              <h4>Pack herunterladen</h4>
+              <p>Klicke in MC Toolkit auf <b>„⬇ Pack generieren &amp; downloaden"</b> (CurseForge gewählt). Die <code>.zip</code> Datei landet in deinem Download-Ordner.</p>
+            </div>
+          </div>
+          <div class="tut-step">
+            <div class="tut-step-num">2</div>
+            <div class="tut-step-body">
+              <h4>CurseForge App öffnen</h4>
+              <p>Öffne die <b>CurseForge App</b>. Falls noch nicht installiert: <a href="https://curseforge.com" target="_blank" rel="noopener">curseforge.com</a> → kostenlos herunterladen. Wähle <b>Minecraft</b> aus.</p>
+            </div>
+          </div>
+          <div class="tut-step">
+            <div class="tut-step-num">3</div>
+            <div class="tut-step-body">
+              <h4>„Create Custom Profile" &amp; Import</h4>
+              <p>Klicke oben rechts auf <b>„Create Custom Profile"</b>. Im Dialog oben auf <b>„Import"</b> klicken und deine <code>.zip</code> Datei auswählen.</p>
+              <div class="tut-img-placeholder curseforge">
+                <div class="tip-icon">📁</div>
+                <div class="tip-text">Create Custom Profile → <b>Import</b> → .zip auswählen</div>
+              </div>
+            </div>
+          </div>
+          <div class="tut-step">
+            <div class="tut-step-num">4</div>
+            <div class="tut-step-body">
+              <h4>Mods aus modlist.html laden</h4>
+              <p>Da die Mods von Modrinth kommen, öffne die <code>modlist.html</code> im ZIP. Lade alle Mods herunter und lege sie in den <code>mods/</code> Ordner des Profils.</p>
+              <div class="tut-badge curseforge">⚠ Einmalig manuell – danach automatisch</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Prism -->
+      <div class="tut-panel" id="tut-prism">
+        <div class="tut-steps">
+          <div class="tut-step">
+            <div class="tut-step-num">1</div>
+            <div class="tut-step-body">
+              <h4>Pack herunterladen</h4>
+              <p>Lade deine <code>.mrpack</code> in MC Toolkit herunter (Modrinth Format wählen).</p>
+            </div>
+          </div>
+          <div class="tut-step">
+            <div class="tut-step-num">2</div>
+            <div class="tut-step-body">
+              <h4>Prism / MultiMC öffnen</h4>
+              <p>Öffne <b>Prism Launcher</b> oder <b>MultiMC</b>. Download: <a href="https://prismlauncher.org" target="_blank" rel="noopener">prismlauncher.org</a></p>
+            </div>
+          </div>
+          <div class="tut-step">
+            <div class="tut-step-num">3</div>
+            <div class="tut-step-body">
+              <h4>Neue Instanz per Import</h4>
+              <p>Klicke auf <b>„Add Instance"</b> → links auf <b>„Import"</b> → <b>„Browse"</b> → deine <code>.mrpack</code> Datei auswählen → <b>OK</b>.</p>
+              <div class="tut-img-placeholder prism">
+                <div class="tip-icon">🔷</div>
+                <div class="tip-text">Add Instance → Import → Browse → .mrpack</div>
+              </div>
+            </div>
+          </div>
+          <div class="tut-step">
+            <div class="tut-step-num">4</div>
+            <div class="tut-step-body">
+              <h4>Spielen!</h4>
+              <p>Prism lädt alle Mods automatisch herunter. Doppelklick auf die neue Instanz → fertig! 🎉</p>
+              <div class="tut-badge prism">✅ Vollautomatisch</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
+
   </div>
 </section>
 
-<!-- ═══════════════════════ FAQ ════════════════════════════════════════════ -->
+<!-- ═══════════════════════ VORAUSSETZUNGEN & FAQ ══════════════════════════ -->
 <section id="faq">
   <div class="section-inner">
-    <div class="section-tag">FAQ</div>
-    <h2 class="section-title">Häufige Fragen</h2>
+    <div class="section-tag">Voraussetzungen &amp; FAQ</div>
+    <h2 class="section-title">Voraussetzungen &amp; Häufige Fragen</h2>
+
+    <div style="margin-bottom: 2.5rem;">
+      <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--text); margin-bottom: 1rem;">Was du brauchst</h3>
+      <div class="req-grid">
+        <div class="req-card">
+          <div class="req-icon">🌐</div>
+          <div><h4>Browser deiner Wahl</h4><p>Chrome, Firefox, Edge, Safari, Brave – jeder aktuelle Browser funktioniert, ganz ohne Installation oder Einrichtung.</p></div>
+        </div>
+        <div class="req-card">
+          <div class="req-icon">📡</div>
+          <div><h4>Internetverbindung</h4><p>Für die Modrinth API-Abfragen beim Generieren des Modpacks. Ohne Verbindung erscheint eine Fehlermeldung.</p></div>
+        </div>
+        <div class="req-card">
+          <div class="req-icon">🎮</div>
+          <div><h4>Minecraft Launcher</h4><p>Modrinth App, Prism Launcher oder CurseForge App – zum Installieren des fertigen Packs. Alle kostenlos verfügbar.</p></div>
+        </div>
+      </div>
+    </div>
+
     <div class="faq-list">
       <div class="faq-item">
         <div class="faq-q" onclick="toggleFaq(this)">Ist das kostenlos? <span class="faq-arrow">▼</span></div>
@@ -501,142 +776,6 @@
 
 
 
-<!-- ══════════════════════ TUTORIAL ═════════════════════════════════════ -->
-<section id="tutorial" style="border-top:1px solid var(--border)">
-  <div class="section-inner">
-    <div class="section-tag">Anleitung</div>
-    <h2 class="section-title">Pack importieren</h2>
-    <p class="section-sub">So installierst du dein fertiges Modpack in Modrinth oder CurseForge – Schritt für Schritt.</p>
-
-    <div class="tut-tabs">
-      <button class="tut-tab active" onclick="switchTut('modrinth',this)">🟢 Modrinth App</button>
-      <button class="tut-tab" onclick="switchTut('curseforge',this)">🟠 CurseForge App</button>
-      <button class="tut-tab" onclick="switchTut('prism',this)">🔷 Prism Launcher</button>
-    </div>
-
-    <!-- Modrinth -->
-    <div class="tut-panel active" id="tut-modrinth">
-      <div class="tut-steps">
-        <div class="tut-step">
-          <div class="tut-step-num">1</div>
-          <div class="tut-step-body">
-            <h4>Pack herunterladen</h4>
-            <p>Klicke in MC Toolkit auf <b>„⬇ Pack generieren &amp; downloaden"</b>. Die <code>.mrpack</code> Datei landet in deinem Download-Ordner.</p>
-            <div class="tut-img-placeholder modrinth">
-              <div class="tip-icon">💾</div>
-              <div class="tip-text">Downloads-Ordner → <code>deinPack.mrpack</code></div>
-            </div>
-          </div>
-        </div>
-        <div class="tut-step">
-          <div class="tut-step-num">2</div>
-          <div class="tut-step-body">
-            <h4>Modrinth App öffnen</h4>
-            <p>Öffne die <b>Modrinth App</b>. Falls noch nicht installiert: <a href="https://modrinth.com/app" target="_blank" rel="noopener">modrinth.com/app</a> → kostenlos herunterladen.</p>
-          </div>
-        </div>
-        <div class="tut-step">
-          <div class="tut-step-num">3</div>
-          <div class="tut-step-body">
-            <h4>„Import" auswählen</h4>
-            <p>Klicke oben links auf das <b>+ Symbol</b> oder gehe zu <b>Modpacks</b> → rechts oben auf <b>„Import"</b>.</p>
-            <div class="tut-img-placeholder modrinth">
-              <div class="tip-icon">📂</div>
-              <div class="tip-text">Modrinth App → + → <b>Import from file</b></div>
-            </div>
-          </div>
-        </div>
-        <div class="tut-step">
-          <div class="tut-step-num">4</div>
-          <div class="tut-step-body">
-            <h4>Datei auswählen &amp; fertig!</h4>
-            <p>Wähle deine <code>.mrpack</code> Datei aus dem Download-Ordner. Modrinth lädt alle Mods automatisch herunter. Danach auf <b>„Spielen"</b> klicken – fertig! 🎉</p>
-            <div class="tut-badge modrinth">✅ Mods werden automatisch installiert</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- CurseForge -->
-    <div class="tut-panel" id="tut-curseforge">
-      <div class="tut-steps">
-        <div class="tut-step">
-          <div class="tut-step-num">1</div>
-          <div class="tut-step-body">
-            <h4>Pack herunterladen</h4>
-            <p>Klicke in MC Toolkit auf <b>„⬇ Pack generieren &amp; downloaden"</b> (CurseForge gewählt). Die <code>.zip</code> Datei landet in deinem Download-Ordner.</p>
-          </div>
-        </div>
-        <div class="tut-step">
-          <div class="tut-step-num">2</div>
-          <div class="tut-step-body">
-            <h4>CurseForge App öffnen</h4>
-            <p>Öffne die <b>CurseForge App</b>. Falls noch nicht installiert: <a href="https://curseforge.com" target="_blank" rel="noopener">curseforge.com</a> → kostenlos herunterladen. Wähle <b>Minecraft</b> aus.</p>
-          </div>
-        </div>
-        <div class="tut-step">
-          <div class="tut-step-num">3</div>
-          <div class="tut-step-body">
-            <h4>„Create Custom Profile" &amp; Import</h4>
-            <p>Klicke oben rechts auf <b>„Create Custom Profile"</b>. Im Dialog oben auf <b>„Import"</b> klicken und deine <code>.zip</code> Datei auswählen.</p>
-            <div class="tut-img-placeholder curseforge">
-              <div class="tip-icon">📁</div>
-              <div class="tip-text">Create Custom Profile → <b>Import</b> → .zip auswählen</div>
-            </div>
-          </div>
-        </div>
-        <div class="tut-step">
-          <div class="tut-step-num">4</div>
-          <div class="tut-step-body">
-            <h4>Mods aus modlist.html laden</h4>
-            <p>Da die Mods von Modrinth kommen, öffne die <code>modlist.html</code> im ZIP. Lade alle Mods herunter und lege sie in den <code>mods/</code> Ordner des Profils.</p>
-            <div class="tut-badge curseforge">⚠ Einmalig manuell – danach automatisch</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Prism -->
-    <div class="tut-panel" id="tut-prism">
-      <div class="tut-steps">
-        <div class="tut-step">
-          <div class="tut-step-num">1</div>
-          <div class="tut-step-body">
-            <h4>Pack herunterladen</h4>
-            <p>Lade deine <code>.mrpack</code> in MC Toolkit herunter (Modrinth Format wählen).</p>
-          </div>
-        </div>
-        <div class="tut-step">
-          <div class="tut-step-num">2</div>
-          <div class="tut-step-body">
-            <h4>Prism / MultiMC öffnen</h4>
-            <p>Öffne <b>Prism Launcher</b> oder <b>MultiMC</b>. Download: <a href="https://prismlauncher.org" target="_blank" rel="noopener">prismlauncher.org</a></p>
-          </div>
-        </div>
-        <div class="tut-step">
-          <div class="tut-step-num">3</div>
-          <div class="tut-step-body">
-            <h4>Neue Instanz per Import</h4>
-            <p>Klicke auf <b>„Add Instance"</b> → links auf <b>„Import"</b> → <b>„Browse"</b> → deine <code>.mrpack</code> Datei auswählen → <b>OK</b>.</p>
-            <div class="tut-img-placeholder prism">
-              <div class="tip-icon">🔷</div>
-              <div class="tip-text">Add Instance → Import → Browse → .mrpack</div>
-            </div>
-          </div>
-        </div>
-        <div class="tut-step">
-          <div class="tut-step-num">4</div>
-          <div class="tut-step-body">
-            <h4>Spielen!</h4>
-            <p>Prism lädt alle Mods automatisch herunter. Doppelklick auf die neue Instanz → fertig! 🎉</p>
-            <div class="tut-badge prism">✅ Vollautomatisch</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
 <!-- ═══════════════════════ CTA ════════════════════════════════════════════ -->
 <section id="cta">
   <div class="section-inner" style="text-align:center">
@@ -658,14 +797,12 @@
   </div>
   <div class="footer-links">
     <a href="#features">Features</a>
-    <a href="#howto">Anleitung</a>
+    <a href="#howto">Anleitung &amp; Tutorial</a>
     <a href="#benefits">Vorteile</a>
-    <a href="#tutorial">Tutorial</a>
-    <a href="#faq">FAQ</a>
+    <a href="#faq">Voraussetzungen &amp; FAQ</a>
     <a href="#app">App starten</a>
     <a href="https://github.com/9000schraubengreutze/Mctoolkit" target="_blank" rel="noopener">⭐ GitHub ↗</a>
     <a href="https://modrinth.com" target="_blank" rel="noopener">Modrinth ↗</a>
-    <a href="https://discord.gg/" target="_blank" rel="noopener" id="discordLink">💬 Discord ↗</a>
     <a href="#" onclick="openFeedback(event)" style="color:var(--green)">📣 Feedback geben</a>
     <a href="#" onclick="openAgb()">AGB</a>
     <a href="#" onclick="openImprint(event)">Impressum</a>
@@ -673,7 +810,7 @@
   </div>
 </footer>
 <div class="footer-bottom">
-  <p>© 2025 MC Toolkit &bull; Nicht offiziell mit Modrinth, CurseForge oder Mojang verbunden.</p>
+  <p>© 2026 MC Toolkit &bull; Nicht offiziell mit Modrinth, CurseForge oder Mojang verbunden.</p>
   <span class="version">v3.0.0 &bull; MC 1.21.11 &bull; Open Source</span>
 </div>
 
@@ -839,6 +976,20 @@
   </aside>
 
   <div class="app-wrap">
+    <!-- Back to Tools overview button + Active tool header banner -->
+    <div class="tool-workspace-header">
+      <button class="btn-back-tools" onclick="backToTools()">
+        ← Zurück zur Übersicht
+      </button>
+      <div class="active-tool-banner" id="activeToolBanner">
+        <span class="at-icon" id="activeToolIcon">🧩</span>
+        <div>
+          <h2 class="at-title" id="activeToolTitle">Modpack Generator</h2>
+          <p class="at-sub" id="activeToolSub">Erstelle ein vollständiges Modpack aus einer Modliste. Unterstützt CurseForge und Modrinth.</p>
+        </div>
+      </div>
+    </div>
+
     <!-- Platform indicator -->
     <div class="platform-indicator" id="platformIndicator" style="display:none">
       <span class="pi-dot" id="piDot"></span>
@@ -848,12 +999,11 @@
     </div>
 
     <div class="page-tabs">
-      <div class="page-tab active"  id="tab-builder" onclick="showPage('builder')" data-i18n="tab_builder">🧩 Pack Builder</div>
-      <div class="page-tab"         id="tab-fix"     onclick="showPage('fix')" data-i18n="tab_fix">🔥 Reparieren</div>
-      <div class="page-tab"         id="tab-merge"   onclick="showPage('merge')" data-i18n="tab_merge">⚙️ Zusammenführen</div>
-      <div class="page-tab"         id="tab-upgrade" onclick="showPage('upgrade')" data-i18n="tab_upgrade">⬆ Versions-Update</div>
-      <div class="page-tab"         id="tab-convert" onclick="showPage('convert')" data-i18n="tab_convert">🔄 Konvertieren</div>
-      <div class="page-tab"         id="tab-community" onclick="showPage('community')" data-i18n="tab_community">🌍 Public Packs</div>
+      <div class="page-tab active"  id="tab-builder"   onclick="openToolRoute('builder', 'modpack-generator')">🧩 Generator</div>
+      <div class="page-tab"         id="tab-convert"   onclick="openToolRoute('convert', 'pack-converter')">🔄 Converter</div>
+      <div class="page-tab"         id="tab-fix"       onclick="openToolRoute('fix', 'pack-repair')">🔥 Repair</div>
+      <div class="page-tab"         id="tab-upgrade"   onclick="openToolRoute('upgrade', 'compatibility-checker')">⚡ Compatibility</div>
+      <div class="page-tab"         id="tab-community" onclick="openToolRoute('community', 'public-packs')">🌐 Public Packs</div>
     </div>
 
     <!-- ── BUILDER ── -->
@@ -1286,8 +1436,6 @@
           <span>Lade Packs...</span>
         </div>
       </div>
-
-    </div>
 
   </div><!-- /app-wrap -->
   </div><!-- /app-outer -->

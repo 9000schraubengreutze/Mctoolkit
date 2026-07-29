@@ -28,6 +28,14 @@ function showPage(p) {
   }
 }
 
+function openFeature(p) {
+  showPage(p);
+  const appEl = document.getElementById("app");
+  if (appEl) {
+    appEl.scrollIntoView({ behavior: "smooth" });
+  }
+}
+
 /* ══ PUBLIC PACKS ═══════════════════════════════════════════════ */
 let _allCommunityPacks = [];
 let _communityFilter   = 'all';
@@ -7200,3 +7208,173 @@ async function convertCFtoLC(btn, st, pb) {
   launchConfetti();
   showOpenInApp(fn, 'lunar', blobUrl);
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   TOOL ROUTING ARCHITECTURE & WORKSPACE MANAGEMENT
+══════════════════════════════════════════════════════════════════════ */
+
+const TOOL_ROUTES = {
+  'builder': {
+    slug: 'modpack-generator',
+    title: 'Modpack Generator',
+    icon: '🧩',
+    sub: 'Erstelle ein vollständiges Modpack aus einer Modliste. Unterstützt CurseForge und Modrinth.'
+  },
+  'convert': {
+    slug: 'pack-converter',
+    title: 'Pack Converter',
+    icon: '🔄',
+    sub: 'Konvertiere Modpacks zwischen CurseForge (.zip) und Modrinth (.mrpack).'
+  },
+  'fix': {
+    slug: 'pack-repair',
+    title: 'Pack Repair',
+    icon: '🔥',
+    sub: 'Repariert fehlerhafte oder unvollständige Modpacks und behebt Loader-Inkompatibilitäten.'
+  },
+  'upgrade': {
+    slug: 'compatibility-checker',
+    title: 'Compatibility Checker',
+    icon: '⚡',
+    sub: 'Überprüft die Kompatibilität von Mods mit deiner Ziel-Minecraft-Version.'
+  },
+  'community': {
+    slug: 'public-packs',
+    title: 'Public Packs',
+    icon: '🌐',
+    sub: 'Suche und stöbere durch öffentliche Modpacks und Packs der Community.'
+  }
+};
+
+function toggleToolsDropdown(e) {
+  if (e) e.stopPropagation();
+  const menu = document.getElementById('toolsDropdownMenu');
+  if (menu) menu.classList.toggle('show');
+}
+
+// Close dropdown on click outside
+document.addEventListener('click', (e) => {
+  const dropdown = document.getElementById('toolsNavDropdown');
+  const menu = document.getElementById('toolsDropdownMenu');
+  if (dropdown && menu && !dropdown.contains(e.target)) {
+    menu.classList.remove('show');
+  }
+});
+
+function scrollToTools() {
+  const toolsEl = document.getElementById('tools');
+  if (toolsEl) {
+    toolsEl.scrollIntoView({ behavior: 'smooth' });
+  }
+}
+
+function openToolRoute(pageKey, routeSlug, e) {
+  if (e && e.preventDefault) e.preventDefault();
+
+  const menu = document.getElementById('toolsDropdownMenu');
+  if (menu) menu.classList.remove('show');
+
+  const tool = TOOL_ROUTES[pageKey] || {
+    title: 'Tool Workspace',
+    icon: '⚡',
+    sub: 'Minecraft Modding Tool',
+    slug: routeSlug || 'tool'
+  };
+
+  // Update URL route
+  try {
+    if (window.history && window.history.pushState) {
+      const newPath = `/tools/${tool.slug}`;
+      if (window.location.pathname !== newPath) {
+        window.history.pushState({ pageKey, routeSlug: tool.slug }, tool.title, newPath);
+      }
+    }
+  } catch (err) {
+    console.warn('History pushState restricted:', err);
+  }
+
+  // Set Banner details
+  const iconEl = document.getElementById('activeToolIcon');
+  const titleEl = document.getElementById('activeToolTitle');
+  const subEl = document.getElementById('activeToolSub');
+  if (iconEl) iconEl.textContent = tool.icon;
+  if (titleEl) titleEl.textContent = tool.title;
+  if (subEl) subEl.textContent = tool.sub;
+
+  // Show page
+  showPage(pageKey);
+
+  // Ensure platform indicator is active
+  if (!selectedPlatform) {
+    selectedPlatform = localStorage.getItem('mctoolkit_platform') || 'modrinth';
+  }
+  confirmPlatform();
+
+  // Scroll to workspace section
+  const appSection = document.getElementById('app');
+  if (appSection) {
+    appSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
+function openFeature(p) {
+  const routeSlugs = {
+    'builder': 'modpack-generator',
+    'convert': 'pack-converter',
+    'fix': 'pack-repair',
+    'upgrade': 'compatibility-checker',
+    'community': 'public-packs'
+  };
+  openToolRoute(p, routeSlugs[p] || p);
+}
+
+function backToTools() {
+  if (window.history && window.history.pushState) {
+    try {
+      window.history.pushState({ pageKey: 'home' }, 'MC Toolkit', '/');
+    } catch (err) {}
+  }
+  scrollToTools();
+}
+
+function navigateTo(path, e) {
+  if (e && e.preventDefault) e.preventDefault();
+  if (path === '/' || path === '') {
+    backToTools();
+  } else if (path.startsWith('/tools/')) {
+    const slug = path.replace('/tools/', '');
+    const foundKey = Object.keys(TOOL_ROUTES).find(k => TOOL_ROUTES[k].slug === slug);
+    if (foundKey) {
+      openToolRoute(foundKey, slug);
+    } else {
+      openToolRoute('builder', 'modpack-generator');
+    }
+  }
+}
+
+// Handle Browser Back/Forward buttons
+window.addEventListener('popstate', () => {
+  const path = window.location.pathname;
+  if (path === '/' || path === '') {
+    scrollToTools();
+  } else if (path.startsWith('/tools/')) {
+    const slug = path.replace('/tools/', '');
+    const foundKey = Object.keys(TOOL_ROUTES).find(k => TOOL_ROUTES[k].slug === slug);
+    if (foundKey) {
+      openToolRoute(foundKey, slug);
+    }
+  }
+});
+
+// Initialize Route on Load
+document.addEventListener('DOMContentLoaded', () => {
+  const path = window.location.pathname;
+  if (path.startsWith('/tools/')) {
+    const slug = path.replace('/tools/', '');
+    const foundKey = Object.keys(TOOL_ROUTES).find(k => TOOL_ROUTES[k].slug === slug);
+    if (foundKey) {
+      openToolRoute(foundKey, slug);
+    }
+  }
+});
+

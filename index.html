@@ -1306,10 +1306,10 @@
       <!-- Drop zone -->
       <div class="drop-zone" id="convDZ" onclick="document.getElementById('convFile').click()"
            ondragover="dzDrag(event,'convDZ')" ondragleave="dzLeave('convDZ')" ondrop="dzDropConv(event)">
-        <input type="file" id="convFile" accept=".mrpack,.zip,.json" onchange="loadConvPack(this)">
+        <input type="file" id="convFile" accept=".mrpack,.zip,.json,.lcpack" onchange="loadConvPack(this)">
         <button class="dz-clear" id="convDZ-clear" style="display:none" onclick="clearConvDZ(event)">✕</button>
         <div class="dz-icon" id="convDZ-icon">📦</div>
-        <div class="dz-label" id="convDZ-label">Modrinth, CurseForge oder Lunar Client Pack hier ablegen oder klicken</div>
+        <div class="dz-label" id="convDZ-label">Modrinth, CurseForge oder Lunar Client Pack (.mrpack, .zip, .json, .lcpack) hier ablegen oder klicken</div>
         <div class="dz-name" id="convDZ-name"></div>
         <div class="dz-stats" id="convDZ-stats"></div>
       </div>
@@ -1331,7 +1331,7 @@
           <button class="target-fmt-btn" id="targetFmtLC" onclick="selectTargetFormat('lunar')">
             <span class="t-icon">🔵</span>
             <span class="t-name">Lunar Client</span>
-            <span class="t-ext">profile.json / .zip</span>
+            <span class="t-ext">profile.json / .lcpack / .zip</span>
           </button>
         </div>
       </div>

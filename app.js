@@ -4707,7 +4707,7 @@ function updateTargetFormatUI() {
     if (targetFormat === 'curseforge' || !targetFormat) {
       targetFormat = 'modrinth';
     }
-  } else if (packType === 'lunar-json' || packType === 'lunar-zip') {
+  } else if (packType && packType.startsWith('lunar-')) {
     if (btnLC) {
       btnLC.classList.add('disabled');
       btnLC.disabled = true;
@@ -4750,7 +4750,7 @@ function clearConvDZ(e) {
   convDirection = null;
   document.getElementById('convDZ').classList.remove('loaded');
   document.getElementById('convDZ-icon').textContent = '📦';
-  document.getElementById('convDZ-label').textContent = 'Modrinth, CurseForge oder Lunar Client Pack hier ablegen oder klicken';
+  document.getElementById('convDZ-label').textContent = 'Modrinth, CurseForge oder Lunar Client Pack (.mrpack, .zip, .json, .lcpack) hier ablegen oder klicken';
   ['convDZ-name','convDZ-stats'].forEach(id => document.getElementById(id).textContent = '');
   document.getElementById('convDZ-clear').style.display = 'none';
   document.getElementById('convFile').value = '';
@@ -4768,20 +4768,74 @@ async function parseConvPack(file) {
     let zip = null;
     let modsList = [];
     let mcVersion = '1.21.11';
+    const lowerName = file.name.toLowerCase();
 
-    if (file.name.endsWith('.json')) {
-      const text = await file.text();
-      const rawJson = JSON.parse(text);
-      packType = 'lunar-json';
-      index = rawJson;
-      modsList = extractModsFromLunarJson(rawJson);
-      if (rawJson.version || rawJson.mcVersion) {
-        mcVersion = rawJson.version || rawJson.mcVersion;
+    if (lowerName.endsWith('.json') || lowerName.endsWith('.lcpack')) {
+      let parsed = false;
+
+      // 1) Try reading as plain text or base64 JSON
+      try {
+        const text = await file.text();
+        let jsonStr = text.trim();
+        if (!jsonStr.startsWith('{') && !jsonStr.startsWith('[')) {
+          try { jsonStr = atob(jsonStr); } catch(bErr) {}
+        }
+        if (jsonStr.startsWith('{') || jsonStr.startsWith('[')) {
+          const rawJson = JSON.parse(jsonStr);
+          packType = lowerName.endsWith('.lcpack') ? 'lunar-lcpack' : 'lunar-json';
+          index = rawJson;
+          modsList = extractModsFromLunarJson(rawJson);
+          if (rawJson.version || rawJson.mcVersion || rawJson.subVersion || rawJson.minecraftVersion) {
+            mcVersion = rawJson.version || rawJson.mcVersion || rawJson.subVersion || rawJson.minecraftVersion;
+          }
+          parsed = true;
+        }
+      } catch (tErr) {}
+
+      // 2) If reading raw JSON failed, try loading as ZIP archive (compressed .lcpack)
+      if (!parsed) {
+        try {
+          zip = await JSZip.loadAsync(file);
+          let profileFile = zip.file('profile.json') || zip.file('profile.lcpack') || zip.file('profile.lcpack.json') || zip.file('manifest.json') || zip.file('lunar.json');
+          if (!profileFile) {
+            const keys = Object.keys(zip.files);
+            const jsonKey = keys.find(k => k.endsWith('.json') && !k.includes('/'));
+            if (jsonKey) profileFile = zip.file(jsonKey);
+          }
+
+          if (profileFile) {
+            const jsonStr = await profileFile.async('string');
+            const rawJson = JSON.parse(jsonStr);
+            packType = lowerName.endsWith('.lcpack') ? 'lunar-lcpack' : 'lunar-json';
+            index = rawJson;
+            modsList = extractModsFromLunarJson(rawJson);
+            if (rawJson.version || rawJson.mcVersion || rawJson.subVersion || rawJson.minecraftVersion) {
+              mcVersion = rawJson.version || rawJson.mcVersion || rawJson.subVersion || rawJson.minecraftVersion;
+            }
+            parsed = true;
+          }
+
+          const jarFiles = Object.keys(zip.files).filter(k => k.endsWith('.jar') && !zip.files[k].dir);
+          if (jarFiles.length > 0) {
+            const jarMods = jarFiles.map(k => {
+              const parts = k.split('/');
+              return parts[parts.length - 1].replace(/\.jar$/i, '');
+            });
+            modsList = [...new Set([...modsList, ...jarMods])];
+            if (!packType) packType = lowerName.endsWith('.lcpack') ? 'lunar-lcpack' : 'lunar-zip';
+            parsed = true;
+          }
+        } catch (zErr) {}
+      }
+
+      if (!parsed) {
+        throw new Error('Das Lunar Client Profil (' + file.name + ') konnte nicht gelesen werden. Bitte stelle sicher, dass es ein gültiges .lcpack oder .json Profil ist.');
       }
     } else {
       zip = await JSZip.loadAsync(file);
-      const isMR  = !!zip.file('modrinth.index.json');
-      const isCF  = !!zip.file('manifest.json');
+      const isMR = !!zip.file('modrinth.index.json');
+      const isCF = !!zip.file('manifest.json');
+      const isLC = !!zip.file('profile.json') || !!zip.file('profile.lcpack') || !!zip.file('profile.lcpack.json') || !!zip.file('lunar.json') || lowerName.endsWith('.lcpack');
 
       if (isMR) {
         index    = JSON.parse(await zip.file('modrinth.index.json').async('string'));
@@ -4789,17 +4843,38 @@ async function parseConvPack(file) {
       } else if (isCF) {
         index    = JSON.parse(await zip.file('manifest.json').async('string'));
         packType = 'curseforge';
+      } else if (isLC) {
+        const profFile = zip.file('profile.json') || zip.file('profile.lcpack') || zip.file('profile.lcpack.json') || zip.file('lunar.json');
+        if (profFile) {
+          const jsonStr = await profFile.async('string');
+          const rawJson = JSON.parse(jsonStr);
+          packType = 'lunar-lcpack';
+          index = rawJson;
+          modsList = extractModsFromLunarJson(rawJson);
+          if (rawJson.version || rawJson.mcVersion || rawJson.subVersion) {
+            mcVersion = rawJson.version || rawJson.mcVersion || rawJson.subVersion;
+          }
+        }
+        const jarFiles = Object.keys(zip.files).filter(k => k.endsWith('.jar') && !zip.files[k].dir);
+        if (jarFiles.length > 0) {
+          const jarMods = jarFiles.map(k => {
+            const parts = k.split('/');
+            return parts[parts.length - 1].replace(/\.jar$/i, '');
+          });
+          modsList = [...new Set([...modsList, ...jarMods])];
+          if (!packType) packType = 'lunar-zip';
+        }
       } else {
         const jarFiles = Object.keys(zip.files).filter(k => k.endsWith('.jar') && !zip.files[k].dir);
         if (jarFiles.length > 0) {
           packType = 'lunar-zip';
           modsList = jarFiles.map(k => {
             const parts = k.split('/');
-            return parts[parts.length - 1].replace(/\.jar$/, '');
+            return parts[parts.length - 1].replace(/\.jar$/i, '');
           });
           index = { name: file.name.replace(/\.[^/.]+$/, ""), files: jarFiles };
         } else {
-          throw new Error('Kein unterstütztes Modpack-Format (.mrpack, .zip, .json) gefunden.');
+          throw new Error('Kein unterstütztes Modpack-Format (.mrpack, .zip, .lcpack, .json) gefunden.');
         }
       }
     }
@@ -4813,7 +4888,7 @@ async function parseConvPack(file) {
       : packType === 'curseforge'
         ? (index.minecraft?.version || '?')
         : mcVersion;
-    const name = index.name || file.name;
+    const name = (index && index.name) || file.name.replace(/\.[^/.]+$/, "");
     const mods = packType === 'modrinth'
       ? index.files?.filter(f => f.path.startsWith('mods/')).length || 0
       : packType === 'curseforge'
@@ -4822,8 +4897,9 @@ async function parseConvPack(file) {
 
     let typeLabel = 'Modrinth .mrpack';
     if (packType === 'curseforge') typeLabel = 'CurseForge .zip';
-    if (packType === 'lunar-json') typeLabel = 'Lunar Client Profile .json';
-    if (packType === 'lunar-zip') typeLabel = 'Lunar Client Mods .zip';
+    if (packType === 'lunar-lcpack') typeLabel = 'Lunar Client Profile (.lcpack)';
+    if (packType === 'lunar-json') typeLabel = 'Lunar Client Profile (.json)';
+    if (packType === 'lunar-zip') typeLabel = 'Lunar Client Mods (.zip)';
 
     document.getElementById('convDZ').classList.add('loaded');
     document.getElementById('convDZ-icon').textContent = '✅';
@@ -6788,32 +6864,53 @@ function cleanLunarModName(name) {
 }
 
 function extractModsFromLunarJson(json) {
+  if (!json) return [];
   let mods = [];
-  if (json.customMods && Array.isArray(json.customMods)) {
-    json.customMods.forEach(m => {
-      if (typeof m === 'string') mods.push(m);
-      else if (m && typeof m === 'object') {
-        if (m.name) mods.push(m.name);
-        else if (m.id) mods.push(m.id);
-        else if (m.fileName) mods.push(m.fileName);
-      }
-    });
-  }
-  if (mods.length === 0) {
-    const keysToCheck = ['mods', 'modules', 'enabledMods', 'custom_mods', 'plugins'];
-    for (const key of keysToCheck) {
-      if (json[key] && Array.isArray(json[key])) {
-        json[key].forEach(m => {
-          if (typeof m === 'string') mods.push(m);
-          else if (m && typeof m === 'object') {
-            if (m.name) mods.push(m.name);
-            else if (m.id) mods.push(m.id);
-            if (m.title) mods.push(m.title);
-          }
-        });
-      }
+
+  function addModItem(m) {
+    if (!m) return;
+    if (typeof m === 'string') {
+      mods.push(m);
+    } else if (typeof m === 'object') {
+      if (m.name) mods.push(m.name);
+      else if (m.title) mods.push(m.title);
+      else if (m.id) mods.push(m.id);
+      else if (m.fileName) mods.push(m.fileName);
+      else if (m.displayName) mods.push(m.displayName);
+      else if (m.modId) mods.push(m.modId);
+      else if (m.slug) mods.push(m.slug);
     }
   }
+
+  const keysToCheck = [
+    'customMods', 'custom_mods', 'mods', 'modules', 'enabledMods',
+    'externalMods', 'fabricMods', 'installedMods', 'userMods',
+    'plugins', 'profileMods', 'ichorMods'
+  ];
+
+  keysToCheck.forEach(key => {
+    const val = json[key] || (json.profile && json.profile[key]) || (json.settings && json.settings[key]);
+    if (Array.isArray(val)) {
+      val.forEach(addModItem);
+    } else if (val && typeof val === 'object') {
+      Object.keys(val).forEach(k => {
+        const item = val[k];
+        if (typeof item === 'boolean' && item) {
+          mods.push(k);
+        } else if (typeof item === 'string') {
+          mods.push(item);
+        } else if (item && typeof item === 'object') {
+          if (item.enabled !== false && item.active !== false && item.state !== false) {
+            addModItem(item);
+            if (!item.name && !item.id && !item.title) mods.push(k);
+          }
+        } else {
+          mods.push(k);
+        }
+      });
+    }
+  });
+
   if (mods.length === 0) {
     function recurse(obj) {
       if (!obj) return;
@@ -6821,9 +6918,11 @@ function extractModsFromLunarJson(json) {
         obj.forEach(recurse);
       } else if (typeof obj === 'object') {
         for (let k in obj) {
-          if (k === 'name' || k === 'id' || k === 'title') {
-            if (typeof obj[k] === 'string' && (obj[k].toLowerCase().includes('mod') || obj.enabled || obj.enabled === undefined)) {
-              mods.push(obj[k]);
+          if (['name', 'id', 'title', 'fileName', 'modId', 'slug'].includes(k)) {
+            if (typeof obj[k] === 'string' && obj[k].length > 1) {
+              if (obj.enabled || obj.enabled === undefined || obj.state === true) {
+                mods.push(obj[k]);
+              }
             }
           } else {
             recurse(obj[k]);
@@ -6833,9 +6932,14 @@ function extractModsFromLunarJson(json) {
     }
     recurse(json);
   }
-  mods = [...new Set(mods)].map(m => m.replace(/\.jar$/, '')).filter(m => {
-    return m.length > 2 && !['true', 'false', 'default', 'profile', 'custom'].includes(m.toLowerCase());
-  });
+
+  mods = [...new Set(mods)]
+    .map(m => m.replace(/\.jar$/i, ''))
+    .filter(m => {
+      const lower = m.toLowerCase();
+      return m.length > 1 && !['true', 'false', 'default', 'profile', 'custom', 'fabric', 'forge', 'neoforge', 'minecraft', 'none', 'null', 'undefined'].includes(lower);
+    });
+
   return mods;
 }
 

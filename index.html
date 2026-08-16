@@ -174,13 +174,13 @@
   <div class="hero-inner">
     <div class="hero-content">
       <div class="hero-tag">
-        <span class="ht-dot"></span> Free &bull; No downloads &bull; Browser-based
+        <span class="ht-dot"></span> Kostenlose Modpack-Tools &bull; Direkt im Browser &bull; Optionale Extras
       </div>
 
       <h1>All-in-One Minecraft<br><span class="hero-purple-gradient">Modding Tools</span></h1>
 
       <p class="hero-sub">
-        Erstelle, konvertiere und verwalte Minecraft-Modpacks direkt im Browser – komplett ohne Downloads.
+        Erstelle, konvertiere und repariere Minecraft-Modpacks direkt im Browser – die wichtigsten Modpack-Funktionen kostenlos und ohne Installation.
       </p>
 
       <div class="hero-actions">
@@ -300,77 +300,98 @@
   </div>
 </section>
 
-<!-- ═══════════════════════ TOOL OVERVIEW GRID ══════════════════════════════ -->
+<!-- ═══════════════════════ TOOL OVERVIEW & PRIMARY ACTIONS ══════════════════════════════ -->
 <section id="tools">
   <div class="section-inner">
-    <div class="section-tag">Tools</div>
-    <h2 class="section-title">All Tools</h2>
-    <p class="section-sub">Powerful tools to enhance your Minecraft modding experience.</p>
+    <div class="section-tag">Wichtigste Aktionen</div>
+    <h2 class="section-title">Die 3 wichtigsten Modpack-Tools</h2>
+    <p class="section-sub">Die wichtigsten Modpack-Funktionen kostenlos und ohne Installation direkt im Browser.</p>
 
-    <div class="tools-overview-grid">
-      <!-- 1. Modpack Generator -->
-      <div class="tool-card" onclick="openToolRoute('builder', 'modpack-generator', event)" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')openToolRoute('builder', 'modpack-generator', event)">
+    <!-- Top 3 Primary Actions Grid -->
+    <div class="tools-primary-grid">
+      <!-- 1. Modpack erstellen -->
+      <div class="tool-card primary-tool-card primary-card-create" onclick="openToolRoute('builder', 'modpack-generator', event)" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')openToolRoute('builder', 'modpack-generator', event)">
+        <div class="primary-card-top-tag">★ Hauptaktion</div>
         <div class="tool-card-head">
           <div class="tool-card-icon purple">🧩</div>
           <div>
-            <h3>Modpack Generator</h3>
-            <span class="tool-card-badge">Beliebt</span>
+            <h3>Modpack erstellen</h3>
+            <span class="tool-card-badge">Aus Modliste</span>
           </div>
         </div>
-        <p>Erstelle ein vollständiges Modpack aus einer Modliste. Unterstützt CurseForge und Modrinth.</p>
-        <div class="tool-card-btn">Tool öffnen <span>➔</span></div>
+        <p>Erstelle ein vollständiges Modpack aus einer Modliste.</p>
+        <button type="button" class="btn-primary primary-tool-action-btn purple">
+          Modpack erstellen <span>➔</span>
+        </button>
       </div>
 
-      <!-- 2. Pack Converter -->
-      <div class="tool-card" onclick="openToolRoute('convert', 'pack-converter', event)" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')openToolRoute('convert', 'pack-converter', event)">
+      <!-- 2. Modpack konvertieren -->
+      <div class="tool-card primary-tool-card primary-card-convert" onclick="openToolRoute('convert', 'pack-converter', event)" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')openToolRoute('convert', 'pack-converter', event)">
+        <div class="primary-card-top-tag">★ Hauptaktion</div>
         <div class="tool-card-head">
           <div class="tool-card-icon green">🔄</div>
           <div>
-            <h3>Pack Converter</h3>
-            <span class="tool-card-badge">Universal</span>
+            <h3>Modpack konvertieren</h3>
+            <span class="tool-card-badge">CurseForge ↔ Modrinth</span>
           </div>
         </div>
-        <p>Konvertiere Modpacks zwischen CurseForge (.zip) und Modrinth (.mrpack).</p>
-        <div class="tool-card-btn">Tool öffnen <span>➔</span></div>
+        <p>Konvertiere Modpacks zwischen CurseForge und Modrinth.</p>
+        <button type="button" class="btn-primary primary-tool-action-btn green">
+          Modpack konvertieren <span>➔</span>
+        </button>
       </div>
 
-      <!-- 3. Pack Repair -->
-      <div class="tool-card" onclick="openToolRoute('fix', 'pack-repair', event)" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')openToolRoute('fix', 'pack-repair', event)">
+      <!-- 3. Modpack reparieren -->
+      <div class="tool-card primary-tool-card primary-card-repair" onclick="openToolRoute('fix', 'pack-repair', event)" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')openToolRoute('fix', 'pack-repair', event)">
+        <div class="primary-card-top-tag">★ Hauptaktion</div>
         <div class="tool-card-head">
           <div class="tool-card-icon orange">🔥</div>
           <div>
-            <h3>Pack Repair</h3>
-            <span class="tool-card-badge">Auto-Fix</span>
+            <h3>Modpack reparieren</h3>
+            <span class="tool-card-badge">Auto-Fix &amp; Analyse</span>
           </div>
         </div>
-        <p>Repariert fehlerhafte oder unvollständige Modpacks und behebt Loader-Inkompatibilitäten.</p>
-        <div class="tool-card-btn">Tool öffnen <span>➔</span></div>
+        <p>Erkenne und behebe fehlende Mods, Dependencies und andere Probleme.</p>
+        <button type="button" class="btn-primary primary-tool-action-btn orange">
+          Modpack reparieren <span>➔</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Secondary Tools Section -->
+    <div class="secondary-tools-section">
+      <div class="secondary-tools-head">
+        <span class="secondary-tag">Erweiterte Werkzeuge</span>
+        <h3>Weitere Tools</h3>
+        <p>Zusätzliche Funktionen für Versionsprüfungen und Community-Modpacks.</p>
       </div>
 
-      <!-- 5. Compatibility Checker -->
-      <div class="tool-card" onclick="openToolRoute('upgrade', 'compatibility-checker', event)" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')openToolRoute('upgrade', 'compatibility-checker', event)">
-        <div class="tool-card-head">
-          <div class="tool-card-icon yellow">⚡</div>
-          <div>
-            <h3>Compatibility Checker</h3>
-            <span class="tool-card-badge">Versionen</span>
+      <div class="tools-overview-grid secondary-tools-grid">
+        <!-- 4. Compatibility Checker -->
+        <div class="tool-card" onclick="openToolRoute('upgrade', 'compatibility-checker', event)" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')openToolRoute('upgrade', 'compatibility-checker', event)">
+          <div class="tool-card-head">
+            <div class="tool-card-icon yellow">⚡</div>
+            <div>
+              <h3>Compatibility Checker</h3>
+              <span class="tool-card-badge">Versionen</span>
+            </div>
           </div>
+          <p>Überprüft die Kompatibilität von Mods mit deiner Minecraft-Version.</p>
+          <div class="tool-card-btn">Tool öffnen <span>➔</span></div>
         </div>
-        <p>Überprüft die Kompatibilität von Mods mit deiner Minecraft-Version.</p>
-        <div class="tool-card-btn">Tool öffnen <span>➔</span></div>
-      </div>
 
-      <!-- 5. Public Packs -->
-      <div class="tool-card" onclick="openToolRoute('community', 'public-packs', event)" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')openToolRoute('community', 'public-packs', event)">
-        <div class="tool-card-head">
-          <div class="tool-card-icon purple">🌐</div>
-          <div>
-            <h3>Public Packs</h3>
-            <span class="tool-card-badge">Katalog</span>
+        <!-- 5. Public Packs -->
+        <div class="tool-card" onclick="openToolRoute('community', 'public-packs', event)" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')openToolRoute('community', 'public-packs', event)">
+          <div class="tool-card-head">
+            <div class="tool-card-icon purple">🌐</div>
+            <div>
+              <h3>Public Packs</h3>
+              <span class="tool-card-badge">Katalog</span>
+            </div>
           </div>
+          <p>Durchsuche und entdecke öffentliche Modpacks der Community.</p>
+          <div class="tool-card-btn">Tool öffnen <span>➔</span></div>
         </div>
-        <p>Durchsuche und entdecke öffentliche Modpacks der Community.</p>
-        <div class="tool-card-btn">Tool öffnen <span>➔</span></div>
       </div>
     </div>
   </div>
@@ -393,7 +414,7 @@
       <div class="benefit-card">
         <div class="benefit-icon">🛡️</div>
         <h3>Sicher</h3>
-        <p>Alles läuft 100% direkt im Browser. Es werden keine Dateien auf Servern gespeichert.</p>
+        <p>Die Modpack-Verarbeitung läuft direkt im Browser – schnell, sicher und ohne unnötige Dateiuploads.</p>
       </div>
 
       <div class="benefit-card">
@@ -410,7 +431,7 @@
   <div class="section-inner">
     <div class="section-tag">Anleitung &amp; Demo</div>
     <h2 class="section-title">In 3 Schritten zum Modpack</h2>
-    <p class="section-sub">Sieh dir den einfachen Workflow in der interaktiven Vorschau an – 100% im Browser, ohne Installation.</p>
+    <p class="section-sub">Sieh dir den einfachen Workflow in der interaktiven Vorschau an – direkt im Browser, ohne Installation.</p>
 
     <div class="howto-container">
       <div class="steps">
@@ -427,7 +448,7 @@
           <div class="step-content">
             <h3>2. Auto-Fixing &amp; Launcher wählen</h3>
             <p>Fehlende Abhängigkeiten (wie Fabric API) werden automatisch ergänzt. Wähle <b>Modrinth (.mrpack)</b> oder <b>CurseForge (.zip)</b>.</p>
-            <div class="step-badge">✦ 100% Dependency Resolver</div>
+            <div class="step-badge">✦ Integrierter Dependency-Resolver</div>
           </div>
         </div>
         <div class="step" id="howto-step-3" onclick="showWorkflowDemo(3)">
@@ -740,7 +761,7 @@
     <div class="faq-list">
       <div class="faq-item">
         <div class="faq-q" onclick="toggleFaq(this)">Ist das kostenlos? <span class="faq-arrow">▼</span></div>
-        <div class="faq-a">Ja, MC Toolkit ist zu 100% kostenlos und Open Source. Es gibt keine versteckten Kosten, keine Werbeeinblendungen, keine Premium-Features und du musst dich nicht registrieren oder anmelden.</div>
+        <div class="faq-a">Die wichtigsten Modpack-Funktionen (Erstellen, Konvertieren, Reparieren) sind kostenlos und direkt ohne Installation im Browser nutzbar. Für erweiterte Möglichkeiten – wie den KI-Assistenten Bolt, Cloud-Profile oder öffentliche Packs – sind ein optionaler Account sowie optionale Premium-Funktionen verfügbar.</div>
       </div>
       <div class="faq-item">
         <div class="faq-q" onclick="toggleFaq(this)">Werden Mods oder eigene Dateien hochgeladen? <span class="faq-arrow">▼</span></div>
@@ -756,7 +777,7 @@
       </div>
       <div class="faq-item">
         <div class="faq-q" onclick="toggleFaq(this)">Wo werden meine Daten gespeichert? <span class="faq-arrow">▼</span></div>
-        <div class="faq-a">Nirgends auf externen Servern. MC Toolkit läuft vollständig clientseitig im Browser. Es gibt keine externe Datenbank und kein Tracking. Deine zusammengestellte Modliste bleibt privat in deinem Browser.</div>
+        <div class="faq-a">Deine lokalen Modpack-Entwürfe werden direkt in deinem Browser verarbeitet und lokal gehalten. Wenn du dich entscheidest, einen Account anzulegen oder ein Pack öffentlich in der Community zu teilen, werden diese spezifischen Daten sicher in unserer Cloud-Datenbank gespeichert.</div>
       </div>
       <div class="faq-item">
         <div class="faq-q" onclick="toggleFaq(this)">Was ist eine .mrpack-Datei? <span class="faq-arrow">▼</span></div>
@@ -781,7 +802,7 @@
   <div class="section-inner" style="text-align:center">
     <div class="section-tag">Los geht's</div>
     <h2 class="section-title">Bereit für dein Modpack?</h2>
-    <p class="section-sub" style="margin:0 auto 2.5rem">Scrolle nach unten und starte direkt. Keine Registrierung, kein Warten.</p>
+    <p class="section-sub" style="margin:0 auto 2.5rem">Scrolle nach unten und starte direkt. Die wichtigsten Tools sind sofort im Browser verfügbar.</p>
     <a href="#app" class="btn-primary" style="font-size:1rem; padding:15px 36px;" onclick="openPlatformOverlay()">⚡ Jetzt starten</a>
   </div>
 </section>
@@ -1338,8 +1359,65 @@
 
       <!-- Result preview -->
       <div class="convert-result" id="convResult">
-        <h3>📋 Konvertierungs-Vorschau</h3>
+        <div class="conv-preview-header">
+          <div>
+            <h3>📋 Konvertierungs-Vorschau</h3>
+            <div class="conv-preview-sub">Erkannte Mods, Status &amp; Fehlgeschlagen-Prüfung vor dem Download</div>
+          </div>
+          <div class="conv-preview-header-actions">
+            <button type="button" class="conv-head-btn" id="convRescanBtn" onclick="runConvModCheck(true)" title="Alle Mod-IDs erneut über die Modrinth API prüfen">
+              🔄 Status prüfen
+            </button>
+            <button type="button" class="conv-head-btn primary" id="convSearchMissingAllBtn" onclick="openConvSearchForFirstFailed()" title="Nach fehlenden Mod-IDs suchen und zuweisen">
+              🔍 Fehlende IDs suchen
+            </button>
+          </div>
+        </div>
+
         <div class="convert-stat-row" id="convStats"></div>
+
+        <!-- Fehlgeschlagen Banner -->
+        <div class="conv-failed-banner" id="convFailedBanner" style="display:none">
+          <div class="cfb-left">
+            <span class="cfb-icon">⚠️</span>
+            <div>
+              <div class="cfb-title"><span id="convFailedBannerCount">0</span> Mod-IDs nicht automatisch gefunden!</div>
+              <div class="cfb-desc">Nutze die vorgeschlagenen Modrinth-Treffer zur 1-Klick-Zuweisung oder durchsuche die Datenbank manuell.</div>
+            </div>
+          </div>
+          <div class="cfb-actions">
+            <button type="button" class="cfb-btn secondary" id="convAssignAllSuggBtn" onclick="assignAllSuggestedMatches()" style="display:none">
+              ⚡ Alle Vorschläge zuweisen
+            </button>
+            <button type="button" class="cfb-btn" onclick="openConvSearchForFirstFailed()">
+              🔍 Manuell suchen
+            </button>
+          </div>
+        </div>
+
+        <!-- Filter & Tab Switcher -->
+        <div class="conv-list-toolbar">
+          <div class="conv-tabs">
+            <button type="button" class="conv-tab-btn active" id="convTabAll" onclick="setConvFilterTab('all')">
+              Alle Mods <span class="conv-tab-cnt" id="convTabCntAll">0</span>
+            </button>
+            <button type="button" class="conv-tab-btn found" id="convTabFound" onclick="setConvFilterTab('found')">
+              ✓ Gefunden <span class="conv-tab-cnt" id="convTabCntFound">0</span>
+            </button>
+            <button type="button" class="conv-tab-btn failed" id="convTabFailed" onclick="setConvFilterTab('failed')">
+              ⚠️ Fehlgeschlagen <span class="conv-tab-cnt" id="convTabCntFailed">0</span>
+            </button>
+          </div>
+          <div class="conv-search-box">
+            <input type="text" id="convFilterInput" placeholder="🔍 Mods filtern..." oninput="filterConvModsList()">
+          </div>
+        </div>
+
+        <!-- Mod List Items Container -->
+        <div class="conv-mods-list" id="convModsList">
+          <div class="conv-mods-empty">Lade Mod-Vorschau...</div>
+        </div>
+
         <div class="convert-warnings" id="convWarnings" style="display:none"></div>
       </div>
 
@@ -1912,13 +1990,13 @@
       </div>
       <div class="agb-modal-content">
         <h3>1. Geltungsbereich</h3>
-        <p>Diese AGB gelten für die Nutzung von MC Toolkit, einem kostenlosen Online-Tool zur Erstellung und Verwaltung von Minecraft-Modpacks.</p>
+        <p>Diese AGB gelten für die Nutzung von MC Toolkit, einer Online-Plattform zur Erstellung und Verwaltung von Minecraft-Modpacks.</p>
 
         <h3>2. Leistungsbeschreibung</h3>
-        <p>MC Toolkit ermöglicht das Erstellen, Reparieren, Zusammenführen und Konvertieren von Minecraft Modpacks. Alle Funktionen laufen im Browser des Nutzers und auf öffentlichen APIs (Modrinth).</p>
+        <p>MC Toolkit ermöglicht das Erstellen, Reparieren, Zusammenführen und Konvertieren von Minecraft Modpacks. Alle Funktionen laufen im Browser des Nutzers und auf öffentlichen APIs (Modrinth, CurseForge).</p>
 
         <h3>3. Nutzungsbedingungen</h3>
-        <p>Die Nutzung ist kostenlos und ohne Registrierung möglich. Der Nutzer ist selbst verantwortlich für die Einhaltung der Lizenzbestimmungen der verwendeten Mods.</p>
+        <p>Die Kernfunktionen sind kostenlos und ohne Registrierung nutzbar. Für bestimmte Zusatzfunktionen (z. B. Profile, Public Packs, VIP-Features) ist eine optionale Registrierung bzw. ein Abonnement erforderlich. Der Nutzer ist selbst verantwortlich für die Einhaltung der Lizenzbestimmungen der verwendeten Mods.</p>
 
         <h3>4. Haftungsausschluss</h3>
         <p>MC Toolkit ist nicht offiziell mit Modrinth, CurseForge oder Mojang Studios verbunden. Die Verfügbarkeit externer APIs kann nicht garantiert werden. Für durch die Nutzung entstandene Schäden wird keine Haftung übernommen.</p>
@@ -2000,6 +2078,53 @@
     </div>
   </div>
 
+  <!-- Manual Mod Search & Assign Modal for Converter -->
+  <div class="profiles-overlay" id="convSearchOverlay" style="z-index:860">
+    <div class="profiles-modal conv-search-modal">
+      <div class="pm-header">
+        <div>
+          <h2>🔍 Mod-ID manuell suchen &amp; zuweisen</h2>
+          <div class="conv-modal-sub">
+            Ziel-Mod für: <code id="convSearchTargetModName" class="conv-target-code">Mod-Name</code>
+          </div>
+        </div>
+        <button class="pm-close" onclick="closeConvSearchModal()">✕</button>
+      </div>
+
+      <!-- Search Box -->
+      <div class="conv-modal-search-wrap">
+        <div class="conv-modal-input-row">
+          <input type="text" id="convModalSearchInput" class="a-input conv-modal-input" placeholder="🔍 Mod-Name, Slug oder Stichwort suchen (z. B. Sodium, AppleSkin)..." oninput="onConvModalSearchInput(this.value)">
+          <button type="button" class="conv-modal-search-btn" onclick="executeConvModalSearch()">Suchen</button>
+        </div>
+      </div>
+
+      <!-- Direct Slug / ID Box -->
+      <div class="conv-direct-box">
+        <div class="conv-direct-title">⚡ Oder direkte Modrinth-Slug / URL eingeben:</div>
+        <div class="conv-direct-row">
+          <input type="text" id="convDirectSlugInput" class="a-input" placeholder="z. B. sodium, fabric-api, appleskin oder Modrinth-Link">
+          <button type="button" class="conv-direct-btn" onclick="assignConvDirectSlug()">Zuweisen</button>
+        </div>
+      </div>
+
+      <!-- Results Container -->
+      <div class="conv-search-results-header">
+        <span id="convSearchResultsTitle">Gefundene Modrinth Mods</span>
+        <span id="convSearchResultsCount" class="conv-results-cnt">0 Treffer</span>
+      </div>
+
+      <div class="conv-search-results-list" id="convSearchResultsList">
+        <div class="conv-search-empty">Gib einen Suchbegriff ein oder wähle einen Vorschlag.</div>
+      </div>
+
+      <div class="conv-modal-footer">
+        <button type="button" class="conv-modal-btn cancel" onclick="closeConvSearchModal()">Schließen</button>
+        <button type="button" class="conv-modal-btn ignore" id="convModalIgnoreBtn" onclick="ignoreCurrentConvMod()">✕ Diese Mod ignorieren (aus Pack entfernen)</button>
+      </div>
+    </div>
+  </div>
+
 </section>
 
 <!-- ═══════════════════════ FOOTER ════════════════════════════════════════ -->
@@ -2009,7 +2134,7 @@
       <div class="nav-logo-icon">⚡</div>
       <span class="nav-logo-text">MC <span>Toolkit</span></span>
     </a>
-    <p>Erstelle, repariere und merge Minecraft Fabric Modpacks direkt im Browser – kostenlos, ohne Account und 100% privat.</p>
+    <p>Kostenlose Modpack-Tools direkt im Browser. Erstelle, konvertiere und repariere Minecraft-Modpacks schnell und unkompliziert.</p>
   </div>
   <div class="footer-links">
     <a href="#features">Features</a>

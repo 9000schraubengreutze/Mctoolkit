@@ -748,7 +748,9 @@ async function doMerge(){
   const all=[...mpackData[0].index.files,...mpackData[1].index.files];
   const seen=new Map();const unique=[];
   all.forEach(f=>{const k=f.path.split("/").pop().toLowerCase();if(!seen.has(k)){seen.set(k,true);unique.push(f);}});
-  const dep=Object.assign({},mpackData[0].index.dependencies||{},mpackData[1].index.dependencies||{});
+  const rawDep=Object.assign({},mpackData[0].index.dependencies||{},mpackData[1].index.dependencies||{});
+  const dep={};
+  for (const [k, v] of Object.entries(rawDep)) { dep[k] = String(v); }
   const idx={formatVersion:1,game:"minecraft",versionId:document.getElementById("mergeVersion").value.trim()||"1.0.0",
     name:document.getElementById("mergeName").value.trim()||"Merged Pack",
     summary:"Zusammengeführt aus: "+mpackData[0].index.name+" + "+mpackData[1].index.name,
@@ -764,9 +766,37 @@ async function doMerge(){
 let MODS=[];
 let RESOURCEPACKS=[];
 
-async function detectAndResolve(q){
-  try{const r=await fetch(API+"/project/"+encodeURIComponent(q),{headers:{"User-Agent":"mctoolkit/1.0"}});if(r.ok){const p=await r.json();return{slug:p.slug,name:p.title,type:p.project_type};}}catch(e){}
-  try{const r=await fetch(API+"/search?query="+encodeURIComponent(q)+"&limit=1",{headers:{"User-Agent":"mctoolkit/1.0"}});if(r.ok){const d=await r.json();if(d.hits&&d.hits.length){const h=d.hits[0];return{slug:h.slug,name:h.title,type:h.project_type};}}}catch(e){}
+async function detectAndResolve(q) {
+  if (!q) return null;
+  const cleanQ = String(q).trim();
+  if (!cleanQ) return null;
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const r = await fetch(API + "/project/" + encodeURIComponent(cleanQ), { headers: { "User-Agent": "mctoolkit/1.0" } });
+      if (r.status === 429) { await sleep(1200); continue; }
+      if (r.ok) {
+        const p = await r.json();
+        if (p && p.slug) return { slug: p.slug, name: p.title || p.slug, type: p.project_type || 'mod' };
+      }
+      break;
+    } catch (e) {}
+  }
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const r = await fetch(API + "/search?query=" + encodeURIComponent(cleanQ) + "&limit=1", { headers: { "User-Agent": "mctoolkit/1.0" } });
+      if (r.status === 429) { await sleep(1200); continue; }
+      if (r.ok) {
+        const d = await r.json();
+        if (d && d.hits && d.hits.length) {
+          const h = d.hits[0];
+          return { slug: h.slug, name: h.title || h.slug, type: h.project_type || 'mod' };
+        }
+      }
+      break;
+    } catch (e) {}
+  }
   return null;
 }
 function updateBuildBtn() {
@@ -2258,45 +2288,51 @@ async function addFromPaste(){
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 async function fetchVersion(slug, mcVersion, isRP, retries=2) {
-  if (isRP) {
-    for (const p of [mcVersion ? "?game_versions=%5B%22"+mcVersion+"%22%5D" : "", ""]) {
-      for (let attempt = 0; attempt <= retries; attempt++) {
-        try {
-          if (attempt > 0) await sleep(600 * attempt);
-          const r = await fetch(API+"/project/"+slug+"/version"+p, {headers:{"User-Agent":"mctoolkit/1.0"}});
-          if (r.status === 429) { await sleep(1500); continue; }
-          if (!r.ok) break;
-          const l = await r.json();
-          if (Array.isArray(l) && l.length) return l.find(v=>v.version_type==="release") || l[0];
-          break;
-        } catch(e) { if (attempt === retries) break; await sleep(400); }
-      }
-    }
-    return null;
-  }
-  for (const ld of ["fabric","quilt"]) {
-    for (let attempt = 0; attempt <= retries; attempt++) {
-      try {
-        if (attempt > 0) await sleep(600 * attempt);
-        const url = API+"/project/"+slug+"/version?game_versions=%5B%22"+mcVersion+"%22%5D&loaders=%5B%22"+ld+"%22%5D";
-        const r = await fetch(url, {headers:{"User-Agent":"mctoolkit/1.0"}});
-        if (r.status === 429) { await sleep(1500); continue; }
-        if (!r.ok) break;
-        const l = await r.json();
-        if (!Array.isArray(l) || !l.length) break;
-        return l.find(v=>v.version_type==="release") || l[0];
-      } catch(e) { if (attempt === retries) break; await sleep(400); }
-    }
-  }
-  // Fallback: try without MC version filter
-  for (const ld of ["fabric","quilt"]) {
+  let cleanMc = (typeof mcVersion === 'string' && /^1\.\d+/.test(mcVersion.trim())) ? mcVersion.trim() : '1.21.1';
+  if (cleanMc === '1.21.11') cleanMc = '1.21.1';
+
+  for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      const r = await fetch(API+"/project/"+slug+"/version?loaders=%5B%22"+ld+"%22%5D", {headers:{"User-Agent":"mctoolkit/1.0"}});
-      if (!r.ok) continue;
-      const l = await r.json();
-      if (!Array.isArray(l) || !l.length) continue;
-      return l.find(v=>v.version_type==="release") || l[0];
-    } catch(e) {}
+      if (attempt > 0) await sleep(500 * attempt);
+      const r = await fetch(API + "/project/" + encodeURIComponent(slug) + "/version", { headers: { "User-Agent": "mctoolkit/1.0" } });
+      if (r.status === 429) { await sleep(1500); continue; }
+      if (!r.ok) break;
+      const list = await r.json();
+      if (!Array.isArray(list) || !list.length) return null;
+
+      if (isRP) {
+        const match = list.find(v => (v.game_versions || []).includes(cleanMc)) || list.find(v => v.version_type === 'release') || list[0];
+        return match;
+      }
+
+      // 1. Exact MC + fabric/quilt/neoforge/forge
+      let match = list.find(v => {
+        const gv = v.game_versions || [];
+        const hasMc = gv.includes(cleanMc) || gv.some(g => g.startsWith(cleanMc.split('.').slice(0, 2).join('.')));
+        const hasLoader = (v.loaders || []).some(l => ['fabric', 'quilt', 'neoforge', 'forge', 'modmenu'].includes(l));
+        return hasMc && hasLoader;
+      });
+
+      // 2. Exact MC (any loader)
+      if (!match) {
+        match = list.find(v => (v.game_versions || []).includes(cleanMc));
+      }
+
+      // 3. Fabric/Quilt loader (any MC version)
+      if (!match) {
+        match = list.find(v => (v.loaders || []).some(l => ['fabric', 'quilt'].includes(l)));
+      }
+
+      // 4. Any release version or first in list
+      if (!match) {
+        match = list.find(v => v.version_type === 'release') || list[0];
+      }
+
+      return match;
+    } catch (e) {
+      if (attempt === retries) break;
+      await sleep(400);
+    }
   }
   return null;
 }
@@ -2416,7 +2452,7 @@ async function createMrpackBlob(mcV, pName, pVer, fl, progress) {
 
   const modlistHtml = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + esc(pName) + '</title></head><body style="font-family:sans-serif;max-width:800px;margin:2rem auto;background:#1a1a2e;color:#f0f6fc"><h1 style="color:#4ade80">🟢 ' + esc(pName) + ' (.mrpack)</h1><p>MC ' + mcV + ' · Fabric ' + fl + ' · ' + resolvedList.length + ' Dateien</p><h2>Mods</h2><ul>' + modRows + '</ul>' + (rpRows ? '<h2>Texture Packs</h2><ul>' + rpRows + '</ul>' : '') + '<hr><p style="color:#666">Exportiert mit MC Toolkit</p></body></html>';
 
-  const idx={formatVersion:1,game:"minecraft",versionId:pVer,name:pName,summary:"MC Toolkit - Modpack fuer MC "+mcV,files:fe,dependencies:{minecraft:mcV,"fabric-loader":fl}};
+  const idx={formatVersion:1,game:"minecraft",versionId:String(pVer || '1.0.0'),name:String(pName || 'Modpack'),summary:"MC Toolkit - Modpack fuer MC "+mcV,files:fe,dependencies:{minecraft:String(mcV || '1.21.1'),"fabric-loader":String(fl || '0.18.3')}};
   const zip=new JSZip();
   zip.file("modrinth.index.json",JSON.stringify(idx,null,2));
   zip.file("modlist.html", modlistHtml);
@@ -3169,7 +3205,7 @@ async function loadProfile(idOrName) {
   RESOURCEPACKS = p.rps.map(r => ({...r}));
   document.getElementById('packName').value    = p.packName    || p.name;
   document.getElementById('packVersion').value = p.packVersion || '1.0.0';
-  document.getElementById('mcVersion').value   = p.mcVersion   || '1.21.11';
+  document.getElementById('mcVersion').value   = p.mcVersion   || '1.21.1';
   document.getElementById('fabricLoader').value= p.fabricLoader|| '0.18.3';
   renderMods(); renderRPs();
   closeProfiles();
@@ -4767,75 +4803,19 @@ async function parseConvPack(file) {
     let packType = '';
     let zip = null;
     let modsList = [];
-    let mcVersion = '1.21.11';
+    let mcVersion = '1.21.1';
     const lowerName = file.name.toLowerCase();
 
-    if (lowerName.endsWith('.json') || lowerName.endsWith('.lcpack')) {
-      let parsed = false;
-
-      // 1) Try reading as plain text or base64 JSON
-      try {
-        const text = await file.text();
-        let jsonStr = text.trim();
-        if (!jsonStr.startsWith('{') && !jsonStr.startsWith('[')) {
-          try { jsonStr = atob(jsonStr); } catch(bErr) {}
-        }
-        if (jsonStr.startsWith('{') || jsonStr.startsWith('[')) {
-          const rawJson = JSON.parse(jsonStr);
-          packType = lowerName.endsWith('.lcpack') ? 'lunar-lcpack' : 'lunar-json';
-          index = rawJson;
-          modsList = extractModsFromLunarJson(rawJson);
-          if (rawJson.version || rawJson.mcVersion || rawJson.subVersion || rawJson.minecraftVersion) {
-            mcVersion = rawJson.version || rawJson.mcVersion || rawJson.subVersion || rawJson.minecraftVersion;
-          }
-          parsed = true;
-        }
-      } catch (tErr) {}
-
-      // 2) If reading raw JSON failed, try loading as ZIP archive (compressed .lcpack)
-      if (!parsed) {
-        try {
-          zip = await JSZip.loadAsync(file);
-          let profileFile = zip.file('profile.json') || zip.file('profile.lcpack') || zip.file('profile.lcpack.json') || zip.file('manifest.json') || zip.file('lunar.json');
-          if (!profileFile) {
-            const keys = Object.keys(zip.files);
-            const jsonKey = keys.find(k => k.endsWith('.json') && !k.includes('/'));
-            if (jsonKey) profileFile = zip.file(jsonKey);
-          }
-
-          if (profileFile) {
-            const jsonStr = await profileFile.async('string');
-            const rawJson = JSON.parse(jsonStr);
-            packType = lowerName.endsWith('.lcpack') ? 'lunar-lcpack' : 'lunar-json';
-            index = rawJson;
-            modsList = extractModsFromLunarJson(rawJson);
-            if (rawJson.version || rawJson.mcVersion || rawJson.subVersion || rawJson.minecraftVersion) {
-              mcVersion = rawJson.version || rawJson.mcVersion || rawJson.subVersion || rawJson.minecraftVersion;
-            }
-            parsed = true;
-          }
-
-          const jarFiles = Object.keys(zip.files).filter(k => k.endsWith('.jar') && !zip.files[k].dir);
-          if (jarFiles.length > 0) {
-            const jarMods = jarFiles.map(k => {
-              const parts = k.split('/');
-              return parts[parts.length - 1].replace(/\.jar$/i, '');
-            });
-            modsList = [...new Set([...modsList, ...jarMods])];
-            if (!packType) packType = lowerName.endsWith('.lcpack') ? 'lunar-lcpack' : 'lunar-zip';
-            parsed = true;
-          }
-        } catch (zErr) {}
-      }
-
-      if (!parsed) {
-        throw new Error('Das Lunar Client Profil (' + file.name + ') konnte nicht gelesen werden. Bitte stelle sicher, dass es ein gültiges .lcpack oder .json Profil ist.');
-      }
-    } else {
+    // 1. Try loading as ZIP archive first (since .lcpack, .mrpack, .zip are ZIP archives)
+    try {
       zip = await JSZip.loadAsync(file);
+    } catch (zErr) {
+      zip = null;
+    }
+
+    if (zip) {
       const isMR = !!zip.file('modrinth.index.json');
       const isCF = !!zip.file('manifest.json');
-      const isLC = !!zip.file('profile.json') || !!zip.file('profile.lcpack') || !!zip.file('profile.lcpack.json') || !!zip.file('lunar.json') || lowerName.endsWith('.lcpack');
 
       if (isMR) {
         index    = JSON.parse(await zip.file('modrinth.index.json').async('string'));
@@ -4843,43 +4823,85 @@ async function parseConvPack(file) {
       } else if (isCF) {
         index    = JSON.parse(await zip.file('manifest.json').async('string'));
         packType = 'curseforge';
-      } else if (isLC) {
-        const profFile = zip.file('profile.json') || zip.file('profile.lcpack') || zip.file('profile.lcpack.json') || zip.file('lunar.json');
-        if (profFile) {
-          const jsonStr = await profFile.async('string');
-          const rawJson = JSON.parse(jsonStr);
-          packType = 'lunar-lcpack';
-          index = rawJson;
-          modsList = extractModsFromLunarJson(rawJson);
-          if (rawJson.version || rawJson.mcVersion || rawJson.subVersion) {
-            mcVersion = rawJson.version || rawJson.mcVersion || rawJson.subVersion;
-          }
-        }
-        const jarFiles = Object.keys(zip.files).filter(k => k.endsWith('.jar') && !zip.files[k].dir);
-        if (jarFiles.length > 0) {
-          const jarMods = jarFiles.map(k => {
-            const parts = k.split('/');
-            return parts[parts.length - 1].replace(/\.jar$/i, '');
-          });
-          modsList = [...new Set([...modsList, ...jarMods])];
-          if (!packType) packType = 'lunar-zip';
-        }
       } else {
-        const jarFiles = Object.keys(zip.files).filter(k => k.endsWith('.jar') && !zip.files[k].dir);
-        if (jarFiles.length > 0) {
-          packType = 'lunar-zip';
-          modsList = jarFiles.map(k => {
+        // Lunar Client .lcpack or .zip
+        packType = lowerName.endsWith('.lcpack') ? 'lunar-lcpack' : 'lunar-zip';
+
+        // Extract from all files inside the zip
+        for (const k of Object.keys(zip.files)) {
+          if (zip.files[k].dir) continue;
+          const lk = k.toLowerCase();
+
+          // If .jar or .jar.disabled or .disabled
+          if (lk.endsWith('.jar') || lk.endsWith('.jar.disabled') || lk.endsWith('.disabled')) {
             const parts = k.split('/');
-            return parts[parts.length - 1].replace(/\.jar$/i, '');
-          });
-          index = { name: file.name.replace(/\.[^/.]+$/, ""), files: jarFiles };
-        } else {
-          throw new Error('Kein unterstütztes Modpack-Format (.mrpack, .zip, .lcpack, .json) gefunden.');
+            const filename = parts[parts.length - 1].replace(/\.(jar|disabled)$/i, '').replace(/\.jar$/i, '');
+            if (filename) modsList.push(filename);
+            continue;
+          }
+
+          // Skip media/binary assets
+          if (lk.endsWith('.png') || lk.endsWith('.jpg') || lk.endsWith('.ogg') || lk.endsWith('.wav') || lk.endsWith('.class')) {
+            continue;
+          }
+
+          // Try parsing JSON or base64 JSON
+          try {
+            let jsonStr = (await zip.file(k).async('string')).trim();
+            if (!jsonStr) continue;
+            if (!jsonStr.startsWith('{') && !jsonStr.startsWith('[')) {
+              try { jsonStr = atob(jsonStr); } catch (bErr) {}
+            }
+            if (jsonStr.startsWith('{') || jsonStr.startsWith('[')) {
+              const rawJson = JSON.parse(jsonStr);
+              if (!index) index = rawJson;
+              const extracted = extractModsFromLunarJson(rawJson);
+              modsList.push(...extracted);
+              if (rawJson && mcVersion === '1.21.1') {
+                const detectedMc = extractLunarMcVersion(rawJson);
+                if (detectedMc) mcVersion = detectedMc;
+              }
+            }
+          } catch (pErr) {}
         }
+
+        modsList = [...new Set(modsList)];
+        if (!modsList.length && !index) {
+          throw new Error('Keine Mods im Archiv gefunden.');
+        }
+      }
+    } else {
+      // Raw plain text JSON file (.json or text-based .lcpack)
+      const text = await file.text();
+      let jsonStr = text.trim();
+      if (!jsonStr.startsWith('{') && !jsonStr.startsWith('[')) {
+        try { jsonStr = atob(jsonStr); } catch(bErr) {}
+      }
+      if (jsonStr.startsWith('{') || jsonStr.startsWith('[')) {
+        const rawJson = JSON.parse(jsonStr);
+        packType = lowerName.endsWith('.lcpack') ? 'lunar-lcpack' : 'lunar-json';
+        index = rawJson;
+        modsList = extractModsFromLunarJson(rawJson);
+        mcVersion = extractLunarMcVersion(rawJson);
+      } else {
+        throw new Error('Das Profil (' + file.name + ') konnte nicht als JSON oder ZIP gelesen werden.');
       }
     }
 
-    convPackData = { index, fileName: file.name, packType, zip, modsList, mcVersion };
+    convPackData = {
+      index,
+      fileName: file.name,
+      packType,
+      zip,
+      modsList,
+      mcVersion,
+      manualMappings: {},
+      ignoredMods: new Set(),
+      scanResults: new Map(),
+      scanRunning: false,
+      activeFilterTab: 'all',
+      filterQuery: ''
+    };
 
     updateTargetFormatUI();
 
@@ -4911,62 +4933,519 @@ async function parseConvPack(file) {
     document.getElementById('convStatus').textContent = '';
     previewConvert();
     updateConvBtn();
+    runConvModCheck(false);
   } catch(e) {
     document.getElementById('convStatus').textContent = '⚠ ' + e.message;
   }
 }
 
-function previewConvert() {
+let currentConvSearchTarget = null;
+let convSearchDebounceTimer = null;
+
+async function fetchTopModrinthMatch(rawName) {
+  if (!rawName) return null;
+  const cleaned = cleanLunarModName(rawName) || rawName;
+  let q = cleaned
+    .replace(/\.(jar|zip|json)$/i, '')
+    .replace(/[-_]?(mc\d+(\.\d+)*|v?\d+(\.\d+)*|fabric|forge|quilt|neoforge|build).*$/i, '')
+    .replace(/[_\-]+/g, ' ')
+    .trim();
+  if (!q) q = cleaned;
+
+  try {
+    const url = 'https://api.modrinth.com/v2/search?query=' + encodeURIComponent(q) + '&limit=1';
+    const res = await fetch(url, { headers: { 'User-Agent': 'mctoolkit/1.0' } });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data.hits && data.hits.length > 0) {
+      const h = data.hits[0];
+      return {
+        slug: h.slug,
+        title: h.title,
+        name: h.title,
+        icon_url: h.icon_url || '',
+        project_type: h.project_type || 'mod',
+        author: h.author || '',
+        description: h.description || ''
+      };
+    }
+  } catch (e) {}
+  return null;
+}
+
+function setConvFilterTab(tab) {
   if (!convPackData) return;
-  const { index, packType, modsList, mcVersion } = convPackData;
+  convPackData.activeFilterTab = tab;
+  document.querySelectorAll('.conv-tab-btn').forEach(b => b.classList.remove('active'));
+  const activeBtn = document.getElementById(tab === 'found' ? 'convTabFound' : tab === 'failed' ? 'convTabFailed' : 'convTabAll');
+  if (activeBtn) activeBtn.classList.add('active');
+  renderConvModCards();
+}
+
+function filterConvModsList() {
+  if (!convPackData) return;
+  const q = (document.getElementById('convFilterInput')?.value || '').toLowerCase().trim();
+  convPackData.filterQuery = q;
+  renderConvModCards();
+}
+
+async function runConvModCheck(force = false) {
+  if (!convPackData) return;
+  if (convPackData.scanRunning && !force) return;
+  convPackData.scanRunning = true;
+
+  const rescanBtn = document.getElementById('convRescanBtn');
+  if (rescanBtn) rescanBtn.textContent = '⏳ Prüfe...';
+
+  const { index, packType, modsList, mcVersion, manualMappings, ignoredMods, zip: origZip } = convPackData;
+  const rawMc = mcVersion || (index?.dependencies?.minecraft) || (index?.minecraft?.version) || '1.21.1';
+  const mc = rawMc === '1.21.11' ? '1.21.1' : rawMc;
+
+  // Extract raw list of mod items
+  const items = [];
+  if (packType === 'modrinth') {
+    const files = index?.files || [];
+    for (const f of files) {
+      const isMod = f.path?.startsWith('mods/');
+      const isRP  = f.path?.startsWith('resourcepacks/');
+      if (!isMod && !isRP) continue;
+      const fname = f.path.split('/').pop();
+      items.push({ rawName: fname, isRP, path: f.path, downloads: f.downloads || [], type: 'modrinth' });
+    }
+  } else if (packType === 'curseforge') {
+    const cfFiles = index?.files || [];
+    const cfSlugMap = new Map();
+    const cfNameMap = new Map();
+    if (origZip) {
+      const mlFile = origZip.file('modlist.html');
+      if (mlFile) {
+        try {
+          const html = await mlFile.async('string');
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(html, 'text/html');
+          doc.querySelectorAll('li a[href]').forEach((a, i) => {
+            const href = a.href || a.getAttribute('href') || '';
+            const text = (a.textContent || '').replace(/\s*\(by .+?\)/, '').trim();
+            const m = href.match(/\/mc-mods\/([a-z0-9_-]+)/i);
+            if (m) cfSlugMap.set(i, m[1]);
+            if (text) cfNameMap.set(i, text);
+          });
+        } catch (e) {}
+      }
+    }
+    for (let i = 0; i < cfFiles.length; i++) {
+      const cf = cfFiles[i];
+      const cfSlug = cfSlugMap.get(i) || '';
+      const modName = cfNameMap.get(i) || cfSlug || ('Mod-' + (cf.projectID || cf.projectid || i));
+      items.push({ rawName: modName, cfSlug, projectID: cf.projectID || cf.projectid, type: 'curseforge' });
+    }
+  } else {
+    // Lunar Client
+    const list = modsList || [];
+    for (const raw of list) {
+      items.push({ rawName: raw, type: 'lunar' });
+    }
+  }
+
+  // Initialize initial state if empty
+  for (const it of items) {
+    if (!convPackData.scanResults.has(it.rawName)) {
+      if (ignoredMods.has(it.rawName)) {
+        convPackData.scanResults.set(it.rawName, { status: 'ignored', rawName: it.rawName, name: it.rawName });
+      } else if (manualMappings[it.rawName]) {
+        const mp = manualMappings[it.rawName];
+        convPackData.scanResults.set(it.rawName, {
+          status: 'manual',
+          rawName: it.rawName,
+          name: mp.name || mp.title || mp.slug,
+          slug: mp.slug,
+          icon: mp.icon_url || mp.icon,
+          isRP: mp.type === 'resourcepack'
+        });
+      } else {
+        convPackData.scanResults.set(it.rawName, {
+          status: 'pending',
+          rawName: it.rawName,
+          name: cleanLunarModName(it.rawName) || it.rawName
+        });
+      }
+    }
+  }
+
+  renderConvPreview();
+
+  // Async batch resolving
+  for (let i = 0; i < items.length; i++) {
+    const it = items[i];
+    if (ignoredMods.has(it.rawName)) {
+      convPackData.scanResults.set(it.rawName, { status: 'ignored', rawName: it.rawName, name: it.rawName });
+      continue;
+    }
+    if (manualMappings[it.rawName]) {
+      const mp = manualMappings[it.rawName];
+      convPackData.scanResults.set(it.rawName, {
+        status: 'manual',
+        rawName: it.rawName,
+        name: mp.name || mp.title || mp.slug,
+        slug: mp.slug,
+        icon: mp.icon_url || mp.icon,
+        isRP: mp.type === 'resourcepack'
+      });
+      continue;
+    }
+
+    if (it.type === 'modrinth') {
+      convPackData.scanResults.set(it.rawName, {
+        status: 'found',
+        rawName: it.rawName,
+        name: it.rawName.replace(/\.jar$/i, '').replace(/\.zip$/i, ''),
+        slug: it.rawName.replace(/\.jar$/i, ''),
+        isRP: it.isRP
+      });
+    } else if (it.type === 'curseforge') {
+      let resolved = null;
+      if (it.cfSlug) {
+        resolved = await detectAndResolve(it.cfSlug);
+      }
+      if (!resolved && it.rawName && it.rawName.length > 2) {
+        resolved = await detectAndResolve(it.rawName);
+      }
+      if (resolved) {
+        convPackData.scanResults.set(it.rawName, {
+          status: 'found',
+          rawName: it.rawName,
+          name: resolved.name,
+          slug: resolved.slug,
+          icon: resolved.icon_url || '',
+          type: resolved.type
+        });
+      } else {
+        const topSugg = await fetchTopModrinthMatch(it.rawName);
+        convPackData.scanResults.set(it.rawName, {
+          status: 'failed',
+          rawName: it.rawName,
+          name: it.rawName,
+          suggestedMatch: topSugg
+        });
+      }
+      await sleep(100);
+    } else {
+      // Lunar
+      const match = await resolveLunarMod(it.rawName, mc);
+      if (match && match.proj) {
+        convPackData.scanResults.set(it.rawName, {
+          status: 'found',
+          rawName: it.rawName,
+          name: match.proj.name || match.proj.slug,
+          slug: match.proj.slug,
+          icon: match.proj.icon_url || '',
+          isRP: match.proj.type === 'resourcepack'
+        });
+      } else {
+        const topSugg = await fetchTopModrinthMatch(it.rawName);
+        convPackData.scanResults.set(it.rawName, {
+          status: 'failed',
+          rawName: it.rawName,
+          name: cleanLunarModName(it.rawName) || it.rawName,
+          suggestedMatch: topSugg
+        });
+      }
+      await sleep(80);
+    }
+
+    if (i % 3 === 0 || i === items.length - 1) {
+      renderConvPreview();
+    }
+  }
+
+  convPackData.scanRunning = false;
+  if (rescanBtn) rescanBtn.textContent = '🔄 Status prüfen';
+  renderConvPreview();
+}
+
+function renderConvPreview() {
+  if (!convPackData) return;
+  const { index, packType, modsList, mcVersion, scanResults, ignoredMods } = convPackData;
   const resultEl  = document.getElementById('convResult');
   const statsEl   = document.getElementById('convStats');
   const warnEl    = document.getElementById('convWarnings');
   resultEl.style.display = 'block';
 
-  if (packType === 'modrinth') {
-    const mods = index.files?.filter(f => f.path.startsWith('mods/')).length || 0;
-    const rps  = index.files?.filter(f => f.path.startsWith('resourcepacks/')).length || 0;
-    const mc   = (index.dependencies || {}).minecraft || '?';
-    const fl   = (index.dependencies || {})['fabric-loader'] || '?';
-    statsEl.innerHTML =
-      cstat(mods,  'Mods',          'var(--green)') +
-      (rps ? cstat(rps, 'Texture Packs', 'var(--purple)') : '') +
-      cstat('MC ' + mc,  'Version',      'var(--blue)') +
-      cstat('Fabric ' + fl, 'Loader',   'var(--muted)');
-    warnEl.style.display = 'block';
-    if (convDirection === 'mr-to-lc') {
-      warnEl.innerHTML = '💡 <b>Modrinth zu Lunar Client:</b> Wandelt dein <code>.mrpack</code> in ein Lunar Client Profil (<code>profile.json</code>) und ein ZIP mit Mod-Downloadlinks um.';
-    } else {
-      warnEl.innerHTML = '⚠ <b>Hinweis:</b> CurseForge benötigt eigene Mod-IDs. Da die Mods von Modrinth stammen, werden alle Download-Links in eine <code>modlist.html</code> im ZIP exportiert.';
+  let totalCount = 0;
+  let foundCount = 0;
+  let failedCount = 0;
+  let manualCount = 0;
+  let ignoredCount = 0;
+  let suggestedMatchesCount = 0;
+
+  for (const [, item] of scanResults.entries()) {
+    totalCount++;
+    if (item.status === 'found') foundCount++;
+    else if (item.status === 'manual') { foundCount++; manualCount++; }
+    else if (item.status === 'failed') {
+      failedCount++;
+      if (item.suggestedMatch) suggestedMatchesCount++;
     }
-  } else if (packType === 'curseforge') {
-    const mods = index.files?.length || 0;
-    const mc   = index.minecraft?.version || '?';
-    const ml   = index.minecraft?.modLoaders?.[0]?.id || '?';
-    statsEl.innerHTML =
-      cstat(mods, 'Mods (CF-IDs)',  'var(--orange)') +
-      cstat('MC ' + mc, 'Version',  'var(--blue)') +
-      cstat(ml, 'Loader',           'var(--muted)');
-    warnEl.style.display = 'block';
-    if (convDirection === 'cf-to-lc') {
-      warnEl.innerHTML = '💡 <b>CurseForge zu Lunar Client:</b> Sucht deine CurseForge Mods auf Modrinth und erstellt ein Lunar Client Profil (<code>profile.json</code>) mit Download-Links.';
+    else if (item.status === 'ignored') ignoredCount++;
+  }
+
+  if (totalCount === 0) {
+    totalCount = packType === 'modrinth'
+      ? (index.files?.filter(f => f.path.startsWith('mods/')).length || 0)
+      : packType === 'curseforge'
+        ? (index.files?.length || 0)
+        : (modsList ? modsList.length : 0);
+  }
+
+  const mc = packType === 'modrinth'
+    ? (index.dependencies || {}).minecraft || '?'
+    : packType === 'curseforge'
+      ? (index.minecraft?.version || '?')
+      : mcVersion;
+  const fl = (index?.dependencies?.['fabric-loader']) || (index?.minecraft?.modLoaders?.[0]?.id?.replace(/^fabric-/, '')) || '0.18.3';
+
+  // Stats row
+  statsEl.innerHTML =
+    cstat(totalCount, 'Mods im Pack', 'var(--text)') +
+    cstat(foundCount, 'Bereit / Gefunden', 'var(--green)') +
+    (failedCount > 0 ? cstat(failedCount, '⚠️ Fehlgeschlagen', '#f87171') : '') +
+    (manualCount > 0 ? cstat(manualCount, '🔵 Manuell zugewiesen', '#38bdf8') : '') +
+    (ignoredCount > 0 ? cstat(ignoredCount, '⊘ Ignoriert', 'var(--muted)') : '') +
+    cstat('MC ' + mc, 'Version', 'var(--blue)') +
+    cstat('Fabric ' + fl, 'Loader', 'var(--muted)');
+
+  // Tab counters
+  const tabAll = document.getElementById('convTabCntAll');
+  const tabFound = document.getElementById('convTabCntFound');
+  const tabFailed = document.getElementById('convTabCntFailed');
+  if (tabAll) tabAll.textContent = totalCount;
+  if (tabFound) tabFound.textContent = foundCount;
+  if (tabFailed) tabFailed.textContent = failedCount;
+
+  // Failed banner
+  const banner = document.getElementById('convFailedBanner');
+  const bannerCnt = document.getElementById('convFailedBannerCount');
+  if (banner) {
+    if (failedCount > 0) {
+      banner.style.display = 'flex';
+      if (bannerCnt) bannerCnt.textContent = failedCount;
     } else {
-      warnEl.innerHTML = '⚠ <b>Hinweis:</b> CurseForge Mod-IDs werden über die Modrinth API nach passenden Mods gesucht. Nicht alle Mods sind auf Modrinth verfügbar.';
-    }
-  } else {
-    const modsCount = modsList ? modsList.length : 0;
-    statsEl.innerHTML =
-      cstat(modsCount, 'Lunar Mods', 'var(--blue)') +
-      cstat('MC ' + mcVersion, 'Version', 'var(--blue)') +
-      cstat('Fabric', 'Loader', 'var(--muted)');
-    warnEl.style.display = 'block';
-    if (convDirection === 'lc-to-mr') {
-      warnEl.innerHTML = '💡 <b>Lunar Client zu Modrinth:</b> Wir suchen deine Lunar Client Mods über die Modrinth-Datenbank und erstellen eine fertige <code>.mrpack</code> Modpack-Datei für dich.';
-    } else {
-      warnEl.innerHTML = '💡 <b>Lunar Client zu CurseForge:</b> Wir suchen deine Lunar Client Mods und exportieren alle Download-Links in eine <code>modlist.html</code> in einem CurseForge-kompatiblen ZIP.';
+      banner.style.display = 'none';
     }
   }
+
+  const assignAllBtn = document.getElementById('convAssignAllSuggBtn');
+  if (assignAllBtn) {
+    if (suggestedMatchesCount > 0) {
+      assignAllBtn.style.display = 'inline-flex';
+      assignAllBtn.textContent = '⚡ ' + suggestedMatchesCount + ' Vorschläge zuweisen';
+    } else {
+      assignAllBtn.style.display = 'none';
+    }
+  }
+
+  const searchMissingAllBtn = document.getElementById('convSearchMissingAllBtn');
+  if (searchMissingAllBtn) {
+    searchMissingAllBtn.style.display = failedCount > 0 ? 'inline-flex' : 'none';
+  }
+
+  // Warnings / hints
+  warnEl.style.display = 'block';
+  if (convDirection === 'mr-to-lc') {
+    warnEl.innerHTML = '💡 <b>Modrinth zu Lunar Client:</b> Wandelt dein <code>.mrpack</code> in ein Lunar Client Profil (<code>profile.json</code>) und ein ZIP mit Mod-Downloadlinks um.';
+  } else if (convDirection === 'cf-to-lc') {
+    warnEl.innerHTML = '💡 <b>CurseForge zu Lunar Client:</b> Sucht deine CurseForge Mods auf Modrinth und erstellt ein Lunar Client Profil (<code>profile.json</code>) mit Download-Links.';
+  } else if (convDirection === 'lc-to-mr') {
+    warnEl.innerHTML = '💡 <b>Lunar Client zu Modrinth:</b> Sucht passende Modrinth-Mods für alle Lunar-Einträge und erstellt ein fertiges <code>.mrpack</code> Modpack.';
+  } else if (convDirection === 'lc-to-cf') {
+    warnEl.innerHTML = '💡 <b>Lunar Client zu CurseForge:</b> Exportiert alle Mod-Links in eine CurseForge-kompatible <code>modlist.html</code>.';
+  } else if (convDirection === 'mr-to-cf') {
+    warnEl.innerHTML = '⚠ <b>Hinweis:</b> CurseForge benötigt eigene Mod-IDs. Alle Download-Links werden in die <code>modlist.html</code> exportiert.';
+  } else {
+    warnEl.innerHTML = '⚠ <b>Hinweis:</b> Mod-IDs werden über die Modrinth API abgeglichen.';
+  }
+
+  renderConvModCards();
+}
+
+function renderConvModCards() {
+  if (!convPackData) return;
+  const listEl = document.getElementById('convModsList');
+  if (!listEl) return;
+
+  const { scanResults, activeFilterTab, filterQuery } = convPackData;
+  const filterTab = activeFilterTab || 'all';
+  const q = (filterQuery || '').toLowerCase();
+
+  const entries = Array.from(scanResults.values());
+
+  const filtered = entries.filter(item => {
+    // Tab filter
+    if (filterTab === 'found' && !(item.status === 'found' || item.status === 'manual')) return false;
+    if (filterTab === 'failed' && item.status !== 'failed') return false;
+
+    // Search query filter
+    if (q) {
+      const matchName = (item.name || '').toLowerCase().includes(q);
+      const matchRaw  = (item.rawName || '').toLowerCase().includes(q);
+      const matchSlug = (item.slug || '').toLowerCase().includes(q);
+      const matchSugg = item.suggestedMatch ? (item.suggestedMatch.title + ' ' + item.suggestedMatch.slug).toLowerCase().includes(q) : false;
+      if (!matchName && !matchRaw && !matchSlug && !matchSugg) return false;
+    }
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    if (filterTab === 'failed') {
+      listEl.innerHTML = '<div class="conv-mods-empty" style="color:var(--green)">🎉 Keine fehlgeschlagenen Mods! Alle Mod-IDs sind erfolgreich zugeordnet.</div>';
+    } else if (filterTab === 'found') {
+      listEl.innerHTML = '<div class="conv-mods-empty">Noch keine Mods als gefunden markiert. Klicke auf "Status prüfen".</div>';
+    } else {
+      listEl.innerHTML = '<div class="conv-mods-empty">Keine Mods für diesen Filter gefunden.</div>';
+    }
+    return;
+  }
+
+  let html = '';
+  for (const item of filtered) {
+    const isFailed = item.status === 'failed';
+    const isManual = item.status === 'manual';
+    const isFound  = item.status === 'found';
+    const isIgnored = item.status === 'ignored';
+
+    let cardClass = 'conv-mod-card';
+    if (isFailed) cardClass += ' failed';
+    else if (isManual) cardClass += ' manual';
+    else if (isFound) cardClass += ' found';
+    else if (isIgnored) cardClass += ' ignored';
+
+    let iconHtml = '📦';
+    if (item.icon) {
+      iconHtml = '<img src="' + esc(item.icon) + '" alt="' + esc(item.name) + '" onerror="this.outerHTML=\'📦\'">';
+    } else if (isFailed) {
+      iconHtml = '⚠️';
+    } else if (isManual) {
+      iconHtml = '🔵';
+    } else if (isFound) {
+      iconHtml = item.isRP ? '🎨' : '🟢';
+    } else if (isIgnored) {
+      iconHtml = '⊘';
+    }
+
+    let badgeHtml = '';
+    if (isFailed) {
+      badgeHtml = '<span class="conv-mod-badge failed">Nicht gefunden</span>';
+    } else if (isManual) {
+      badgeHtml = '<span class="conv-mod-badge manual">Manuell: ' + esc(item.slug || '') + '</span>';
+    } else if (isFound) {
+      badgeHtml = '<span class="conv-mod-badge found">✓ Gefunden' + (item.slug ? ' (' + esc(item.slug) + ')' : '') + '</span>';
+    } else if (isIgnored) {
+      badgeHtml = '<span class="conv-mod-badge ignored">Ignoriert</span>';
+    }
+
+    const safeRaw = encodeURIComponent(item.rawName);
+
+    // Suggested matches column
+    let suggColHtml = '';
+    if (isFailed) {
+      if (item.suggestedMatch) {
+        const s = item.suggestedMatch;
+        const iconSrc = s.icon_url
+          ? '<img src="' + esc(s.icon_url) + '" alt="' + esc(s.title) + '" onerror="this.outerHTML=\'📦\'">'
+          : (s.project_type === 'resourcepack' ? '🎨' : '📦');
+        const sJson = JSON.stringify(s).replace(/"/g, '&quot;');
+        suggColHtml =
+          '<div class="conv-mod-sugg-col">' +
+            '<div class="conv-sugg-box">' +
+              '<div class="conv-sugg-info">' +
+                '<span class="conv-sugg-tag-pill">💡 Vorschlag</span>' +
+                '<div class="conv-sugg-icon">' + iconSrc + '</div>' +
+                '<div class="conv-sugg-text">' +
+                  '<div class="conv-sugg-title" title="' + esc(s.title || s.slug) + '">' + esc(s.title || s.slug) + '</div>' +
+                  '<div class="conv-sugg-sub">' + esc(s.slug) + (s.author ? ' • von ' + esc(s.author) : '') + '</div>' +
+                '</div>' +
+              '</div>' +
+              '<button type="button" class="conv-sugg-assign-btn" onclick="assignConvModMappingFromData(\'' + safeRaw + '\', ' + sJson + ')" title="Diesen Vorschlag mit 1 Klick zuweisen">' +
+                '⚡ Zuweisen' +
+              '</button>' +
+            '</div>' +
+          '</div>';
+      } else if (item.suggestedMatch === null) {
+        suggColHtml =
+          '<div class="conv-mod-sugg-col">' +
+            '<div class="conv-sugg-box empty">' +
+              '<span class="conv-sugg-none">Kein direkter Vorschlag</span>' +
+            '</div>' +
+          '</div>';
+      } else {
+        // Pending check
+        suggColHtml =
+          '<div class="conv-mod-sugg-col">' +
+            '<div class="conv-sugg-box loading">' +
+              '<span class="conv-sugg-loading">⏳ Suche Vorschlag...</span>' +
+            '</div>' +
+          '</div>';
+        fetchTopModrinthMatch(item.rawName).then(res => {
+          item.suggestedMatch = res || null;
+          renderConvPreview();
+        });
+      }
+    }
+
+    let actionsHtml = '';
+    if (isFailed) {
+      actionsHtml =
+        '<button type="button" class="conv-act-btn search" onclick="openConvSearchModal(decodeURIComponent(\'' + safeRaw + '\'))">🔍 Mod-ID suchen</button>' +
+        '<button type="button" class="conv-act-btn ignore" onclick="toggleConvModIgnore(decodeURIComponent(\'' + safeRaw + '\'))" title="Diese Mod ignorieren">✕</button>';
+    } else if (isIgnored) {
+      actionsHtml =
+        '<button type="button" class="conv-act-btn" onclick="toggleConvModIgnore(decodeURIComponent(\'' + safeRaw + '\'))">↩ Wiederherstellen</button>';
+    } else {
+      actionsHtml =
+        '<button type="button" class="conv-act-btn" onclick="openConvSearchModal(decodeURIComponent(\'' + safeRaw + '\'))" title="Andere Mod-ID zuweisen">✏️ Ändern</button>' +
+        '<button type="button" class="conv-act-btn ignore" onclick="toggleConvModIgnore(decodeURIComponent(\'' + safeRaw + '\'))" title="Mod ignorieren">✕</button>';
+    }
+
+    html +=
+      '<div class="' + cardClass + '">' +
+        '<div class="conv-mod-left">' +
+          '<div class="conv-mod-icon">' + iconHtml + '</div>' +
+          '<div class="conv-mod-meta">' +
+            '<div class="conv-mod-title-row">' +
+              '<span class="conv-mod-title" title="' + esc(item.name || item.rawName) + '">' + esc(item.name || item.rawName) + '</span>' +
+              badgeHtml +
+            '</div>' +
+            '<div class="conv-mod-raw">' + esc(item.rawName) + '</div>' +
+          '</div>' +
+        '</div>' +
+        suggColHtml +
+        '<div class="conv-mod-actions">' + actionsHtml + '</div>' +
+      '</div>';
+  }
+
+  listEl.innerHTML = html;
+}
+
+function assignAllSuggestedMatches() {
+  if (!convPackData) return;
+  let count = 0;
+  for (const [, item] of convPackData.scanResults.entries()) {
+    if (item.status === 'failed' && item.suggestedMatch) {
+      assignConvModMapping(item.rawName, item.suggestedMatch);
+      count++;
+    }
+  }
+  if (count > 0) {
+    showToast('⚡ ' + count + ' vorgeschlagene Mod-IDs erfolgreich zugewiesen!');
+    renderConvPreview();
+  } else {
+    showToast('Keine weiteren Vorschläge zum Zuweisen vorhanden.');
+  }
+}
+
+function previewConvert() {
+  if (!convPackData) return;
+  renderConvPreview();
 }
 
 function cstat(val, label, color) {
@@ -4977,6 +5456,234 @@ function updateConvBtn() {
   const btn = document.getElementById('convBtn');
   if (!btn) return;
   btn.disabled = !convPackData || !convDirection;
+}
+
+function toggleConvModIgnore(rawName) {
+  if (!convPackData) return;
+  if (convPackData.ignoredMods.has(rawName)) {
+    convPackData.ignoredMods.delete(rawName);
+    // restore scan result
+    const current = convPackData.scanResults.get(rawName);
+    if (current) {
+      current.status = convPackData.manualMappings[rawName] ? 'manual' : 'pending';
+    }
+    showToast('Mod "' + rawName + '" wiederhergestellt');
+  } else {
+    convPackData.ignoredMods.add(rawName);
+    const current = convPackData.scanResults.get(rawName);
+    if (current) current.status = 'ignored';
+    showToast('Mod "' + rawName + '" wird ignoriert');
+  }
+  renderConvPreview();
+}
+
+function openConvSearchForFirstFailed() {
+  if (!convPackData) return;
+  let firstFailed = null;
+  for (const [, item] of convPackData.scanResults.entries()) {
+    if (item.status === 'failed') {
+      firstFailed = item.rawName;
+      break;
+    }
+  }
+  if (firstFailed) {
+    openConvSearchModal(firstFailed);
+  } else {
+    showToast('✨ Alle Mod-IDs sind bereits zugeordnet!');
+  }
+}
+
+function openConvSearchModal(rawName) {
+  if (!convPackData) return;
+  if (!rawName) {
+    openConvSearchForFirstFailed();
+    return;
+  }
+
+  currentConvSearchTarget = rawName;
+  const overlay = document.getElementById('convSearchOverlay');
+  if (!overlay) return;
+
+  const targetLabel = document.getElementById('convSearchTargetModName');
+  if (targetLabel) targetLabel.textContent = rawName;
+
+  const searchInput = document.getElementById('convModalSearchInput');
+  const cleaned = cleanLunarModName(rawName) || rawName;
+  if (searchInput) {
+    searchInput.value = cleaned;
+  }
+
+  const directInput = document.getElementById('convDirectSlugInput');
+  if (directInput) directInput.value = '';
+
+  overlay.classList.add('open');
+  executeConvModalSearch();
+  if (searchInput) searchInput.focus();
+}
+
+function closeConvSearchModal() {
+  const overlay = document.getElementById('convSearchOverlay');
+  if (overlay) overlay.classList.remove('open');
+  currentConvSearchTarget = null;
+}
+
+function onConvModalSearchInput(val) {
+  clearTimeout(convSearchDebounceTimer);
+  convSearchDebounceTimer = setTimeout(() => {
+    executeConvModalSearch();
+  }, 250);
+}
+
+async function executeConvModalSearch() {
+  const listEl = document.getElementById('convSearchResultsList');
+  const countEl = document.getElementById('convSearchResultsCount');
+  const searchInput = document.getElementById('convModalSearchInput');
+  if (!listEl) return;
+
+  const query = (searchInput?.value || '').trim();
+  if (!query) {
+    listEl.innerHTML = '<div class="conv-search-empty">Gib einen Suchbegriff ein (z. B. Sodium, Iris, AppleSkin).</div>';
+    if (countEl) countEl.textContent = '0 Treffer';
+    return;
+  }
+
+  listEl.innerHTML = '<div class="conv-search-empty"><div class="compare-spinner" style="margin:0 auto .5rem"></div>Suche "' + esc(query) + '" auf Modrinth...</div>';
+
+  try {
+    const url = 'https://api.modrinth.com/v2/search?query=' + encodeURIComponent(query) + '&limit=12';
+    const r = await fetch(url, { headers: { 'User-Agent': 'mctoolkit/1.0' } });
+    if (!r.ok) throw new Error('Modrinth API HTTP ' + r.status);
+    const data = await r.json();
+    const hits = data.hits || [];
+
+    if (countEl) countEl.textContent = hits.length + ' Treffer';
+
+    if (hits.length === 0) {
+      listEl.innerHTML = '<div class="conv-search-empty">Keine Mods für "' + esc(query) + '" auf Modrinth gefunden.<br>Versuche einen anderen Suchbegriff oder gib unten die Slug direkt ein.</div>';
+      return;
+    }
+
+    let html = '';
+    for (const h of hits) {
+      const iconHtml = h.icon_url
+        ? '<img src="' + esc(h.icon_url) + '" alt="' + esc(h.title) + '">'
+        : (h.project_type === 'resourcepack' ? '🎨' : '📦');
+
+      const downloads = h.downloads ? (h.downloads > 1000000 ? (h.downloads/1000000).toFixed(1) + 'M' : (h.downloads > 1000 ? (h.downloads/1000).toFixed(0) + 'k' : h.downloads)) : '';
+      const follows = h.follows ? h.follows + ' ⭐' : '';
+      const categories = (h.categories || []).slice(0, 3).map(c => '<span class="conv-search-tag">' + esc(c) + '</span>').join('');
+
+      const projJson = JSON.stringify({
+        slug: h.slug,
+        title: h.title,
+        name: h.title,
+        icon_url: h.icon_url,
+        project_type: h.project_type || 'mod',
+        author: h.author
+      }).replace(/"/g, '&quot;');
+
+      html +=
+        '<div class="conv-search-card">' +
+          '<div class="conv-search-card-left">' +
+            '<div class="conv-search-card-icon">' + iconHtml + '</div>' +
+            '<div class="conv-search-card-info">' +
+              '<div class="conv-search-card-title">' +
+                '<span>' + esc(h.title) + '</span>' +
+                '<span class="conv-search-card-slug">' + esc(h.slug) + '</span>' +
+              '</div>' +
+              '<div class="conv-search-card-desc">' + esc(h.description || 'Keine Beschreibung vorhanden.') + '</div>' +
+              '<div class="conv-search-card-tags">' +
+                '<span class="conv-search-tag" style="color:var(--green)">' + esc(h.project_type || 'mod') + '</span>' +
+                (h.author ? '<span class="conv-search-tag">von ' + esc(h.author) + '</span>' : '') +
+                (downloads ? '<span class="conv-search-tag">⬇ ' + downloads + '</span>' : '') +
+                (follows ? '<span class="conv-search-tag">' + follows + '</span>' : '') +
+                categories +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+          '<button type="button" class="conv-search-assign-btn" onclick="assignConvModMappingFromData(\'' + encodeURIComponent(currentConvSearchTarget || '') + '\', ' + projJson + ')">' +
+            '✓ Zuweisen' +
+          '</button>' +
+        '</div>';
+    }
+
+    listEl.innerHTML = html;
+  } catch (err) {
+    listEl.innerHTML = '<div class="conv-search-empty" style="color:#f87171">Fehler bei der Modrinth-Suche: ' + esc(err.message) + '</div>';
+  }
+}
+
+function assignConvModMappingFromData(encodedRawName, project) {
+  const rawName = decodeURIComponent(encodedRawName);
+  assignConvModMapping(rawName, project);
+}
+
+function assignConvModMapping(rawName, project) {
+  if (!convPackData || !rawName || !project) return;
+  convPackData.manualMappings[rawName] = project;
+  const cleaned = cleanLunarModName(rawName);
+  if (cleaned && cleaned !== rawName) {
+    convPackData.manualMappings[cleaned] = project;
+  }
+
+  convPackData.ignoredMods.delete(rawName);
+
+  convPackData.scanResults.set(rawName, {
+    status: 'manual',
+    rawName: rawName,
+    name: project.title || project.name || project.slug,
+    slug: project.slug,
+    icon: project.icon_url || '',
+    isRP: project.project_type === 'resourcepack'
+  });
+
+  showToast('✅ Mod-ID für "' + rawName + '" zugewiesen: ' + (project.title || project.slug));
+  closeConvSearchModal();
+  renderConvPreview();
+}
+
+async function assignConvDirectSlug() {
+  if (!convPackData || !currentConvSearchTarget) return;
+  let slugInput = (document.getElementById('convDirectSlugInput')?.value || '').trim();
+  if (!slugInput) {
+    showToast('Bitte gib eine Modrinth-Slug oder URL ein.');
+    return;
+  }
+
+  // If full URL, extract slug
+  const matchUrl = slugInput.match(/modrinth\.com\/(mod|plugin|datapack|resourcepack)\/([a-z0-9_-]+)/i);
+  if (matchUrl) slugInput = matchUrl[2];
+
+  slugInput = slugInput.replace(/^https?:\/\//i, '').replace(/\/.*$/, '').trim();
+
+  const btn = document.querySelector('.conv-direct-btn');
+  if (btn) btn.textContent = 'Prüfe...';
+
+  try {
+    const res = await fetch('https://api.modrinth.com/v2/project/' + encodeURIComponent(slugInput), {
+      headers: { 'User-Agent': 'mctoolkit/1.0' }
+    });
+    if (!res.ok) throw new Error('Projekt "' + slugInput + '" nicht auf Modrinth gefunden.');
+    const p = await res.json();
+    assignConvModMapping(currentConvSearchTarget, {
+      slug: p.slug,
+      title: p.title || p.slug,
+      name: p.title || p.slug,
+      icon_url: p.icon_url,
+      project_type: p.project_type || 'mod'
+    });
+  } catch (e) {
+    showToast('⚠️ ' + e.message);
+  } finally {
+    if (btn) btn.textContent = 'Zuweisen';
+  }
+}
+
+function ignoreCurrentConvMod() {
+  if (currentConvSearchTarget) {
+    toggleConvModIgnore(currentConvSearchTarget);
+    closeConvSearchModal();
+  }
 }
 
 async function runConvert() {
@@ -5006,7 +5713,7 @@ async function runConvert() {
 /* ── Modrinth → CurseForge ───────────────────────────────────── */
 async function convertMRtoCF(btn, st, pb) {
   const { index } = convPackData;
-  const mc  = (index.dependencies || {}).minecraft || '1.21.11';
+  const mc  = (index.dependencies || {}).minecraft || '1.21.1';
   const fl  = (index.dependencies || {})['fabric-loader'] || '0.18.3';
   const name = index.name || 'Converted Pack';
 
@@ -5087,7 +5794,8 @@ async function convertMRtoCF(btn, st, pb) {
 /* ── CurseForge → Modrinth ───────────────────────────────────── */
 async function convertCFtoMR(btn, st, pb) {
   const { index, zip: origZip } = convPackData;
-  const mc   = index.minecraft?.version || '1.21.11';
+  const rawMc = index.minecraft?.version || '1.21.1';
+  const mc = rawMc === '1.21.11' ? '1.21.1' : rawMc;
   const ml   = index.minecraft?.modLoaders?.[0]?.id || 'fabric-0.18.3';
   const fl   = ml.replace(/^fabric-/, '');
   const name = index.name || 'Converted Pack';
@@ -5244,11 +5952,16 @@ async function convertCFtoMR(btn, st, pb) {
   st.textContent = 'Erstelle .mrpack (' + okCount + '/' + cfFiles.length + ' Mods)...';
 
   const mrIndex = {
-    formatVersion: 1, game: 'minecraft',
-    versionId: index.version || '1.0.0',
-    name, summary: 'Konvertiert von CurseForge mit MC Toolkit',
+    formatVersion: 1,
+    game: 'minecraft',
+    versionId: String(index.version || '1.0.0'),
+    name: String(name || 'Converted Pack'),
+    summary: 'Konvertiert von CurseForge mit MC Toolkit',
     files: mrFiles,
-    dependencies: { minecraft: mc, 'fabric-loader': fl }
+    dependencies: {
+      minecraft: String(mc || '1.21.1'),
+      'fabric-loader': String(fl || '0.18.3')
+    }
   };
 
   const newZip = new JSZip();
@@ -6856,100 +7569,285 @@ function copyModrinthProfilesPath() {
 
 function cleanLunarModName(name) {
   if (!name) return '';
-  name = name.replace(/\.jar$/i, '');
-  // Match things like "-fabric", "-forge", "-v1.0", etc. and take the first parts
-  name = name.split('-')[0];
-  name = name.split('_')[0];
-  return name.trim();
+  let cleaned = String(name).trim();
+  if (cleaned.includes('/') || cleaned.includes('\\')) {
+    const parts = cleaned.split(/[/\\]/);
+    cleaned = parts[parts.length - 1];
+  }
+  cleaned = cleaned.replace(/\.(jar|zip|json)$/i, '');
+  cleaned = cleaned.replace(/^(modrinth|curseforge|custom|lunar|ichor):/i, '');
+  cleaned = cleaned.replace(/^\[[^\]]+\]\s*/, '');
+  cleaned = cleaned.replace(/^\d{1,3}[-_]\s*/, '');
+
+  if (/^fabric[-_]api/i.test(cleaned)) {
+    return 'fabric-api';
+  }
+
+  cleaned = cleaned.replace(/[-_]?(mc)?\d+\.\d+(\.\d+)?.*$/i, '');
+  cleaned = cleaned.replace(/[-_]?(fabric|forge|neoforge|quilt)[-_]?.*$/i, '');
+  cleaned = cleaned.replace(/[-_]?v?\d+\.\d+\.\d+.*$/i, '');
+
+  cleaned = cleaned.replace(/[-_]+/g, ' ').trim();
+  return cleaned || String(name).replace(/\.(jar|zip|json)$/i, '').trim();
 }
+
+function extractLunarMcVersion(rawJson) {
+  if (!rawJson) return '1.21.1';
+  const candidateKeys = ['subVersion', 'sub_version', 'minecraftVersion', 'minecraft_version', 'mcVersion', 'mc_version', 'gameVersion', 'version'];
+  for (const k of candidateKeys) {
+    const val = rawJson[k] || (rawJson.profile && rawJson.profile[k]) || (rawJson.settings && rawJson.settings[k]);
+    if (typeof val === 'string' && /^1\.\d+(\.\d+)?$/.test(val.trim())) {
+      const v = val.trim();
+      return v === '1.21.11' ? '1.21.1' : v;
+    }
+  }
+  let found = null;
+  function search(obj) {
+    if (!obj || found) return;
+    if (typeof obj === 'string') {
+      const trimmed = obj.trim();
+      if (/^1\.\d+(\.\d+)?$/.test(trimmed)) {
+        found = trimmed === '1.21.11' ? '1.21.1' : trimmed;
+      }
+    } else if (typeof obj === 'object') {
+      for (const key in obj) {
+        search(obj[key]);
+      }
+    }
+  }
+  search(rawJson);
+  return found || '1.21.1';
+}
+
+const LUNAR_BUILTIN_MODULES = new Set([
+  'keystrokes', 'fps', 'fps_boost', 'fpsboost', 'cps', 'cps_counter', 'crosshair', 'armor_status',
+  'direction_hud', 'reach_display', 'toggle_sneak', 'togglesneak', 'item_tracker', 'combo_counter',
+  'daycounter', 'day_counter', 'ping', 'top_bar', 'topbar', 'scoreboard', 'potion_effects',
+  'potioneffects', 'bossbar', 'boss_bar', 'chat', 'nametags', 'waypoints', 'minimap', 'coordinates',
+  'time_changer', 'timechanger', 'weather_changer', 'weatherchanger', 'saturation', 'block_outline',
+  'hit_color', 'hitcolor', 'motion_blur', 'motionblur', 'zoom', 'freelook', 'perspective',
+  'shining_items', 'pack_organizer', 'mod_search', 'server_address', 'memory_usage', 'stopwatch',
+  'clock', 'text', 'title', 'subtitle', 'actionbar', 'hypixel_mod', 'mumble_link', 'discord_rpc',
+  'server_address_display', 'fog_customizer', 'chunk_animator', 'item_physic', 'bedwars_stats',
+  'skyblock_addons', 'borderless_fullscreen', 'custom_crosshair', 'tnt_timer', 'particle_customizer',
+  'damage_tilt', 'slow_hand_swing', 'footsteps', 'sound_handler', 'glint_customizer', 'menu_blur',
+  'gui_scale', 'status_effects', 'team_view', 'hitbox', 'shiny_pots', 'cooldowns', 'hurt_cam',
+  'crosshair_customizer', 'sky_block', 'level_head', 'quick_play', 'hypixel_quick_play'
+]);
 
 function extractModsFromLunarJson(json) {
   if (!json) return [];
-  let mods = [];
+  const modsSet = new Set();
 
-  function addModItem(m) {
-    if (!m) return;
-    if (typeof m === 'string') {
-      mods.push(m);
-    } else if (typeof m === 'object') {
-      if (m.name) mods.push(m.name);
-      else if (m.title) mods.push(m.title);
-      else if (m.id) mods.push(m.id);
-      else if (m.fileName) mods.push(m.fileName);
-      else if (m.displayName) mods.push(m.displayName);
-      else if (m.modId) mods.push(m.modId);
-      else if (m.slug) mods.push(m.slug);
+  function isIgnoredWord(str) {
+    if (!str || typeof str !== 'string') return true;
+    const lower = str.trim().toLowerCase();
+    if (lower.length < 2) return true;
+    if (lower.length > 70) return true;
+    if (str.includes('\n') || str.includes('\r')) return true;
+    if (str.split(/\s+/).length > 4) return true;
+    if (/[\{\}\<\>\;\=\"]/.test(str)) return true;
+
+    if (LUNAR_BUILTIN_MODULES.has(lower)) return true;
+
+    if (/^v?\d+(\.\d+)+([\._-]\w+)*$/i.test(lower)) return true;
+    if (/^\d+$/i.test(lower)) return true;
+    if (/^(https?|ftp|file):\/\//i.test(lower)) return true;
+    if (/^#[0-9a-f]{3,8}$/i.test(lower)) return true;
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(lower)) return true;
+
+    const blacklist = new Set([
+      'true', 'false', 'default', 'profile', 'custom', 'fabric', 'forge',
+      'neoforge', 'quilt', 'minecraft', 'none', 'null', 'undefined', 'option',
+      'options', 'setting', 'settings', 'config', 'configuration', 'version',
+      'subversion', 'gameversion', 'mcversion', 'loader', 'icon', 'color',
+      'enabled', 'disabled', 'active', 'state', 'client', 'server', 'general',
+      'graphics', 'audio', 'controls', 'mods', 'modules', 'plugins', 'custommods',
+      'modrinthmods', 'curseforgemods', 'gui', 'hud', 'main', 'global',
+      'type', 'data', 'value', 'values', 'items', 'list', 'info', 'meta',
+      'metadata', 'properties', 'params', 'parameters', 'status', 'rules',
+      'filters', 'flags', 'root', 'parent', 'child', 'children', 'index',
+      'versionid', 'projectid', 'modid', 'fileid', 'id', 'name', 'title',
+      'label', 'path', 'url', 'downloadurl', 'link', 'modname', 'rawname',
+      'package', 'artifact', 'hash', 'sha1', 'sha512', 'md5', 'size', 'filesize',
+      'timestamp', 'date', 'created', 'updated', 'author', 'authors', 'license',
+      'description', 'summary', 'comment', 'readme', 'website', 'source', 'issues',
+      'x', 'y', 'z', 'w', 'h', 'width', 'height', 'scale', 'font', 'background',
+      'shadow', 'margin', 'padding', 'border', 'opacity', 'align', 'alignment',
+      'position', 'render', 'style', 'theme', 'keybind', 'toggle', 'key', 'order',
+      'group', 'category', 'mode', 'format', 'priority', 'weight'
+    ]);
+    return blacklist.has(lower);
+  }
+
+  function addCandidate(val) {
+    if (!val) return;
+    if (typeof val === 'number') val = String(val);
+    if (typeof val !== 'string') return;
+    let str = val.trim();
+    if (!str) return;
+
+    if (str.includes('/') || str.includes('\\')) {
+      const parts = str.split(/[/\\]/);
+      str = parts[parts.length - 1];
+    }
+
+    str = str.replace(/^(modrinth|curseforge|custom|lunar|ichor|fabric|forge|quilt|neoforge):/i, '');
+    str = str.replace(/\.(jar|zip|json)$/i, '');
+    str = str.trim();
+
+    if (!isIgnoredWord(str)) {
+      modsSet.add(str);
     }
   }
 
-  const keysToCheck = [
-    'customMods', 'custom_mods', 'mods', 'modules', 'enabledMods',
-    'externalMods', 'fabricMods', 'installedMods', 'userMods',
-    'plugins', 'profileMods', 'ichorMods'
-  ];
+  function processModObject(obj) {
+    if (!obj || typeof obj !== 'object') return false;
 
-  keysToCheck.forEach(key => {
-    const val = json[key] || (json.profile && json.profile[key]) || (json.settings && json.settings[key]);
-    if (Array.isArray(val)) {
-      val.forEach(addModItem);
-    } else if (val && typeof val === 'object') {
-      Object.keys(val).forEach(k => {
-        const item = val[k];
-        if (typeof item === 'boolean' && item) {
-          mods.push(k);
-        } else if (typeof item === 'string') {
-          mods.push(item);
-        } else if (item && typeof item === 'object') {
-          if (item.enabled !== false && item.active !== false && item.state !== false) {
-            addModItem(item);
-            if (!item.name && !item.id && !item.title) mods.push(k);
-          }
-        } else {
-          mods.push(k);
-        }
-      });
-    }
-  });
+    const props = [
+      'fileName', 'filename', 'file_name', 'file',
+      'name', 'title', 'displayName', 'display_name',
+      'id', 'modId', 'mod_id', 'slug', 'identifier',
+      'path', 'url', 'downloadUrl', 'download_url', 'link', 'label',
+      'project_id', 'projectId', 'modrinthId', 'curseforgeId',
+      'modName', 'mod_name', 'rawName', 'raw_name', 'package', 'artifact',
+      'key', 'value', 'mod', 'project', 'jarName', 'jar_name', 'location'
+    ];
 
-  if (mods.length === 0) {
-    function recurse(obj) {
-      if (!obj) return;
-      if (Array.isArray(obj)) {
-        obj.forEach(recurse);
-      } else if (typeof obj === 'object') {
-        for (let k in obj) {
-          if (['name', 'id', 'title', 'fileName', 'modId', 'slug'].includes(k)) {
-            if (typeof obj[k] === 'string' && obj[k].length > 1) {
-              if (obj.enabled || obj.enabled === undefined || obj.state === true) {
-                mods.push(obj[k]);
-              }
-            }
-          } else {
-            recurse(obj[k]);
-          }
+    let foundProp = false;
+    for (const p of props) {
+      const v = obj[p];
+      if (v !== undefined && v !== null) {
+        if (typeof v === 'string' || typeof v === 'number') {
+          addCandidate(v);
+          foundProp = true;
+        } else if (typeof v === 'object') {
+          if (v.name) { addCandidate(v.name); foundProp = true; }
+          if (v.title) { addCandidate(v.title); foundProp = true; }
+          if (v.filename || v.fileName) { addCandidate(v.filename || v.fileName); foundProp = true; }
+          if (v.url) { addCandidate(v.url); foundProp = true; }
+          if (v.id) { addCandidate(v.id); foundProp = true; }
+          if (v.slug) { addCandidate(v.slug); foundProp = true; }
         }
       }
     }
-    recurse(json);
+    return foundProp;
   }
 
-  mods = [...new Set(mods)]
-    .map(m => m.replace(/\.jar$/i, ''))
-    .filter(m => {
-      const lower = m.toLowerCase();
-      return m.length > 1 && !['true', 'false', 'default', 'profile', 'custom', 'fabric', 'forge', 'neoforge', 'minecraft', 'none', 'null', 'undefined'].includes(lower);
-    });
+  function walk(node, depth = 0) {
+    if (!node || depth > 25) return;
 
-  return mods;
+    if (Array.isArray(node)) {
+      for (const item of node) {
+        if (typeof item === 'string' || typeof item === 'number') {
+          addCandidate(item);
+        } else if (item && typeof item === 'object') {
+          processModObject(item);
+          walk(item, depth + 1);
+        }
+      }
+    } else if (typeof node === 'object') {
+      for (const key in node) {
+        const val = node[key];
+        const lowerKey = key.toLowerCase();
+
+        if (lowerKey.endsWith('.jar') || lowerKey.endsWith('.zip') || /^(modrinth|curseforge|custom|lunar|ichor|fabric|forge|quilt|neoforge):/i.test(key)) {
+          addCandidate(key);
+        }
+
+        if (!isIgnoredWord(key)) {
+          addCandidate(key);
+        }
+
+        if (typeof val === 'string' || typeof val === 'number') {
+          addCandidate(val);
+        } else if (val && typeof val === 'object') {
+          processModObject(val);
+          walk(val, depth + 1);
+        }
+      }
+    }
+  }
+
+  walk(json);
+
+  const resultMap = new Map();
+  for (const raw of modsSet) {
+    const cleaned = cleanLunarModName(raw);
+    const key = cleaned.toLowerCase();
+    if (!key || isIgnoredWord(key)) continue;
+
+    if (!resultMap.has(key)) {
+      resultMap.set(key, raw);
+    } else {
+      const existing = resultMap.get(key);
+      if (raw.length < existing.length && !raw.includes('/')) {
+        resultMap.set(key, raw);
+      }
+    }
+  }
+
+  return Array.from(resultMap.values());
+}
+
+async function resolveLunarMod(rawName, mc) {
+  // Check manual mappings first
+  if (convPackData?.manualMappings) {
+    const manualProj = convPackData.manualMappings[rawName] || convPackData.manualMappings[cleanLunarModName(rawName)];
+    if (manualProj) {
+      const slug = manualProj.slug || manualProj.id;
+      const isRP = manualProj.type === 'resourcepack' || manualProj.project_type === 'resourcepack';
+      const ver = await fetchVersion(slug, mc, isRP);
+      const vf = ver?.files?.find(x => x.primary) || ver?.files?.[0];
+      if (vf) {
+        return { proj: { ...manualProj, name: manualProj.title || manualProj.name || slug, type: isRP ? 'resourcepack' : 'mod' }, ver, vf };
+      }
+      return {
+        proj: { ...manualProj, name: manualProj.title || manualProj.name || slug, type: isRP ? 'resourcepack' : 'mod' },
+        ver: { version_number: 'latest' },
+        vf: { filename: slug + '.jar', url: 'https://cdn.modrinth.com/data/' + slug, hashes: {}, size: 0 }
+      };
+    }
+  }
+
+  const cleaned = cleanLunarModName(rawName);
+
+  // Try 1: Cleaned name
+  let proj = await detectAndResolve(cleaned);
+
+  // Try 2: Raw name
+  if (!proj && cleaned !== rawName) {
+    proj = await detectAndResolve(rawName);
+  }
+
+  // Try 3: Replace hyphens/underscores with spaces
+  if (!proj && (cleaned.includes('-') || cleaned.includes('_'))) {
+    proj = await detectAndResolve(cleaned.replace(/[-_]+/g, ' '));
+  }
+
+  // Try 4: First word before hyphen
+  if (!proj && cleaned.includes('-')) {
+    proj = await detectAndResolve(cleaned.split('-')[0]);
+  }
+
+  if (!proj) return null;
+
+  const ver = await fetchVersion(proj.slug, mc, proj.type === 'resourcepack');
+  const vf = ver?.files?.find(x => x.primary) || ver?.files?.[0];
+  if (!vf) return null;
+
+  return { proj, ver, vf };
 }
 
 async function convertLCToMR(btn, st, pb) {
-  const { index, fileName, modsList, mcVersion } = convPackData;
-  const mc  = mcVersion || '1.21.11';
+  const { index, fileName, modsList, mcVersion, ignoredMods } = convPackData;
+  const rawMc  = mcVersion || '1.21.1';
+  const mc = rawMc === '1.21.11' ? '1.21.1' : rawMc;
   const fl  = '0.18.3';
   const name = (index && index.name) || fileName.replace(/\.[^/.]+$/, "") || 'Lunar Pack';
 
-  const files     = modsList || [];
+  const allFiles  = modsList || [];
+  const files     = allFiles.filter(f => !ignoredMods?.has(f));
   const resolved  = [];
   const notFound  = [];
 
@@ -6959,26 +7857,20 @@ async function convertLCToMR(btn, st, pb) {
     pb.style.width = Math.round((i / files.length) * 85) + '%';
     st.textContent = '(' + (i+1) + '/' + files.length + ') Suche ' + cleaned + '...';
 
-    const proj = await detectAndResolve(cleaned);
-    let vf = null;
+    const match = await resolveLunarMod(rawName, mc);
 
-    if (proj) {
-      const ver = await fetchVersion(proj.slug, mc, proj.type === 'resourcepack');
-      vf = ver?.files?.find(x => x.primary) || ver?.files?.[0];
-      if (vf) {
-        resolved.push({
-          path: (proj.type === 'resourcepack' ? 'resourcepacks/' : 'mods/') + vf.filename,
-          hashes: vf.hashes,
-          env: { client: 'required', server: 'unsupported' },
-          downloads: [vf.url],
-          fileSize: vf.size,
-          name: proj.name,
-          version: ver.version_number
-        });
-      }
-    }
-
-    if (!vf) {
+    if (match) {
+      const { proj, ver, vf } = match;
+      resolved.push({
+        path: (proj.type === 'resourcepack' ? 'resourcepacks/' : 'mods/') + vf.filename,
+        hashes: vf.hashes || {},
+        env: { client: 'required', server: 'unsupported' },
+        downloads: [vf.url],
+        fileSize: vf.size || 0,
+        name: proj.name,
+        version: ver.version_number
+      });
+    } else {
       notFound.push(rawName);
     }
     await sleep(150);
@@ -6993,22 +7885,30 @@ async function convertLCToMR(btn, st, pb) {
     return;
   }
 
+  const mcClean = (typeof mc === 'string' && /^1\.\d+/.test(mc.trim())) ? mc.trim() : extractLunarMcVersion(index);
+  const rawMcStr = String(mcClean || '1.21.1');
+  const mcStr = rawMcStr === '1.21.11' ? '1.21.1' : rawMcStr;
+  const flStr = String(fl || '0.18.3');
+
   const idx = {
     formatVersion: 1,
     game: 'minecraft',
     versionId: '1.0.0',
-    name: name,
+    name: String(name || 'Lunar Pack'),
     summary: 'Konvertiert von Lunar Client mit MC Toolkit',
     files: resolved.map(r => ({
-      path: r.path,
-      hashes: r.hashes,
-      env: r.env,
-      downloads: r.downloads,
-      fileSize: r.fileSize
+      path: String(r.path),
+      hashes: {
+        sha1: String(r.hashes?.sha1 || ''),
+        sha512: String(r.hashes?.sha512 || '')
+      },
+      env: r.env || { client: 'required', server: 'unsupported' },
+      downloads: (r.downloads || []).map(String),
+      fileSize: Number(r.fileSize || 0)
     })),
     dependencies: {
-      minecraft: mc,
-      'fabric-loader': fl
+      minecraft: mcStr,
+      'fabric-loader': flStr
     }
   };
 
@@ -7034,12 +7934,14 @@ async function convertLCToMR(btn, st, pb) {
 }
 
 async function convertLCToCF(btn, st, pb) {
-  const { index, fileName, modsList, mcVersion } = convPackData;
-  const mc  = mcVersion || '1.21.11';
+  const { index, fileName, modsList, mcVersion, ignoredMods } = convPackData;
+  const rawMc = mcVersion || '1.21.1';
+  const mc = rawMc === '1.21.11' ? '1.21.1' : rawMc;
   const fl  = '0.18.3';
   const name = (index && index.name) || fileName.replace(/\.[^/.]+$/, "") || 'Lunar Pack';
 
-  const files     = modsList || [];
+  const allFiles  = modsList || [];
+  const files     = allFiles.filter(f => !ignoredMods?.has(f));
   const resolved  = [];
   const notFound  = [];
 
@@ -7049,25 +7951,19 @@ async function convertLCToCF(btn, st, pb) {
     pb.style.width = Math.round((i / files.length) * 85) + '%';
     st.textContent = '(' + (i+1) + '/' + files.length + ') Suche ' + cleaned + '...';
 
-    const proj = await detectAndResolve(cleaned);
-    let vf = null;
+    const match = await resolveLunarMod(rawName, mc);
 
-    if (proj) {
-      const ver = await fetchVersion(proj.slug, mc, proj.type === 'resourcepack');
-      vf = ver?.files?.find(x => x.primary) || ver?.files?.[0];
-      if (vf) {
-        resolved.push({
-          name: proj.name,
-          filename: vf.filename,
-          url: vf.url,
-          version: ver.version_number,
-          isRP: proj.type === 'resourcepack',
-          found: true
-        });
-      }
-    }
-
-    if (!vf) {
+    if (match) {
+      const { proj, ver, vf } = match;
+      resolved.push({
+        name: proj.name,
+        filename: vf.filename,
+        url: vf.url,
+        version: ver.version_number,
+        isRP: proj.type === 'resourcepack',
+        found: true
+      });
+    } else {
       notFound.push(rawName);
     }
     await sleep(150);
@@ -7124,7 +8020,7 @@ async function convertLCToCF(btn, st, pb) {
 
 async function convertMRtoLC(btn, st, pb) {
   const { index } = convPackData;
-  const mc   = (index.dependencies || {}).minecraft || '1.21.11';
+  const mc   = (index.dependencies || {}).minecraft || '1.21.1';
   const fl   = (index.dependencies || {})['fabric-loader'] || '0.18.3';
   const name = index.name || 'Converted Lunar Pack';
 
@@ -7191,7 +8087,8 @@ async function convertMRtoLC(btn, st, pb) {
 
 async function convertCFtoLC(btn, st, pb) {
   const { index, zip: origZip } = convPackData;
-  const mc   = index.minecraft?.version || '1.21.11';
+  const rawMc = index.minecraft?.version || '1.21.1';
+  const mc = rawMc === '1.21.11' ? '1.21.1' : rawMc;
   const ml   = index.minecraft?.modLoaders?.[0]?.id || 'fabric-0.18.3';
   const fl   = ml.replace(/^fabric-/, '');
   const name = index.name || 'Converted Lunar Pack';

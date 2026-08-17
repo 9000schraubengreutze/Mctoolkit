@@ -118,14 +118,30 @@ async function loadPublicPacks(force = false) {
   if (loading) loading.style.display = 'flex';
 
   try {
-    const { data, error } = await sb
-      .from('public_packs')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(50);
+    let packs = [];
+    if (fbDb) {
+      try {
+        const snap = await fbDb.collection('public_packs')
+          .orderBy('created_at', 'desc')
+          .limit(50)
+          .get();
+        snap.forEach(doc => {
+          packs.push({ id: doc.id, ...doc.data() });
+        });
+      } catch (fbErr) {
+        console.warn('Firestore loadPublicPacks query:', fbErr);
+        const snap = await fbDb.collection('public_packs').limit(50).get();
+        snap.forEach(doc => {
+          packs.push({ id: doc.id, ...doc.data() });
+        });
+      }
+    }
+    if (!packs.length && typeof sb !== 'undefined') {
+      const { data } = await sb.from('public_packs').select('*').order('created_at', { ascending: false }).limit(50);
+      if (data) packs = data;
+    }
 
-    if (error) throw error;
-    _allCommunityPacks = dedupeCommunityPacks(data || []);
+    _allCommunityPacks = dedupeCommunityPacks(packs || []);
     _communityLoaded = true;
     renderCommunityPacks();
   } catch (err) {
@@ -219,8 +235,16 @@ function loadCommunityPackById(id) {
 async function likeCommunityPack(id, btn) {
   btn.classList.add('comm-like-btn--liked');
   btn.disabled = true;
-  await sb.from('public_packs').update({ likes: sb.rpc('increment') }).eq('id', id).catch(() => {});
   btn.textContent = '❤ +1';
+  try {
+    if (fbDb && typeof firebase !== 'undefined' && firebase.firestore) {
+      await fbDb.collection('public_packs').doc(id).update({
+        likes: firebase.firestore.FieldValue.increment(1)
+      });
+    } else if (typeof sb !== 'undefined') {
+      await sb.from('public_packs').update({ likes: sb.rpc('increment') }).eq('id', id);
+    }
+  } catch (_) {}
 }
 
 /* ── Drag & Drop helpers ── */
@@ -2941,33 +2965,101 @@ document.addEventListener('click', e => {
 /* ══════════════════════════════════════════════════════════════════════
    MOD-PROFILE (localStorage)
 ══════════════════════════════════════════════════════════════════════ */
-/* ══ SUPABASE INIT ═════════════════════════════════════════════ */
-const { createClient } = supabase;
-const sb = createClient('https://lcirexhyxbljpfzdlfqu.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxjaXJleGh5eGJsanBmemRsZnF1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2NDczNzUsImV4cCI6MjA5MDIyMzM3NX0.-gbQiXU0ONEsO2UK0c1JIky7qxoJmT43iV9pE0dov70');
+/* ══ FIREBASE INIT & CONFIG ═════════════════════════════════════ */
+const firebaseConfig = {
+  projectId: "vast-line-lq6d2",
+  appId: "1:264136667521:web:b962024b9db98ff8243880",
+  apiKey: "AIzaSyAe-TqK-cQtIU-GjQ5KX_mAYNHbBh44EGw",
+  authDomain: "vast-line-lq6d2.firebaseapp.com",
+  firestoreDatabaseId: "ai-studio-mctoolkit-98d69615-de0b-4c4a-a755-d662b84244ff",
+  storageBucket: "vast-line-lq6d2.firebasestorage.app",
+  messagingSenderId: "264136667521"
+};
 
+let fbApp = null;
+let fbAuth = null;
+let fbDb = null;
 let currentUser = null;
 
-/* ══ AUTH STATE ════════════════════════════════════════════════ */
-sb.auth.onAuthStateChange((event, session) => {
-  currentUser = session?.user ?? null;
-  updateNavAuth();
-  if (event === 'SIGNED_IN') {
-    closeAuth();
-    showToast('✅ Willkommen, ' + (currentUser.email || 'Nutzer') + '!', 3000);
-    // Migrate local profiles to cloud on first sign-in
-    migrateLocalToCloud();
+try {
+  if (typeof firebase !== 'undefined') {
+    if (!firebase.apps.length) {
+      fbApp = firebase.initializeApp(firebaseConfig);
+    } else {
+      fbApp = firebase.app();
+    }
+    fbAuth = firebase.auth();
+    try {
+      if (firebaseConfig.firestoreDatabaseId && firebaseConfig.firestoreDatabaseId !== '(default)') {
+        fbDb = fbApp.firestore(firebaseConfig.firestoreDatabaseId);
+      } else {
+        fbDb = firebase.firestore();
+      }
+    } catch (_) {
+      fbDb = firebase.firestore();
+    }
   }
-  if (event === 'SIGNED_OUT') {
-    showToast('↩ Abgemeldet');
-    updateNavAuth();
-  }
-});
+} catch (err) {
+  console.warn('Firebase initialization error:', err);
+}
 
-// Check session on load
-sb.auth.getSession().then(({ data }) => {
-  currentUser = data.session?.user ?? null;
-  updateNavAuth();
-});
+// Fallback Supabase client if needed
+let sb = null;
+try {
+  if (typeof supabase !== 'undefined' && supabase.createClient) {
+    sb = supabase.createClient('https://lcirexhyxbljpfzdlfqu.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxjaXJleGh5eGJsanBmemRsZnF1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2NDczNzUsImV4cCI6MjA5MDIyMzM3NX0.-gbQiXU0ONEsO2UK0c1JIky7qxoJmT43iV9pE0dov70');
+  }
+} catch (_) {}
+
+/* ══ AUTH STATE ════════════════════════════════════════════════ */
+if (fbAuth) {
+  fbAuth.onAuthStateChanged(user => {
+    if (user) {
+      currentUser = {
+        uid: user.uid,
+        id: user.uid,
+        email: user.email || '',
+        displayName: user.displayName || user.email?.split('@')[0] || 'Nutzer',
+        photoURL: user.photoURL || null
+      };
+      updateNavAuth();
+      closeAuth();
+      // Sync to firestore user doc
+      if (fbDb) {
+        fbDb.collection('users').doc(user.uid).set({
+          email: currentUser.email,
+          displayName: currentUser.displayName,
+          photoURL: currentUser.photoURL || '',
+          updatedAt: new Date().toISOString()
+        }, { merge: true }).catch(() => {});
+      }
+      // Migrate local profiles to cloud on sign-in
+      migrateLocalToCloud();
+    } else {
+      currentUser = null;
+      updateNavAuth();
+    }
+  });
+} else if (sb) {
+  sb.auth.onAuthStateChange((event, session) => {
+    currentUser = session?.user ? {
+      uid: session.user.id,
+      id: session.user.id,
+      email: session.user.email,
+      displayName: session.user.email?.split('@')[0] || 'Nutzer',
+      photoURL: null
+    } : null;
+    updateNavAuth();
+    if (event === 'SIGNED_IN' && currentUser) {
+      closeAuth();
+      showToast('✅ Willkommen, ' + (currentUser.displayName || currentUser.email) + '!', 3000);
+      migrateLocalToCloud();
+    }
+    if (event === 'SIGNED_OUT') {
+      showToast('↩ Abgemeldet');
+    }
+  });
+}
 
 function updateNavAuth() {
   const btn      = document.getElementById('authNavBtn');
@@ -2983,26 +3075,35 @@ function updateNavAuth() {
   const nsLabel    = document.getElementById('navSettingsLabel');
 
   if (currentUser) {
-    const name = currentUser.email?.split('@')[0] || 'Account';
-    // Old auth button (may not exist in new nav)
+    const name = currentUser.displayName || (currentUser.email ? currentUser.email.split('@')[0] : 'Account');
     if (btn) { btn.classList.add('signed-in'); }
     if (labelEl) labelEl.textContent = name;
     if (emailEl) emailEl.textContent = currentUser.email || '';
+
     // Settings panel
     if (spGuest) spGuest.style.display = 'none';
     if (spUser)  spUser.style.display  = '';
     if (spUsername) spUsername.textContent = name;
     if (spEmailEl)  spEmailEl.textContent  = currentUser.email || '';
-    if (spAvatar)   spAvatar.textContent   = name.charAt(0).toUpperCase();
-    if (nsLabel)    nsLabel.textContent    = name;
+
+    if (spAvatar) {
+      if (currentUser.photoURL) {
+        spAvatar.innerHTML = `<img src="${currentUser.photoURL}" alt="${esc(name)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+      } else {
+        spAvatar.textContent = name.charAt(0).toUpperCase();
+      }
+    }
+    if (nsLabel) nsLabel.textContent = name;
+
     // Sync theme button states
     const saved = localStorage.getItem('mctoolkit_theme') || 'dark';
     document.getElementById('themeOptDark')?.classList.toggle('active',  saved === 'dark');
     document.getElementById('themeOptLight')?.classList.toggle('active', saved === 'light');
     document.getElementById('themeOptDark2')?.classList.toggle('active',  saved === 'dark');
     document.getElementById('themeOptLight2')?.classList.toggle('active', saved === 'light');
+
     // Owner check → auto-activate VIP
-    checkAndActivateOwner(currentUser.email);
+    if (currentUser.email) checkAndActivateOwner(currentUser.email);
   } else {
     if (btn) { btn.classList.remove('signed-in'); }
     if (labelEl) labelEl.textContent = 'Anmelden';
@@ -3034,8 +3135,10 @@ document.addEventListener('click', e => {
 function openAuth() {
   document.getElementById('authOverlay').classList.add('open');
   document.body.style.overflow = 'hidden';
-  document.getElementById('authMsg').textContent = '';
-  document.getElementById('authEmail').focus();
+  const msg = document.getElementById('authMsg');
+  if (msg) msg.textContent = '';
+  const emailInput = document.getElementById('authEmail');
+  if (emailInput) emailInput.focus();
 }
 
 function requireLoginThen(fn) {
@@ -3044,69 +3147,185 @@ function requireLoginThen(fn) {
   setTimeout(() => openAuth(), 500);
 }
 function closeAuth() {
-  document.getElementById('authOverlay').classList.remove('open');
+  const overlay = document.getElementById('authOverlay');
+  if (overlay) overlay.classList.remove('open');
   document.body.style.overflow = '';
   document.documentElement.style.overflow = '';
 }
 function switchAuthTab(mode) {
   authMode = mode;
-  document.getElementById('tabLogin').classList.toggle('active', mode === 'login');
-  document.getElementById('tabRegister').classList.toggle('active', mode === 'register');
-  document.getElementById('authSubmitBtn').textContent = mode === 'login' ? 'Anmelden' : 'Account erstellen';
-  document.getElementById('authMsg').textContent = '';
-  document.getElementById('authPassword').autocomplete = mode === 'login' ? 'current-password' : 'new-password';
+  document.getElementById('tabLogin')?.classList.toggle('active', mode === 'login');
+  document.getElementById('tabRegister')?.classList.toggle('active', mode === 'register');
+  const submitBtn = document.getElementById('authSubmitBtn');
+  if (submitBtn) submitBtn.textContent = mode === 'login' ? 'Anmelden' : 'Account erstellen';
+  const msg = document.getElementById('authMsg');
+  if (msg) msg.textContent = '';
+  const passInput = document.getElementById('authPassword');
+  if (passInput) passInput.autocomplete = mode === 'login' ? 'current-password' : 'new-password';
 }
 
-async function submitAuth() {
-  const email = document.getElementById('authEmail').value.trim();
-  const pass  = document.getElementById('authPassword').value;
-  const btn   = document.getElementById('authSubmitBtn');
-  const msg   = document.getElementById('authMsg');
-  if (!email || !pass) { msg.className='auth-msg err'; msg.textContent='⚠ Bitte E-Mail und Passwort eingeben.'; return; }
-  btn.disabled = true;
-  btn.textContent = '…';
-  msg.className = 'auth-msg'; msg.textContent = '';
+/* Google Sign-in */
+async function signInGoogle() {
+  const btn = document.getElementById('authGoogleBtn');
+  const msg = document.getElementById('authMsg');
+  if (btn) btn.disabled = true;
+  if (msg) {
+    msg.className = 'auth-msg';
+    msg.textContent = '⏳ Google Anmeldung wird geöffnet...';
+  }
+
   try {
-    let res;
-    if (authMode === 'login') {
-      res = await sb.auth.signInWithPassword({ email, password: pass });
+    if (fbAuth && typeof firebase !== 'undefined' && firebase.auth) {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      provider.addScope('profile');
+      provider.addScope('email');
+      const result = await fbAuth.signInWithPopup(provider);
+      const user = result.user;
+      if (user) {
+        showToast('✅ Mit Google angemeldet (' + (user.displayName || user.email) + ')', 3500);
+        closeAuth();
+      }
+    } else if (sb) {
+      const { error } = await sb.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: location.origin + location.pathname }
+      });
+      if (error) throw error;
     } else {
-      res = await sb.auth.signUp({ email, password: pass });
-      if (!res.error && res.data?.user && !res.data?.session) {
-        msg.className = 'auth-msg ok';
-        msg.textContent = '✅ Bestätigungsmail gesendet! Bitte E-Mail prüfen.';
-        btn.disabled = false; btn.textContent = 'Account erstellen'; return;
+      throw new Error('Authentifizierungsdienst nicht verfügbar.');
+    }
+  } catch (err) {
+    console.error('Google Sign In Error:', err);
+    if (msg) {
+      msg.className = 'auth-msg err';
+      if (err.code === 'auth/popup-closed-by-user') {
+        msg.textContent = 'Anmeldefenster geschlossen.';
+      } else if (err.code === 'auth/popup-blocked') {
+        msg.textContent = 'Popup blockiert. Bitte Popups im Browser erlauben.';
+      } else {
+        msg.textContent = '⚠ ' + (err.message || 'Google Login fehlgeschlagen');
       }
     }
-    if (res.error) throw res.error;
-  } catch(e) {
-    msg.className = 'auth-msg err';
-    msg.textContent = '⚠ ' + (e.message || 'Fehler beim Anmelden');
-    btn.disabled = false;
-    btn.textContent = authMode === 'login' ? 'Anmelden' : 'Account erstellen';
+    if (err.code !== 'auth/popup-closed-by-user') {
+      showToast('⚠ Google Login fehlgeschlagen: ' + (err.message || err.code));
+    }
+  } finally {
+    if (btn) btn.disabled = false;
   }
 }
 
+/* Email / Password */
+async function submitAuth() {
+  const email = document.getElementById('authEmail')?.value.trim();
+  const pass  = document.getElementById('authPassword')?.value;
+  const btn   = document.getElementById('authSubmitBtn');
+  const msg   = document.getElementById('authMsg');
+  if (!email || !pass) {
+    if (msg) { msg.className='auth-msg err'; msg.textContent='⚠ Bitte E-Mail und Passwort eingeben.'; }
+    return;
+  }
+  if (btn) { btn.disabled = true; btn.textContent = '…'; }
+  if (msg) { msg.className = 'auth-msg'; msg.textContent = ''; }
+
+  try {
+    if (fbAuth) {
+      if (authMode === 'login') {
+        await fbAuth.signInWithEmailAndPassword(email, pass);
+      } else {
+        const cred = await fbAuth.createUserWithEmailAndPassword(email, pass);
+        if (cred.user) {
+          try {
+            await fbDb.collection('users').doc(cred.user.uid).set({
+              email: cred.user.email || email,
+              displayName: email.split('@')[0],
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            }, { merge: true });
+          } catch (_) {}
+        }
+      }
+      closeAuth();
+      showToast(authMode === 'login' ? '✅ Erfolgreich angemeldet!' : '✅ Account erfolgreich erstellt!', 3000);
+    } else if (sb) {
+      let res;
+      if (authMode === 'login') {
+        res = await sb.auth.signInWithPassword({ email, password: pass });
+      } else {
+        res = await sb.auth.signUp({ email, password: pass });
+        if (!res.error && res.data?.user && !res.data?.session) {
+          if (msg) { msg.className = 'auth-msg ok'; msg.textContent = '✅ Bestätigungsmail gesendet! Bitte E-Mail prüfen.'; }
+          if (btn) { btn.disabled = false; btn.textContent = 'Account erstellen'; }
+          return;
+        }
+      }
+      if (res.error) throw res.error;
+      closeAuth();
+    }
+  } catch(e) {
+    if (msg) {
+      msg.className = 'auth-msg err';
+      let errorMsg = e.message || 'Fehler beim Anmelden';
+      if (e.code === 'auth/user-not-found' || e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential') {
+        errorMsg = 'E-Mail oder Passwort ungültig.';
+      } else if (e.code === 'auth/email-already-in-use') {
+        errorMsg = 'Diese E-Mail wird bereits verwendet.';
+      } else if (e.code === 'auth/weak-password') {
+        errorMsg = 'Das Passwort muss mindestens 6 Zeichen lang sein.';
+      } else if (e.code === 'auth/invalid-email') {
+        errorMsg = 'Ungültige E-Mail-Adresse.';
+      }
+      msg.textContent = '⚠ ' + errorMsg;
+    }
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = authMode === 'login' ? 'Anmelden' : 'Account erstellen';
+    }
+  }
+}
+
+/* GitHub OAuth */
 async function signInGitHub() {
-  const { error } = await sb.auth.signInWithOAuth({
-    provider: 'github',
-    options: { redirectTo: location.origin + location.pathname }
-  });
-  if (error) showToast('⚠ GitHub Login fehlgeschlagen: ' + error.message);
+  try {
+    if (fbAuth && typeof firebase !== 'undefined' && firebase.auth) {
+      const provider = new firebase.auth.GithubAuthProvider();
+      await fbAuth.signInWithPopup(provider);
+      closeAuth();
+      showToast('✅ Erfolgreich mit GitHub angemeldet!');
+    } else if (sb) {
+      const { error } = await sb.auth.signInWithOAuth({
+        provider: 'github',
+        options: { redirectTo: location.origin + location.pathname }
+      });
+      if (error) showToast('⚠ GitHub Login fehlgeschlagen: ' + error.message);
+    }
+  } catch (err) {
+    if (err.code !== 'auth/popup-closed-by-user') {
+      showToast('⚠ GitHub Login fehlgeschlagen: ' + (err.message || err.code));
+    }
+  }
 }
 
 async function signOut() {
   closeUserMenu();
-  await sb.auth.signOut();
+  try {
+    if (fbAuth) await fbAuth.signOut();
+    if (sb) await sb.auth.signOut();
+    currentUser = null;
+    updateNavAuth();
+    showToast('↩ Abgemeldet');
+  } catch (e) {
+    console.warn('SignOut error:', e);
+  }
 }
 
 /* User menu */
 function toggleUserMenu() {
   if (!currentUser) { openAuth(); return; }
-  document.getElementById('userDropdown').classList.toggle('open');
+  document.getElementById('userDropdown')?.classList.toggle('open');
 }
 function closeUserMenu() {
-  document.getElementById('userDropdown').classList.remove('open');
+  document.getElementById('userDropdown')?.classList.remove('open');
 }
 document.addEventListener('click', e => {
   const wrap = document.querySelector('.user-menu-wrap');
@@ -3128,116 +3347,235 @@ function setProfiles(profiles) {
   localStorage.setItem(PROFILES_KEY, JSON.stringify(profiles));
 }
 
+function sanitizeProfileKey(name) {
+  return encodeURIComponent(name || 'unnamed').slice(0, 100);
+}
+
 async function migrateLocalToCloud() {
   const local = getProfiles();
   if (!local.length || !currentUser) return;
+  let count = 0;
   for (const p of local) {
-    await sb.from('profiles').upsert({
-      user_id: currentUser.id,
-      name: p.name,
-      data: p,
-      updated_at: new Date().toISOString()
-    }, { onConflict: 'user_id,name' });
+    try {
+      if (fbDb) {
+        const docId = `${currentUser.uid}_${sanitizeProfileKey(p.name)}`;
+        await fbDb.collection('profiles').doc(docId).set({
+          userId: currentUser.uid,
+          user_id: currentUser.uid,
+          name: p.name || 'Mein Pack',
+          data: p,
+          updatedAt: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }, { merge: true });
+        count++;
+      } else if (sb) {
+        await sb.from('profiles').upsert({
+          user_id: currentUser.id,
+          name: p.name,
+          data: p,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id,name' });
+        count++;
+      }
+    } catch (e) {
+      console.warn('Profile sync error:', e);
+    }
   }
-  showToast('☁ ' + local.length + ' lokale Profile in die Cloud synchronisiert', 3500);
+  if (count > 0) {
+    showToast('☁ ' + count + ' lokale Profile in die Cloud synchronisiert', 3500);
+  }
 }
 
 async function saveProfile() {
-  const name = document.getElementById('profileNameInput').value.trim();
+  const name = document.getElementById('profileNameInput')?.value.trim();
+  const msg = document.getElementById('pmSaveMsg');
   if (!name) {
-    document.getElementById('pmSaveMsg').style.color = 'var(--red)';
-    document.getElementById('pmSaveMsg').textContent = '⚠ Bitte einen Namen eingeben.';
+    if (msg) {
+      msg.style.color = 'var(--red)';
+      msg.textContent = '⚠ Bitte einen Namen eingeben.';
+    }
     return;
   }
   const profile = {
     id: Date.now(),
     name,
-    packName:    document.getElementById('packName').value.trim(),
-    packVersion: document.getElementById('packVersion').value.trim(),
-    mcVersion:   document.getElementById('mcVersion').value,
-    fabricLoader:document.getElementById('fabricLoader').value.trim(),
+    packName:    document.getElementById('packName')?.value.trim() || name,
+    packVersion: document.getElementById('packVersion')?.value.trim() || '1.0.0',
+    mcVersion:   document.getElementById('mcVersion')?.value || '1.21.1',
+    fabricLoader:document.getElementById('fabricLoader')?.value.trim() || '0.18.3',
     mods: MODS.map(m => ({...m})),
     rps:  RESOURCEPACKS.map(r => ({...r})),
     savedAt: new Date().toLocaleString('de-DE')
   };
 
-  const msg = document.getElementById('pmSaveMsg');
-
   if (currentUser) {
-    // Save to cloud
-    const { error } = await sb.from('profiles').upsert({
-      user_id:    currentUser.id,
-      name:       name,
-      data:       profile,
-      updated_at: new Date().toISOString()
-    }, { onConflict: 'user_id,name' });
-    if (error) {
-      msg.style.color = 'var(--red)';
-      msg.textContent = '⚠ Fehler: ' + error.message;
+    // Save to Firestore cloud
+    try {
+      if (fbDb) {
+        const docId = `${currentUser.uid}_${sanitizeProfileKey(name)}`;
+        await fbDb.collection('profiles').doc(docId).set({
+          userId: currentUser.uid,
+          user_id: currentUser.uid,
+          name: name,
+          data: profile,
+          updatedAt: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+      } else if (sb) {
+        const { error } = await sb.from('profiles').upsert({
+          user_id:    currentUser.id,
+          name:       name,
+          data:       profile,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id,name' });
+        if (error) throw error;
+      }
+      if (msg) {
+        msg.style.color = 'var(--green)';
+        msg.textContent = '☁ Profil in der Cloud gespeichert!';
+      }
+    } catch (error) {
+      if (msg) {
+        msg.style.color = 'var(--red)';
+        msg.textContent = '⚠ Fehler: ' + error.message;
+      }
       return;
     }
-    msg.style.color = 'var(--green)';
-    msg.textContent = '☁ Profil in der Cloud gespeichert!';
   } else {
     // Save locally
     const profiles = getProfiles();
     const dupIdx = profiles.findIndex(p => p.name.toLowerCase() === name.toLowerCase());
     if (dupIdx !== -1) profiles[dupIdx] = profile; else profiles.unshift(profile);
     setProfiles(profiles);
-    msg.style.color = 'var(--green)';
-    msg.textContent = '💾 Lokal gespeichert (anmelden für Cloud-Sync)';
+    if (msg) {
+      msg.style.color = 'var(--green)';
+      msg.textContent = '💾 Lokal gespeichert (anmelden für Cloud-Sync)';
+    }
   }
   renderProfileList();
 }
 
 async function loadProfile(idOrName) {
-  let p;
+  let p = null;
   if (currentUser) {
-    const { data } = await sb.from('profiles')
-      .select('data').eq('user_id', currentUser.id).eq('name', idOrName).single();
-    p = data?.data;
-  } else {
-    const profiles = getProfiles();
-    p = profiles.find(x => x.id === idOrName);
+    try {
+      if (fbDb) {
+        const docId = `${currentUser.uid}_${sanitizeProfileKey(idOrName)}`;
+        const docSnap = await fbDb.collection('profiles').doc(docId).get();
+        if (docSnap.exists) {
+          p = docSnap.data().data;
+        } else {
+          const qSnap = await fbDb.collection('profiles')
+            .where('userId', '==', currentUser.uid)
+            .where('name', '==', idOrName)
+            .limit(1)
+            .get();
+          if (!qSnap.empty) {
+            p = qSnap.docs[0].data().data;
+          }
+        }
+      }
+      if (!p && sb) {
+        const { data } = await sb.from('profiles')
+          .select('data').eq('user_id', currentUser.id).eq('name', idOrName).single();
+        if (data?.data) p = data.data;
+      }
+    } catch (err) {
+      console.warn('Error loading cloud profile:', err);
+    }
   }
-  if (!p) return;
-  MODS = p.mods.map(m => ({...m}));
-  RESOURCEPACKS = p.rps.map(r => ({...r}));
-  document.getElementById('packName').value    = p.packName    || p.name;
-  document.getElementById('packVersion').value = p.packVersion || '1.0.0';
-  document.getElementById('mcVersion').value   = p.mcVersion   || '1.21.1';
-  document.getElementById('fabricLoader').value= p.fabricLoader|| '0.18.3';
-  renderMods(); renderRPs();
+
+  if (!p) {
+    const profiles = getProfiles();
+    p = profiles.find(x => x.id === idOrName || x.name === idOrName);
+  }
+  if (!p) {
+    showToast('⚠ Profil nicht gefunden');
+    return;
+  }
+
+  MODS = (p.mods || []).map(m => ({...m}));
+  RESOURCEPACKS = (p.rps || []).map(r => ({...r}));
+  const pName = document.getElementById('packName');
+  const pVer  = document.getElementById('packVersion');
+  const mcVer = document.getElementById('mcVersion');
+  const fbLdr = document.getElementById('fabricLoader');
+
+  if (pName) pName.value = p.packName || p.name || '';
+  if (pVer)  pVer.value  = p.packVersion || '1.0.0';
+  if (mcVer && p.mcVersion) mcVer.value = p.mcVersion;
+  if (fbLdr && p.fabricLoader) fbLdr.value = p.fabricLoader;
+
+  renderMods();
+  renderRPs();
   closeProfiles();
-  document.getElementById('statusText').textContent = '✓ Profil "' + p.name + '" geladen – ' + p.mods.length + ' Mods.';
+  const stText = document.getElementById('statusText');
+  if (stText) stText.textContent = '✓ Profil "' + (p.name || 'Pack') + '" geladen – ' + MODS.length + ' Mods.';
+  showToast('✓ Profil "' + (p.name || 'Pack') + '" geladen!');
 }
 
 async function deleteProfile(idOrName) {
   if (currentUser) {
-    await sb.from('profiles').delete().eq('user_id', currentUser.id).eq('name', idOrName);
+    try {
+      if (fbDb) {
+        const docId = `${currentUser.uid}_${sanitizeProfileKey(idOrName)}`;
+        await fbDb.collection('profiles').doc(docId).delete();
+        const qSnap = await fbDb.collection('profiles')
+          .where('userId', '==', currentUser.uid)
+          .where('name', '==', idOrName)
+          .get();
+        qSnap.forEach(d => d.ref.delete().catch(() => {}));
+      }
+      if (sb) {
+        await sb.from('profiles').delete().eq('user_id', currentUser.id).eq('name', idOrName);
+      }
+    } catch (err) {
+      console.warn('Error deleting cloud profile:', err);
+    }
   } else {
-    setProfiles(getProfiles().filter(p => p.id !== idOrName));
+    setProfiles(getProfiles().filter(p => p.id !== idOrName && p.name !== idOrName));
   }
   renderProfileList();
 }
 
 async function renderProfileList() {
   const list = document.getElementById('pmList');
+  if (!list) return;
   list.innerHTML = '<div class="pm-empty" style="color:var(--muted);font-size:.8rem;padding:1rem 0">⏳ Lade Profile...</div>';
 
   let profiles = [];
   let isCloud = false;
 
   if (currentUser) {
-    const { data, error } = await sb.from('profiles')
-      .select('name, data, updated_at')
-      .eq('user_id', currentUser.id)
-      .order('updated_at', { ascending: false });
-    if (!error && data) {
-      profiles = data.map(row => ({ ...row.data, _name: row.name, _updatedAt: row.updated_at }));
-      isCloud = true;
+    if (fbDb) {
+      try {
+        const qSnap = await fbDb.collection('profiles')
+          .where('userId', '==', currentUser.uid)
+          .get();
+        profiles = qSnap.docs.map(doc => {
+          const row = doc.data();
+          return { ...row.data, _name: row.name, _updatedAt: row.updatedAt || row.updated_at };
+        });
+        isCloud = true;
+      } catch (fbErr) {
+        console.warn('Firestore load profiles error:', fbErr);
+      }
     }
-  } else {
+    if (!profiles.length && sb) {
+      try {
+        const { data, error } = await sb.from('profiles')
+          .select('name, data, updated_at')
+          .eq('user_id', currentUser.id)
+          .order('updated_at', { ascending: false });
+        if (!error && data) {
+          profiles = data.map(row => ({ ...row.data, _name: row.name, _updatedAt: row.updated_at }));
+          isCloud = true;
+        }
+      } catch (_) {}
+    }
+  }
+
+  if (!isCloud) {
     profiles = getProfiles();
   }
 
@@ -3254,7 +3592,7 @@ async function renderProfileList() {
     const rpTx = p.rps?.length ? ' · ' + p.rps.length + ' TP' : '';
     const badge = isCloud ? '<span class="cloud-badge">☁ Cloud</span>' : '';
     const saved = isCloud
-      ? new Date(p._updatedAt).toLocaleString('de-DE')
+      ? (p._updatedAt ? new Date(p._updatedAt).toLocaleString('de-DE') : 'Gerade eben')
       : (p.savedAt || '?');
     const item = document.createElement('div');
     item.className = 'pm-item';
@@ -3596,26 +3934,90 @@ document.addEventListener('click', e => {
 });
 
 
-function closeOverlayAndScroll(e, sectionId) {
-  e.preventDefault();
-  // Close all overlays
+/* ══ SMOOTH SCROLLING & NAVIGATION HELPER ══════════════════════ */
+function smoothScrollTo(sectionId, e) {
+  if (e && e.preventDefault) e.preventDefault();
+  if (!sectionId || sectionId === '#' || sectionId === '#!') return;
+
+  const id = sectionId.replace(/^#/, '');
+
+  // Close all open dropdowns and menus
+  const menu = document.getElementById('toolsDropdownMenu');
+  if (menu) menu.classList.remove('show');
+  const sp = document.getElementById('settingsPanel');
+  if (sp) sp.classList.remove('open');
+
+  // Close all open overlays / modals
   const po = document.getElementById('platformOverlay');
   if (po && po.style.display !== 'none') {
     po.style.display = 'none';
     document.body.style.overflow = '';
     document.documentElement.style.overflow = '';
   }
-  ['templatesOverlay','profilesOverlay','openAppOverlay'].forEach(id => {
-    const el = document.getElementById(id);
+
+  [
+    'templatesOverlay', 'profilesOverlay', 'openAppOverlay', 'shareOverlay',
+    'toolShareOverlay', 'imprintOverlay', 'privacyOverlay', 'feedbackOverlay',
+    'agbOverlay', 'vipOverlay', 'shortcutsModal', 'exportModal', 'modrinthOverlay'
+  ].forEach(overlayId => {
+    const el = document.getElementById(overlayId);
     if (el) el.classList.remove('open');
   });
-  if (sectionId === 'home') {
+
+  if (id === 'home' || id === 'top') {
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  } else {
-    const target = document.getElementById(sectionId);
-    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    try {
+      if (window.history && window.history.pushState) {
+        window.history.pushState({ pageKey: 'home' }, 'MC Toolkit', '/');
+      }
+    } catch (_) {}
+    return;
+  }
+
+  let target = document.getElementById(id);
+  if (!target && id === 'features') {
+    target = document.getElementById('tools');
+  }
+
+  if (target) {
+    const nav = document.querySelector('nav');
+    const navHeight = nav ? nav.offsetHeight : 62;
+    const targetRect = target.getBoundingClientRect();
+    const targetTop = targetRect.top + window.pageYOffset - (navHeight + 12);
+
+    window.scrollTo({
+      top: Math.max(0, targetTop),
+      behavior: 'smooth'
+    });
+
+    try {
+      if (window.history && window.history.pushState) {
+        window.history.pushState(null, '', `#${id}`);
+      }
+    } catch (_) {}
   }
 }
+
+function closeOverlayAndScroll(e, sectionId) {
+  smoothScrollTo(sectionId, e);
+}
+
+// Global delegated handler for all internal anchor links
+document.addEventListener('click', (e) => {
+  const link = e.target.closest('a[href^="#"]');
+  if (!link) return;
+
+  const href = link.getAttribute('href');
+  if (!href || href === '#' || href === '#!' || href.startsWith('#/')) return;
+
+  const targetId = href.slice(1);
+  if (!targetId) return;
+
+  const targetEl = document.getElementById(targetId) || (targetId === 'features' ? document.getElementById('tools') : null);
+  if (targetEl || targetId === 'home' || targetId === 'top') {
+    smoothScrollTo(targetId, e);
+  }
+});
 
 
 /* ══ THEME TOGGLE ══════════════════════════════════════════════ */
@@ -3987,20 +4389,32 @@ async function submitSharePack() {
   const mcVer    = document.getElementById('mcVersion').value;
   const packCode = generatePackCode();
 
+  const packData = {
+    id: packCode,
+    name,
+    description: desc,
+    category,
+    platform: selectedPlatform || 'modrinth',
+    mc_version: mcVer,
+    mods: MODS.map(m => ({ slug: m.slug, name: m.name, cat: m.cat })),
+    resource_packs: RESOURCEPACKS.map(r => ({ slug: r.slug, name: r.name })),
+    pack_code: packCode,
+    user_id: currentUser.uid || currentUser.id,
+    userId: currentUser.uid || currentUser.id,
+    user_email: currentUser.email || '',
+    username: currentUser.displayName || currentUser.email?.split('@')[0] || 'User',
+    mod_count: MODS.length,
+    likes: 0,
+    created_at: new Date().toISOString()
+  };
+
   try {
-    const { error } = await sb.from('public_packs').insert({
-      name, description: desc, category,
-      platform: selectedPlatform || 'modrinth',
-      mc_version: mcVer,
-      mods: MODS.map(m => ({ slug: m.slug, name: m.name, cat: m.cat })),
-      resource_packs: RESOURCEPACKS.map(r => ({ slug: r.slug, name: r.name })),
-      pack_code: packCode,
-      user_id: currentUser.id,
-      username: currentUser.email?.split('@')[0] || 'User',
-      mod_count: MODS.length,
-      likes: 0
-    });
-    if (error) throw error;
+    if (fbDb) {
+      await fbDb.collection('public_packs').doc(packCode).set(packData);
+    } else if (sb) {
+      const { error } = await sb.from('public_packs').insert(packData);
+      if (error) throw error;
+    }
 
     // Show success step with code
     document.getElementById('shareFormStep').style.display = 'none';
@@ -4030,8 +4444,28 @@ async function loadPackByCode() {
   status.textContent = '⏳ Suche Pack...';
 
   try {
-    const { data, error } = await sb.from('public_packs').select('*').eq('pack_code', code).single();
-    if (error || !data) { status.style.color='var(--red)'; status.textContent='❌ Code nicht gefunden.'; return; }
+    let data = null;
+    if (fbDb) {
+      const docSnap = await fbDb.collection('public_packs').doc(code).get();
+      if (docSnap.exists) {
+        data = docSnap.data();
+      } else {
+        const qSnap = await fbDb.collection('public_packs').where('pack_code', '==', code).limit(1).get();
+        if (!qSnap.empty) {
+          data = qSnap.docs[0].data();
+        }
+      }
+    }
+    if (!data && sb) {
+      const { data: sbData, error } = await sb.from('public_packs').select('*').eq('pack_code', code).single();
+      if (!error && sbData) data = sbData;
+    }
+
+    if (!data) {
+      status.style.color = 'var(--red)';
+      status.textContent = '❌ Code nicht gefunden.';
+      return;
+    }
 
     if (!applyPublicPackData(data)) {
       status.style.color = 'var(--red)';
@@ -4304,6 +4738,8 @@ document.addEventListener('click', e => {
   if (e.target === document.getElementById('exportModal')) closeExportModal();
   if (e.target === document.getElementById('shareOverlay'))
     document.getElementById('shareOverlay').classList.remove('open');
+  if (e.target === document.getElementById('toolShareOverlay'))
+    closeToolShareModal();
 });
 
 /* ══ KEYBOARD SHORTCUTS HANDLER ════════════════════════════════ */
@@ -4315,7 +4751,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     closeShortcuts();
     closeExportModal();
-    ['shareOverlay','imprintOverlay','privacyOverlay','feedbackOverlay','profilesOverlay','templatesOverlay'].forEach(id => {
+    ['shareOverlay','toolShareOverlay','imprintOverlay','privacyOverlay','feedbackOverlay','profilesOverlay','templatesOverlay'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.classList.remove('open');
     });
@@ -8378,4 +8814,152 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 });
+
+/* ══════════════════════════════════════════════════════════════════════
+   TOOL SOCIAL SHARING LOGIC
+══════════════════════════════════════════════════════════════════════ */
+let currentSharedTool = null;
+
+function openToolShareModal(pageKey, e) {
+  if (e) {
+    if (e.stopPropagation) e.stopPropagation();
+    if (e.preventDefault) e.preventDefault();
+  }
+
+  const tool = TOOL_ROUTES[pageKey] || {
+    slug: 'modpack-generator',
+    title: 'Modpack Generator',
+    icon: '🧩',
+    sub: 'Erstelle ein vollständiges Modpack aus einer Modliste. Unterstützt CurseForge und Modrinth.'
+  };
+
+  currentSharedTool = { ...tool, pageKey };
+
+  const origin = window.location.origin || (window.location.protocol + '//' + window.location.host);
+  const toolUrl = `${origin}/tools/${tool.slug}`;
+  const shareText = `Check out ${tool.title} on MC Toolkit – ${tool.sub}`;
+
+  // Update Preview UI
+  const iconEl = document.getElementById('toolSharePreviewIcon');
+  if (iconEl) iconEl.textContent = tool.icon || '⚡';
+
+  const titleEl = document.getElementById('toolSharePreviewTitle');
+  if (titleEl) titleEl.textContent = tool.title;
+
+  const subEl = document.getElementById('toolSharePreviewSub');
+  if (subEl) subEl.textContent = tool.sub;
+
+  const headingEl = document.getElementById('toolShareModalHeading');
+  if (headingEl) headingEl.textContent = `🔗 ${tool.title} teilen`;
+
+  // Update Link Input
+  const inputEl = document.getElementById('toolShareUrlInput');
+  if (inputEl) inputEl.value = toolUrl;
+
+  // Social Links
+  const twitterEl = document.getElementById('toolShareTwitter');
+  if (twitterEl) {
+    twitterEl.href = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(toolUrl)}&hashtags=Minecraft,Modpacks,MCToolkit`;
+  }
+
+  const redditEl = document.getElementById('toolShareReddit');
+  if (redditEl) {
+    redditEl.href = `https://www.reddit.com/submit?url=${encodeURIComponent(toolUrl)}&title=${encodeURIComponent(tool.title + ' – Minecraft Modpack Tool | MC Toolkit')}`;
+  }
+
+  const waEl = document.getElementById('toolShareWhatsApp');
+  if (waEl) {
+    waEl.href = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText + ' 👉 ' + toolUrl)}`;
+  }
+
+  const tgEl = document.getElementById('toolShareTelegram');
+  if (tgEl) {
+    tgEl.href = `https://t.me/share/url?url=${encodeURIComponent(toolUrl)}&text=${encodeURIComponent(shareText)}`;
+  }
+
+  const fbEl = document.getElementById('toolShareFacebook');
+  if (fbEl) {
+    fbEl.href = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(toolUrl)}`;
+  }
+
+  // Native share check
+  const nativeWrap = document.getElementById('toolShareNativeWrap');
+  if (nativeWrap) {
+    nativeWrap.style.display = (navigator && navigator.share) ? 'block' : 'none';
+  }
+
+  const modal = document.getElementById('toolShareOverlay');
+  if (modal) modal.classList.add('open');
+}
+
+function closeToolShareModal() {
+  const modal = document.getElementById('toolShareOverlay');
+  if (modal) modal.classList.remove('open');
+}
+
+function copyToolShareUrl() {
+  const input = document.getElementById('toolShareUrlInput');
+  if (!input) return;
+  const url = input.value;
+  
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(() => {
+      showToast('🔗 Tool-Link in Zwischenablage kopiert!');
+      const btnText = document.getElementById('toolShareCopyBtnText');
+      if (btnText) {
+        btnText.textContent = 'Kopiert!';
+        setTimeout(() => { btnText.textContent = 'Kopieren'; }, 2000);
+      }
+    }).catch(() => {
+      fallbackCopyToolUrl(input);
+    });
+  } else {
+    fallbackCopyToolUrl(input);
+  }
+}
+
+function fallbackCopyToolUrl(input) {
+  input.select();
+  try {
+    document.execCommand('copy');
+    showToast('🔗 Tool-Link in Zwischenablage kopiert!');
+  } catch (err) {
+    showToast('⚠ Bitte kopiere den Link manuell');
+  }
+}
+
+function copyToolDiscordFormat() {
+  if (!currentSharedTool) return;
+  const origin = window.location.origin || (window.location.protocol + '//' + window.location.host);
+  const toolUrl = `${origin}/tools/${currentSharedTool.slug}`;
+  const text = `**${currentSharedTool.title} | MC Toolkit** ⚡\n${currentSharedTool.sub}\n👉 ${toolUrl}`;
+  
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => {
+      showToast('💬 Discord-Nachricht in Zwischenablage kopiert!');
+    }).catch(() => {
+      showToast('💬 Formatierter Text kopiert!');
+    });
+  } else {
+    showToast('💬 ' + text);
+  }
+}
+
+function nativeShareTool() {
+  if (!currentSharedTool) return;
+  const origin = window.location.origin || (window.location.protocol + '//' + window.location.host);
+  const toolUrl = `${origin}/tools/${currentSharedTool.slug}`;
+  if (navigator.share) {
+    navigator.share({
+      title: `${currentSharedTool.title} - MC Toolkit`,
+      text: `${currentSharedTool.sub}`,
+      url: toolUrl
+    }).catch(err => {
+      if (err.name !== 'AbortError') console.warn('Native share cancelled/failed:', err);
+    });
+  } else {
+    copyToolShareUrl();
+  }
+}
+
 

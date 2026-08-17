@@ -1,0 +1,37 @@
+{
+  "entities": {
+    "users": {
+      "fields": {
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      }
+    },
+    "profiles": {
+      "fields": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "data": { "type": "object" },
+        "updatedAt": { "type": "string" }
+      }
+    },
+    "public_packs": {
+      "fields": {
+        "packCode": { "type": "string" },
+        "name": { "type": "string" },
+        "desc": { "type": "string" },
+        "category": { "type": "string" },
+        "mcVersion": { "type": "string" },
+        "platform": { "type": "string" },
+        "mods": { "type": "array" },
+        "resourcepacks": { "type": "array" },
+        "userId": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "likes": { "type": "number" },
+        "createdAt": { "type": "string" }
+      }
+    }
+  }
+}

@@ -19,7 +19,10 @@
   --font:    'Syne', sans-serif;
   --mono:    'DM Mono', monospace;
 }
-html { scroll-behavior: smooth; }
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 72px;
+}
 body {
   background: var(--bg);
   color: var(--text);
@@ -507,7 +510,7 @@ nav {
 .primary-card-top-tag {
   position: absolute;
   top: 14px;
-  right: 16px;
+  left: 20px;
   font-size: 0.65rem;
   font-weight: 800;
   letter-spacing: 0.06em;
@@ -669,6 +672,48 @@ nav {
 
 .tool-card * {
   pointer-events: none;
+}
+
+.tool-card-titles {
+  flex: 1;
+  min-width: 0;
+}
+
+.tool-card-share-btn {
+  pointer-events: auto !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  color: var(--sub);
+  font-family: var(--font);
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  flex-shrink: 0;
+  margin-left: auto;
+  z-index: 5;
+}
+
+.tool-card-share-btn:hover {
+  background: rgba(168, 85, 247, 0.15);
+  border-color: rgba(168, 85, 247, 0.4);
+  color: #c084fc;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.tool-card-share-btn:active {
+  transform: translateY(0);
+}
+
+.tool-card-share-btn svg {
+  pointer-events: none;
+  stroke: currentColor;
 }
 
 .tool-card:focus-visible {
@@ -901,7 +946,7 @@ nav {
 .hero-stat .lbl { font-size: .73rem; color: var(--muted); letter-spacing: .04em; }
 
 /* SECTIONS */
-section { padding: 6rem 2rem; scroll-margin-top: 62px; }
+section { padding: 6rem 2rem; scroll-margin-top: 72px; }
 .section-inner { max-width: 1100px; margin: 0 auto; }
 .section-tag {
   display: inline-block; font-size: .72rem; font-weight: 700; letter-spacing: .1em;
@@ -3391,6 +3436,30 @@ body.light .scan-item-result.pending {
 .auth-divider { display: flex; align-items: center; gap: 10px; margin: 1rem 0; font-size: .72rem; color: var(--muted); }
 .auth-divider::before, .auth-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 
+.auth-google-btn {
+  width: 100%; padding: 11px 16px; border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.15); background: #ffffff;
+  color: #1f2937; font-family: var(--font); font-size: .88rem; font-weight: 700;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
+  transition: all .2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  margin-bottom: 8px;
+}
+.auth-google-btn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+.auth-google-btn:active {
+  transform: translateY(0);
+}
+.auth-google-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .auth-github-btn {
   width: 100%; padding: 11px; border-radius: 10px;
   border: 1px solid var(--border2); background: var(--bg3);
@@ -5409,6 +5478,182 @@ undefined
   transform: translateY(-1px);
   filter: brightness(1.15);
 }
+
+/* ── Tool Social Share Modal ── */
+.tool-share-modal {
+  max-width: 520px;
+  width: 100%;
+}
+
+.tool-share-preview {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 1.25rem;
+}
+
+.tool-share-preview-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  background: rgba(168, 85, 247, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.45rem;
+  flex-shrink: 0;
+}
+
+.tool-share-preview-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.tool-share-preview-info h4 {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--text);
+  margin: 0 0 3px;
+}
+
+.tool-share-preview-info p {
+  font-size: 0.79rem;
+  color: var(--sub);
+  margin: 0;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tool-share-section-title {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin-bottom: 0.65rem;
+}
+
+.tool-share-social-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 1.25rem;
+}
+
+@media (max-width: 480px) {
+  .tool-share-social-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.tool-social-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 12px;
+  border-radius: 10px;
+  font-family: var(--font);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-decoration: none;
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.tool-social-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+}
+
+.tool-social-btn.twitter:hover {
+  background: #000;
+  border-color: rgba(255, 255, 255, 0.35);
+  color: #fff;
+}
+
+.tool-social-btn.discord:hover {
+  background: #5865F2;
+  border-color: #5865F2;
+  color: #fff;
+}
+
+.tool-social-btn.reddit:hover {
+  background: #FF4500;
+  border-color: #FF4500;
+  color: #fff;
+}
+
+.tool-social-btn.whatsapp:hover {
+  background: #25D366;
+  border-color: #25D366;
+  color: #000;
+}
+
+.tool-social-btn.telegram:hover {
+  background: #229ED9;
+  border-color: #229ED9;
+  color: #fff;
+}
+
+.tool-social-btn.facebook:hover {
+  background: #1877F2;
+  border-color: #1877F2;
+  color: #fff;
+}
+
+.tool-share-link-box {
+  display: flex;
+  gap: 8px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 6px 6px 6px 14px;
+  align-items: center;
+}
+
+.tool-share-link-box input {
+  background: none;
+  border: none;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  width: 100%;
+  outline: none;
+}
+
+.tool-share-copy-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: none;
+  background: var(--green);
+  color: #000;
+  font-family: var(--font);
+  font-size: 0.8rem;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.tool-share-copy-btn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
 
 
 

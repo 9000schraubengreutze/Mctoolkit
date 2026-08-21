@@ -1,0 +1,8 @@
+{
+  "name": "MC Toolkit – Modpack Builder",
+  "description": "Dein All-in-One Minecraft Modpack Builder. Erstelle, repariere und merge Fabric Modpacks direkt im Browser.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

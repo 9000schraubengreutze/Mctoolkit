@@ -3,17 +3,81 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="MC Toolkit – Dein All-in-One Minecraft Modpack Builder. Erstelle, repariere und merge Fabric Modpacks direkt im Browser.">
-<meta name="keywords" content="Minecraft, Modpack, Modrinth, Fabric, Builder, Crystal, PvP">
-<meta property="og:title" content="MC Toolkit – Modpack Builder">
-<meta property="og:description" content="Dein All-in-One Minecraft Modpack Builder. Erstelle, repariere und merge Fabric Modpacks.">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.modrinth.com https://cdn.modrinth.com https://media.forgecdn.net https://*.curseforge.com https://*.googleusercontent.com https://avatars.githubusercontent.com https://mc-heads.net https://minotar.net https://crafatar.com; connect-src 'self' https://api.modrinth.com https://api.curseforge.com https://*.firebaseio.com https://*.googleapis.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.supabase.co wss://*.firebaseio.com wss://*.supabase.co blob:; worker-src 'self' blob:; frame-src 'self' https://*.firebaseapp.com https://accounts.google.com; object-src 'none'; base-uri 'self'; form-action 'self';">
+<meta name="theme-color" content="#0b0c16">
+<meta name="author" content="MC Toolkit">
+<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+<meta name="description" content="MC Toolkit – Dein All-in-One Minecraft Modpack Builder. Erstelle, repariere, merge und konvertiere Fabric & CurseForge Modpacks direkt im Browser.">
+<meta name="keywords" content="Minecraft, Modpack, Modrinth, Fabric, Builder, Modpack Converter, CurseForge, Crystal PvP, Performance, Open Source">
+<link rel="canonical" href="https://mctoolkit.vercel.app/">
+
+<!-- Open Graph / Facebook -->
 <meta property="og:type" content="website">
-<title>MC Toolkit – Modpack Builder</title>
+<meta property="og:url" content="https://mctoolkit.vercel.app/">
+<meta property="og:site_name" content="MC Toolkit">
+<meta property="og:locale" content="de_DE">
+<meta property="og:title" content="MC Toolkit – All-in-One Minecraft Modpack Builder">
+<meta property="og:description" content="Dein All-in-One Minecraft Modpack Builder. Erstelle, repariere, merge und konvertiere Fabric & CurseForge Modpacks direkt im Browser.">
+<meta property="og:image" content="https://mctoolkit.vercel.app/og-image.png">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:url" content="https://mctoolkit.vercel.app/">
+<meta name="twitter:title" content="MC Toolkit – Minecraft Modpack Builder">
+<meta name="twitter:description" content="Erstelle, repariere, merge und konvertiere Minecraft Modpacks direkt im Browser.">
+<meta name="twitter:image" content="https://mctoolkit.vercel.app/og-image.png">
+
+<title>MC Toolkit – Modpack Builder &amp; Tools</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230d1117'/><text y='.9em' font-size='72' x='12'>⚡</text></svg>">
+
+<!-- Performance Preconnects -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://api.modrinth.com" crossorigin>
+<link rel="preconnect" href="https://cdn.modrinth.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
+
+<!-- JSON-LD Structured Data Schema -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": "https://mctoolkit.vercel.app/#website",
+      "url": "https://mctoolkit.vercel.app/",
+      "name": "MC Toolkit",
+      "description": "All-in-One Minecraft Modpack Builder & Tools",
+      "inLanguage": "de-DE"
+    },
+    {
+      "@type": "WebApplication",
+      "@id": "https://mctoolkit.vercel.app/#app",
+      "name": "MC Toolkit – Minecraft Modpack Builder",
+      "url": "https://mctoolkit.vercel.app/",
+      "applicationCategory": "GameApplication",
+      "operatingSystem": "All",
+      "softwareVersion": "3.0.0",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "EUR"
+      },
+      "featureList": [
+        "Modpack Generator",
+        "Pack Converter (CurseForge to Modrinth)",
+        "Pack Repair & Auto-Fix",
+        "Compatibility Checker",
+        "Community Public Packs",
+        "Modpack Merger"
+      ],
+      "browserRequirements": "Requires JavaScript. Requires HTML5."
+    }
+  ]
+}
+</script>
+
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -21,9 +85,12 @@
 </head>
 <body>
 
+<!-- Accessibility Skip Link -->
+<a href="#main-content" class="skip-link">Zum Hauptinhalt springen</a>
+
 <!-- ═══════════════════════ NAV ════════════════════════════════════════════ -->
-<nav>
-  <a href="/" class="nav-logo" onclick="navigateTo('/', event)">
+<nav aria-label="Hauptnavigation">
+  <a href="/" class="nav-logo" onclick="navigateTo('/', event)" aria-label="MC Toolkit Startseite">
     <div class="nav-logo-icon">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
     </div>
@@ -35,39 +102,39 @@
     <a href="/" onclick="navigateTo('/', event)" class="nav-link">Home</a>
     
     <div class="nav-dropdown" id="toolsNavDropdown">
-      <button class="nav-link nav-dropdown-btn" onclick="toggleToolsDropdown(event)">
+      <button class="nav-link nav-dropdown-btn" onclick="toggleToolsDropdown(event)" aria-expanded="false" aria-haspopup="true" aria-label="Tools Menü umschalten">
         Tools <span class="nav-caret">▾</span>
       </button>
-      <div class="tools-dropdown-menu" id="toolsDropdownMenu">
-        <a href="/tools/modpack-generator" onclick="openToolRoute('builder', 'modpack-generator', event)" class="td-item">
+      <div class="tools-dropdown-menu" id="toolsDropdownMenu" role="menu">
+        <a href="/tools/modpack-generator" onclick="openToolRoute('builder', 'modpack-generator', event)" class="td-item" role="menuitem">
           <span class="td-icon purple">🧩</span>
           <div>
             <div class="td-title">Modpack Generator</div>
             <div class="td-desc">Aus Modliste erstellen</div>
           </div>
         </a>
-        <a href="/tools/pack-converter" onclick="openToolRoute('convert', 'pack-converter', event)" class="td-item">
+        <a href="/tools/pack-converter" onclick="openToolRoute('convert', 'pack-converter', event)" class="td-item" role="menuitem">
           <span class="td-icon green">🔄</span>
           <div>
             <div class="td-title">Pack Converter</div>
             <div class="td-desc">CurseForge ↔ Modrinth</div>
           </div>
         </a>
-        <a href="/tools/pack-repair" onclick="openToolRoute('fix', 'pack-repair', event)" class="td-item">
+        <a href="/tools/pack-repair" onclick="openToolRoute('fix', 'pack-repair', event)" class="td-item" role="menuitem">
           <span class="td-icon orange">🔥</span>
           <div>
             <div class="td-title">Pack Repair</div>
             <div class="td-desc">Packs reparieren</div>
           </div>
         </a>
-        <a href="/tools/compatibility-checker" onclick="openToolRoute('upgrade', 'compatibility-checker', event)" class="td-item">
+        <a href="/tools/compatibility-checker" onclick="openToolRoute('upgrade', 'compatibility-checker', event)" class="td-item" role="menuitem">
           <span class="td-icon yellow">⚡</span>
           <div>
             <div class="td-title">Compatibility Checker</div>
             <div class="td-desc">Versionen prüfen</div>
           </div>
         </a>
-        <a href="/tools/public-packs" onclick="openToolRoute('community', 'public-packs', event)" class="td-item">
+        <a href="/tools/public-packs" onclick="openToolRoute('community', 'public-packs', event)" class="td-item" role="menuitem">
           <span class="td-icon purple">🌐</span>
           <div>
             <div class="td-title">Public Packs</div>
@@ -85,12 +152,12 @@
   <!-- Settings Button top-right -->
   <div style="position:relative;margin-left:auto;display:flex;align-items:center;gap:8px">
 
-    <a href="https://github.com/9000schraubengreutze/Mctoolkit" target="_blank" rel="noopener" class="nav-github-link" title="GitHub Repository">
+    <a href="https://github.com/9000schraubengreutze/Mctoolkit" target="_blank" rel="noopener" class="nav-github-link" title="GitHub Repository" aria-label="GitHub Repository öffnen">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
       <span>GitHub</span>
     </a>
 
-    <button class="nav-settings-btn" id="navSettingsBtn" onclick="toggleSettingsPanel()">
+    <button class="nav-settings-btn" id="navSettingsBtn" onclick="toggleSettingsPanel()" aria-expanded="false" aria-haspopup="true" aria-label="Einstellungen und Profil öffnen">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       <span class="ns-username" id="navSettingsLabel" data-i18n="nav_settings">Einstellungen</span>
     </button>
@@ -109,8 +176,8 @@
           <div class="sp-theme-row">
             <span data-i18n="sp_theme">Theme</span>
             <div class="sp-theme-btns">
-              <button onclick="setTheme('dark')"  id="themeOptDark"  class="ud-theme-opt active" title="Dunkel">🌙</button>
-              <button onclick="setTheme('light')" id="themeOptLight" class="ud-theme-opt"        title="Hell">☀️</button>
+              <button onclick="setTheme('dark')"  id="themeOptDark"  class="ud-theme-opt active" title="Dunkel" aria-label="Dunkles Design aktivieren">🌙</button>
+              <button onclick="setTheme('light')" id="themeOptLight" class="ud-theme-opt"        title="Hell" aria-label="Helles Design aktivieren">☀️</button>
             </div>
           </div>
         </div>
@@ -156,8 +223,8 @@
           <div class="sp-theme-row">
             <span data-i18n="sp_theme">Theme</span>
             <div class="sp-theme-btns">
-              <button onclick="setTheme('dark')"  id="themeOptDark2"  class="ud-theme-opt active" title="Dunkel">🌙</button>
-              <button onclick="setTheme('light')" id="themeOptLight2" class="ud-theme-opt"        title="Hell">☀️</button>
+              <button onclick="setTheme('dark')"  id="themeOptDark2"  class="ud-theme-opt active" title="Dunkel" aria-label="Dunkles Design aktivieren">🌙</button>
+              <button onclick="setTheme('light')" id="themeOptLight2" class="ud-theme-opt"        title="Hell" aria-label="Helles Design aktivieren">☀️</button>
             </div>
           </div>
         </div>
@@ -172,6 +239,9 @@
     </div>
   </div>
 </nav>
+
+<!-- ═══════════════════════ MAIN CONTENT ══════════════════════════════════ -->
+<main id="main-content">
 
 <!-- ═══════════════════════ HERO ═══════════════════════════════════════════ -->
 <section class="hero" id="home">
@@ -2211,6 +2281,7 @@
   </div>
 
 </section>
+</main>
 
 <!-- ═══════════════════════ FOOTER ════════════════════════════════════════ -->
 <footer>

@@ -119,7 +119,37 @@ async function loadPublicPacks(force = false) {
 
   try {
     let packs = [];
-    if (fbDb) {
+    // 1. Try Cloud SQL API first
+    try {
+      const res = await fetch('/api/db/public_packs');
+      if (res.ok) {
+        const sqlPacks = await res.json();
+        if (Array.isArray(sqlPacks) && sqlPacks.length > 0) {
+          packs = sqlPacks.map(p => ({
+            id: p.pack_code || p.id,
+            pack_code: p.pack_code,
+            name: p.name,
+            description: p.description,
+            category: p.category,
+            platform: p.platform,
+            mc_version: p.mc_version,
+            mods: p.mods,
+            resource_packs: p.resource_packs,
+            user_id: p.user_id,
+            username: p.username,
+            user_email: p.user_email,
+            mod_count: p.mod_count,
+            likes: p.likes,
+            created_at: p.created_at
+          }));
+        }
+      }
+    } catch (sqlErr) {
+      console.warn('Cloud SQL loadPublicPacks:', sqlErr);
+    }
+
+    // 2. Fallback to Firestore if Cloud SQL didn't return packs
+    if (!packs.length && fbDb) {
       try {
         const snap = await fbDb.collection('public_packs')
           .orderBy('created_at', 'desc')
@@ -237,6 +267,12 @@ async function likeCommunityPack(id, btn) {
   btn.disabled = true;
   btn.textContent = '❤ +1';
   try {
+    // 1. Cloud SQL like
+    try {
+      await fetch(`/api/db/public_packs/${encodeURIComponent(id)}/like`, { method: 'POST' });
+    } catch (_) {}
+
+    // 2. Firestore like fallback/sync
     if (fbDb && typeof firebase !== 'undefined' && firebase.firestore) {
       await fbDb.collection('public_packs').doc(id).update({
         likes: firebase.firestore.FieldValue.increment(1)
@@ -3011,6 +3047,78 @@ try {
   }
 } catch (_) {}
 
+/* ══ CLOUD SQL API CLIENT HELPERS ═════════════════════════════════ */
+async function getCloudSqlAuthToken() {
+  if (fbAuth && fbAuth.currentUser) {
+    try {
+      return await fbAuth.currentUser.getIdToken();
+    } catch (_) {}
+  }
+  return null;
+}
+
+async function cloudSqlRequest(endpoint, options = {}) {
+  const token = await getCloudSqlAuthToken();
+  const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  const res = await fetch(endpoint, {
+    ...options,
+    headers
+  });
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(errData.error || `HTTP ${res.status}`);
+  }
+  return await res.json();
+}
+
+async function syncUserToCloudSql(user, preferences = null) {
+  if (!user) return;
+  try {
+    const prefs = preferences || {
+      theme: localStorage.getItem('mctoolkit_theme') || 'dark',
+      mcVersion: document.getElementById('mcVersion')?.value || '1.21.1',
+      platform: typeof selectedPlatform !== 'undefined' ? selectedPlatform : 'modrinth'
+    };
+    await cloudSqlRequest('/api/db/user/sync', {
+      method: 'POST',
+      body: JSON.stringify({
+        uid: user.uid || user.id,
+        email: user.email || '',
+        displayName: user.displayName || user.email?.split('@')[0] || 'Nutzer',
+        photoUrl: user.photoURL || null,
+        preferences: prefs
+      })
+    });
+  } catch (err) {
+    console.warn('Cloud SQL user sync:', err.message);
+  }
+}
+
+async function fetchUserPreferencesFromCloudSql() {
+  try {
+    const data = await cloudSqlRequest('/api/db/user/preferences', { method: 'GET' });
+    return data?.preferences || null;
+  } catch (err) {
+    console.warn('Cloud SQL preferences fetch:', err.message);
+    return null;
+  }
+}
+
+async function saveUserPreferencesToCloudSql(prefs) {
+  if (!currentUser) return;
+  try {
+    await cloudSqlRequest('/api/db/user/preferences', {
+      method: 'POST',
+      body: JSON.stringify({ preferences: prefs })
+    });
+  } catch (err) {
+    console.warn('Cloud SQL preferences save:', err.message);
+  }
+}
+
 /* ══ AUTH STATE ════════════════════════════════════════════════ */
 if (fbAuth) {
   fbAuth.onAuthStateChanged(user => {
@@ -3024,7 +3132,26 @@ if (fbAuth) {
       };
       updateNavAuth();
       closeAuth();
-      // Sync to firestore user doc
+
+      // 1. Sync user and load preferences from Cloud SQL
+      syncUserToCloudSql(currentUser);
+      fetchUserPreferencesFromCloudSql().then(prefs => {
+        if (prefs) {
+          if (prefs.theme) {
+            localStorage.setItem('mctoolkit_theme', prefs.theme);
+            document.documentElement.setAttribute('data-theme', prefs.theme);
+            document.getElementById('themeOptDark')?.classList.toggle('active', prefs.theme === 'dark');
+            document.getElementById('themeOptLight')?.classList.toggle('active', prefs.theme === 'light');
+            document.getElementById('themeOptDark2')?.classList.toggle('active', prefs.theme === 'dark');
+            document.getElementById('themeOptLight2')?.classList.toggle('active', prefs.theme === 'light');
+          }
+          if (prefs.mcVersion && document.getElementById('mcVersion')) {
+            document.getElementById('mcVersion').value = prefs.mcVersion;
+          }
+        }
+      });
+
+      // 2. Sync to firestore user doc as fallback
       if (fbDb) {
         fbDb.collection('users').doc(user.uid).set({
           email: currentUser.email,
@@ -3357,6 +3484,21 @@ async function migrateLocalToCloud() {
   let count = 0;
   for (const p of local) {
     try {
+      // 1. Save to Cloud SQL
+      try {
+        await cloudSqlRequest('/api/db/profiles', {
+          method: 'POST',
+          body: JSON.stringify({
+            name: p.name || 'Mein Pack',
+            data: p
+          })
+        });
+        count++;
+      } catch (sqlErr) {
+        console.warn('Cloud SQL migrate profile:', sqlErr);
+      }
+
+      // 2. Backup to Firestore
       if (fbDb) {
         const docId = `${currentUser.uid}_${sanitizeProfileKey(p.name)}`;
         await fbDb.collection('profiles').doc(docId).set({
@@ -3367,7 +3509,6 @@ async function migrateLocalToCloud() {
           updatedAt: new Date().toISOString(),
           updated_at: new Date().toISOString()
         }, { merge: true });
-        count++;
       } else if (sb) {
         await sb.from('profiles').upsert({
           user_id: currentUser.id,
@@ -3375,14 +3516,13 @@ async function migrateLocalToCloud() {
           data: p,
           updated_at: new Date().toISOString()
         }, { onConflict: 'user_id,name' });
-        count++;
       }
     } catch (e) {
       console.warn('Profile sync error:', e);
     }
   }
   if (count > 0) {
-    showToast('☁ ' + count + ' lokale Profile in die Cloud synchronisiert', 3500);
+    showToast('☁ ' + count + ' lokale Profile in Cloud SQL synchronisiert', 3500);
   }
 }
 
@@ -3409,8 +3549,23 @@ async function saveProfile() {
   };
 
   if (currentUser) {
-    // Save to Firestore cloud
+    // Save to Cloud SQL + Firestore cloud
     try {
+      let savedToSql = false;
+      try {
+        await cloudSqlRequest('/api/db/profiles', {
+          method: 'POST',
+          body: JSON.stringify({
+            name: name,
+            data: profile
+          })
+        });
+        savedToSql = true;
+      } catch (sqlErr) {
+        console.warn('Cloud SQL profile save failed, falling back to Firestore:', sqlErr);
+      }
+
+      // Also sync to Firestore
       if (fbDb) {
         const docId = `${currentUser.uid}_${sanitizeProfileKey(name)}`;
         await fbDb.collection('profiles').doc(docId).set({
@@ -3428,11 +3583,11 @@ async function saveProfile() {
           data:       profile,
           updated_at: new Date().toISOString()
         }, { onConflict: 'user_id,name' });
-        if (error) throw error;
+        if (error && !savedToSql) throw error;
       }
       if (msg) {
         msg.style.color = 'var(--green)';
-        msg.textContent = '☁ Profil in der Cloud gespeichert!';
+        msg.textContent = '☁ Profil in der Cloud SQL Datenbank gespeichert!';
       }
     } catch (error) {
       if (msg) {
@@ -3459,7 +3614,19 @@ async function loadProfile(idOrName) {
   let p = null;
   if (currentUser) {
     try {
-      if (fbDb) {
+      // 1. Try Cloud SQL first
+      try {
+        const sqlProfiles = await cloudSqlRequest('/api/db/profiles', { method: 'GET' });
+        if (Array.isArray(sqlProfiles)) {
+          const match = sqlProfiles.find(r => r.name === idOrName || r.id == idOrName);
+          if (match && match.data) p = match.data;
+        }
+      } catch (sqlErr) {
+        console.warn('Cloud SQL load profile error:', sqlErr);
+      }
+
+      // 2. Fallback to Firestore
+      if (!p && fbDb) {
         const docId = `${currentUser.uid}_${sanitizeProfileKey(idOrName)}`;
         const docSnap = await fbDb.collection('profiles').doc(docId).get();
         if (docSnap.exists) {
@@ -3517,6 +3684,16 @@ async function loadProfile(idOrName) {
 async function deleteProfile(idOrName) {
   if (currentUser) {
     try {
+      // 1. Delete from Cloud SQL
+      try {
+        await cloudSqlRequest(`/api/db/profiles/${encodeURIComponent(idOrName)}`, {
+          method: 'DELETE'
+        });
+      } catch (sqlErr) {
+        console.warn('Cloud SQL delete profile error:', sqlErr);
+      }
+
+      // 2. Delete from Firestore
       if (fbDb) {
         const docId = `${currentUser.uid}_${sanitizeProfileKey(idOrName)}`;
         await fbDb.collection('profiles').doc(docId).delete();
@@ -3547,7 +3724,23 @@ async function renderProfileList() {
   let isCloud = false;
 
   if (currentUser) {
-    if (fbDb) {
+    // 1. Try Cloud SQL first
+    try {
+      const sqlRows = await cloudSqlRequest('/api/db/profiles', { method: 'GET' });
+      if (Array.isArray(sqlRows) && sqlRows.length > 0) {
+        profiles = sqlRows.map(row => ({
+          ...row.data,
+          _name: row.name,
+          _updatedAt: row.updated_at || row.updatedAt
+        }));
+        isCloud = true;
+      }
+    } catch (sqlErr) {
+      console.warn('Cloud SQL renderProfileList:', sqlErr);
+    }
+
+    // 2. Fallback to Firestore if empty
+    if (!profiles.length && fbDb) {
       try {
         const qSnap = await fbDb.collection('profiles')
           .where('userId', '==', currentUser.uid)
@@ -3556,7 +3749,7 @@ async function renderProfileList() {
           const row = doc.data();
           return { ...row.data, _name: row.name, _updatedAt: row.updatedAt || row.updated_at };
         });
-        isCloud = true;
+        if (profiles.length) isCloud = true;
       } catch (fbErr) {
         console.warn('Firestore load profiles error:', fbErr);
       }
@@ -3567,7 +3760,7 @@ async function renderProfileList() {
           .select('name, data, updated_at')
           .eq('user_id', currentUser.id)
           .order('updated_at', { ascending: false });
-        if (!error && data) {
+        if (!error && data && data.length) {
           profiles = data.map(row => ({ ...row.data, _name: row.name, _updatedAt: row.updated_at }));
           isCloud = true;
         }
@@ -3590,7 +3783,7 @@ async function renderProfileList() {
   profiles.forEach(p => {
     const key  = isCloud ? (p._name || p.name) : p.id;
     const rpTx = p.rps?.length ? ' · ' + p.rps.length + ' TP' : '';
-    const badge = isCloud ? '<span class="cloud-badge">☁ Cloud</span>' : '';
+    const badge = isCloud ? '<span class="cloud-badge">☁ Cloud SQL</span>' : '';
     const saved = isCloud
       ? (p._updatedAt ? new Date(p._updatedAt).toLocaleString('de-DE') : 'Gerade eben')
       : (p.savedAt || '?');
@@ -4409,6 +4602,17 @@ async function submitSharePack() {
   };
 
   try {
+    // 1. Save to Cloud SQL API
+    try {
+      await cloudSqlRequest('/api/db/public_packs', {
+        method: 'POST',
+        body: JSON.stringify(packData)
+      });
+    } catch (sqlErr) {
+      console.warn('Cloud SQL publishPack failed, falling back:', sqlErr);
+    }
+
+    // 2. Backup to Firestore/Supabase
     if (fbDb) {
       await fbDb.collection('public_packs').doc(packCode).set(packData);
     } else if (sb) {
@@ -4445,7 +4649,19 @@ async function loadPackByCode() {
 
   try {
     let data = null;
-    if (fbDb) {
+
+    // 1. Try Cloud SQL first
+    try {
+      const res = await fetch(`/api/db/public_packs/${encodeURIComponent(code)}`);
+      if (res.ok) {
+        data = await res.json();
+      }
+    } catch (sqlErr) {
+      console.warn('Cloud SQL loadPackByCode:', sqlErr);
+    }
+
+    // 2. Fallback to Firestore
+    if (!data && fbDb) {
       const docSnap = await fbDb.collection('public_packs').doc(code).get();
       if (docSnap.exists) {
         data = docSnap.data();
